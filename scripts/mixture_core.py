@@ -50,6 +50,28 @@ def _unpack(theta, comp_types):
     return weights, params
 
 
+def canonicalize_by_weight(comp_types, weights, params_list):
+    """Fix label-switching: within each group of identically-typed components (e.g.
+    the two normals in gauss2), reorder by descending weight. Component order among
+    same-type components is otherwise arbitrary (an artifact of which random restart
+    the optimizer landed on), so without this, two fits with essentially the same
+    density can land far apart in the raw parameter space (theta_from_fit references
+    weight logits against whichever component ends up last)."""
+    groups = {}
+    for i, ct in enumerate(comp_types):
+        groups.setdefault(ct, []).append(i)
+    new_weights = list(weights)
+    new_params = list(params_list)
+    for idxs in groups.values():
+        if len(idxs) < 2:
+            continue
+        order = sorted(idxs, key=lambda i: -weights[i])
+        for slot, src in zip(idxs, order):
+            new_weights[slot] = weights[src]
+            new_params[slot] = params_list[src]
+    return new_weights, new_params
+
+
 def theta_from_fit(comp_types, weights, params_list):
     """Reconstruct the raw unconstrained optimization vector (k-1 weight logits,
     referenced against the last component, plus each component's raw params) from a
