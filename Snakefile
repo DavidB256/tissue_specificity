@@ -12,13 +12,16 @@ PROCESSED = f"{DATA}/processed"
 MODEL_FITS = f"{DATA}/model_fits"
 DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
+UMAP_FIGS = f"{DATA}/tissue_umap"
+UMAP_MODELS = ["exp_skewgauss2"]  # trying UMAP out on this model first
 
 rule all:
     input:
         f"{MODEL_FITS}/model_comparison.csv",
         f"{DATA}/methods.md",
         expand(f"{DIST_FIGS}/{{model}}_grid.png", model=MODEL_NAMES),
-        expand(f"{PCA_FIGS}/{{model}}_pca.png", model=MODEL_NAMES)
+        expand(f"{PCA_FIGS}/{{model}}_pca.png", model=MODEL_NAMES),
+        expand(f"{UMAP_FIGS}/{{model}}_umap.png", model=UMAP_MODELS)
 
 rule preprocess:
     input:
@@ -69,6 +72,14 @@ rule pca_tissue_clustering:
         f"{PCA_FIGS}/{{model}}_pca.png"
     shell:
         "python3 scripts/pca_tissue_clustering.py {wildcards.model} {input} {output}"
+
+rule umap_tissue_clustering:
+    input:
+        f"{MODEL_FITS}/{{model}}_fits.csv"
+    output:
+        f"{UMAP_FIGS}/{{model}}_umap.png"
+    shell:
+        "python3 scripts/umap_tissue_clustering.py {wildcards.model} {input} {output}"
 
 rule write_methods:
     output:
