@@ -21,7 +21,9 @@ rule all:
         f"{DATA}/methods.md",
         expand(f"{DIST_FIGS}/{{model}}_grid.png", model=MODEL_NAMES),
         expand(f"{PCA_FIGS}/{{model}}_pca.png", model=MODEL_NAMES),
-        expand(f"{UMAP_FIGS}/{{model}}_umap.png", model=UMAP_MODELS)
+        expand(f"{UMAP_FIGS}/{{model}}_umap.png", model=UMAP_MODELS),
+        f"{MODEL_FITS}/pca_compressibility_comparison.csv",
+        f"{MODEL_FITS}/pca_compressibility_comparison_allgenes.csv"
 
 rule preprocess:
     input:
@@ -80,6 +82,40 @@ rule umap_tissue_clustering:
         f"{UMAP_FIGS}/{{model}}_umap.png"
     shell:
         "python3 scripts/umap_tissue_clustering.py {wildcards.model} {input} {output}"
+
+rule build_expr_matrix:
+    input:
+        GCT
+    output:
+        f"{PROCESSED}/log10_tpm_intersection_matrix.parquet"
+    shell:
+        "python3 scripts/build_expr_matrix.py {input} {output}"
+
+rule expr_vs_model_pca:
+    input:
+        expr=f"{PROCESSED}/log10_tpm_intersection_matrix.parquet",
+        fits=expand(f"{MODEL_FITS}/{{model}}_fits.csv", model=MODEL_NAMES)
+    output:
+        f"{MODEL_FITS}/pca_compressibility_comparison.csv"
+    shell:
+        "python3 scripts/expr_vs_model_pca.py {input.expr} {MODEL_FITS} {output}"
+
+rule build_expr_matrix_allgenes:
+    input:
+        GCT
+    output:
+        f"{PROCESSED}/log10_tpm_allgenes_floored_matrix.parquet"
+    shell:
+        "python3 scripts/build_expr_matrix_allgenes.py {input} {output}"
+
+rule expr_vs_model_pca_allgenes:
+    input:
+        expr=f"{PROCESSED}/log10_tpm_allgenes_floored_matrix.parquet",
+        fits=expand(f"{MODEL_FITS}/{{model}}_fits.csv", model=MODEL_NAMES)
+    output:
+        f"{MODEL_FITS}/pca_compressibility_comparison_allgenes.csv"
+    shell:
+        "python3 scripts/expr_vs_model_pca.py {input.expr} {MODEL_FITS} {output}"
 
 rule write_methods:
     output:
