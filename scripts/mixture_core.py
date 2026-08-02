@@ -20,7 +20,7 @@ def _raw_to_params(ct, raw):
     if ct == "skewnorm":
         return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "a": float(raw[2])}
     if ct == "t":
-        return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "df": float(np.clip(np.exp(raw[2]), 0.3, 200))}
+        return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "df": float(np.clip(np.exp(np.clip(raw[2], -50, 50)), 0.3, 50))}
     raise ValueError(ct)
 
 
@@ -48,6 +48,19 @@ def _unpack(theta, comp_types):
         params.append(_raw_to_params(ct, theta[idx: idx + npar]))
         idx += npar
     return weights, params
+
+
+def theta_from_fit(comp_types, weights, params_list):
+    """Reconstruct the raw unconstrained optimization vector (k-1 weight logits,
+    referenced against the last component, plus each component's raw params) from a
+    stored fit's constrained weights/params. Inverse of _unpack, used to place tissues
+    in the model's actual fitting parameter space (e.g. for PCA)."""
+    w_last = max(weights[-1], 1e-12)
+    logits = [np.log(max(w, 1e-12) / w_last) for w in weights[:-1]]
+    raw = list(logits)
+    for ct, p in zip(comp_types, params_list):
+        raw += _params_to_raw(ct, p)
+    return np.array(raw, dtype=float)
 
 
 def logpdf(x, ct, params):
