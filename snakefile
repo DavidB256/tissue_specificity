@@ -44,8 +44,24 @@ NHP_SPECIES = {
 }
 NHP_LIST = list(NHP_SPECIES.keys())
 
+# Salmon quantification-error simulation: does deviation from the exp_skewgauss2 fit
+# detect quantification errors? "control" (real reads, unmodified) vs "miscall_k"
+# (k% of read positions randomly changed to a different base), k in 0.01/0.1/1 (%).
+# Reads come from the single largest Kidney CRAM (read-only source, never modified);
+# guided quantification = mapping-based salmon quant against a GENCODE v50 BASIC
+# transcriptome, decoy-aware index (genome as decoy) built from the same reference
+# used to decode the CRAM -- standard current-best-practice salmon indexing; only
+# --recoverOrphans and -p 8 are used as explicit salmon quant flags, per instruction.
+SALMON_SIM = f"{DATA}/salmon_error_sim"
+KIDNEY_CRAM = "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR810007.cram"  # largest Kidney CRAM by size
+REF_GENOME = "/ccb/salz4-4/dbass13/recursive_introns_data/GRCh38/hg38.p12.fa"
+GENCODE_V50_BASIC_URL = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/gencode.v50.basic.annotation.gtf.gz"
+MISCALL_RATES = ["0.01", "0.1", "1"]
+SALMON_CONDITIONS = ["control"] + [f"miscall_{k}" for k in MISCALL_RATES]
+
 wildcard_constraints:
-    species = "macaque|marmoset"
+    species = "macaque|marmoset",
+    k = r"0\.01|0\.1|1"
 
 rule all:
     input:
@@ -58,7 +74,8 @@ rule all:
         f"{MODEL_FITS}/pca_compressibility_comparison_allgenes.csv",
         expand(f"{DATA}/{{species}}/raw/gene_tpm_combined.gct.gz", species=NHP_LIST),
         expand(f"{DATA}/{{species}}/model_fits/model_comparison.csv", species=NHP_LIST),
-        expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES)
+        expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
+        f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png"
 
 rule preprocess:
     input:
@@ -230,3 +247,140 @@ rule write_methods:
         f"{DATA}/methods.md"
     shell:
         "python3 scripts/write_methods.py {output}"
+
+rule download_gencode_v50_basic:
+    output:
+        f"{SALMON_SIM}/ref/gencode.v50.basic.annotation.gtf.gz"
+    params:
+        url=GENCODE_V50_BASIC_URL
+    shell:
+        "curl -sL -o {output} '{params.url}'"
+
+rule extract_reads_from_cram:
+    input:
+        KIDNEY_CRAM
+    output:
+        r1=f"{SALMON_SIM}/reads/control_R1.fastq.gz",
+        r2=f"{SALMON_SIM}/reads/control_R2.fastq.gz"
+    params:
+        genome=REF_GENOME
+    threads: 8
+    shell:
+        "samtools collate -f -@ 8 --reference {params.genome} -O {input} "
+        "| samtools fastq -@ 8 -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -F 0x900 -c 1 -"
+
+rule simulate_miscalls:
+    input:
+        r1=f"{SALMON_SIM}/reads/control_R1.fastq.gz",
+        r2=f"{SALMON_SIM}/reads/control_R2.fastq.gz"
+    output:
+        r1=f"{SALMON_SIM}/reads/miscall_{{k}}_R1.fastq",
+        r2=f"{SALMON_SIM}/reads/miscall_{{k}}_R2.fastq"
+    shell:
+        "python3 scripts/simulate_miscalls.py {input.r1} {input.r2} {wildcards.k} {output.r1} {output.r2} 0"
+
+rule decompress_gtf:
+    input:
+        f"{SALMON_SIM}/ref/gencode.v50.basic.annotation.gtf.gz"
+    output:
+        f"{SALMON_SIM}/ref/gencode.v50.basic.annotation.gtf"
+    shell:
+        "gunzip -k -c {input} > {output}"
+
+rule extract_transcripts_fa:
+    input:
+        gtf=f"{SALMON_SIM}/ref/gencode.v50.basic.annotation.gtf",
+        genome=REF_GENOME
+    output:
+        f"{SALMON_SIM}/ref/transcripts.fa"
+    shell:
+        "/ccb/sw/bin/gffread -w {output} -g {input.genome} {input.gtf}"
+
+rule build_decoys:
+    input:
+        REF_GENOME
+    output:
+        f"{SALMON_SIM}/ref/decoys.txt"
+    shell:
+        "grep '^>' {input} | cut -d ' ' -f1 | sed 's/>//' > {output}"
+
+rule build_gentrome:
+    input:
+        transcripts=f"{SALMON_SIM}/ref/transcripts.fa",
+        genome=REF_GENOME
+    output:
+        f"{SALMON_SIM}/ref/gentrome.fa"
+    shell:
+        "cat {input.transcripts} {input.genome} > {output}"
+
+rule build_salmon_index:
+    input:
+        gentrome=f"{SALMON_SIM}/ref/gentrome.fa",
+        decoys=f"{SALMON_SIM}/ref/decoys.txt"
+    output:
+        directory(f"{SALMON_SIM}/ref/salmon_index")
+    threads: 8
+    shell:
+        "salmon index -t {input.gentrome} -d {input.decoys} -i {output} -p 8"
+
+rule salmon_quant_control:
+    input:
+        r1=f"{SALMON_SIM}/reads/control_R1.fastq.gz",
+        r2=f"{SALMON_SIM}/reads/control_R2.fastq.gz",
+        index=f"{SALMON_SIM}/ref/salmon_index"
+    output:
+        f"{SALMON_SIM}/quant/control/quant.sf"
+    params:
+        outdir=f"{SALMON_SIM}/quant/control"
+    threads: 8
+    shell:
+        "salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p 8 --recoverOrphans -o {params.outdir}"
+
+rule salmon_quant_miscall:
+    input:
+        r1=f"{SALMON_SIM}/reads/miscall_{{k}}_R1.fastq",
+        r2=f"{SALMON_SIM}/reads/miscall_{{k}}_R2.fastq",
+        index=f"{SALMON_SIM}/ref/salmon_index"
+    output:
+        f"{SALMON_SIM}/quant/miscall_{{k}}/quant.sf"
+    params:
+        outdir=f"{SALMON_SIM}/quant/miscall_{{k}}"
+    threads: 8
+    shell:
+        "salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p 8 --recoverOrphans -o {params.outdir}"
+
+rule preprocess_salmon_conditions:
+    input:
+        expand(f"{SALMON_SIM}/quant/{{cond}}/quant.sf", cond=SALMON_CONDITIONS)
+    output:
+        f"{SALMON_SIM}/processed/salmon_conditions_long.parquet"
+    params:
+        args=lambda wc, input: " ".join(f"{c} {f}" for c, f in zip(SALMON_CONDITIONS, input))
+    shell:
+        "python3 scripts/preprocess_salmon_conditions.py {params.args} {output}"
+
+rule fit_exp_skewgauss2_salmon_condition:
+    input:
+        f"{SALMON_SIM}/processed/salmon_conditions_long.parquet"
+    output:
+        f"{SALMON_SIM}/model_fits/by_condition/exp_skewgauss2/{{condition}}.csv"
+    shell:
+        "python3 scripts/fit_one.py exp_skewgauss2 {wildcards.condition} {input} {output}"
+
+rule combine_salmon_condition_fits:
+    input:
+        expand(f"{SALMON_SIM}/model_fits/by_condition/exp_skewgauss2/{{condition}}.csv", condition=SALMON_CONDITIONS)
+    output:
+        f"{SALMON_SIM}/model_fits/exp_skewgauss2_fits.csv"
+    run:
+        dfs = [pd.read_csv(f) for f in input]
+        pd.concat(dfs, ignore_index=True).to_csv(output[0], index=False)
+
+rule plot_salmon_conditions:
+    input:
+        parquet=f"{SALMON_SIM}/processed/salmon_conditions_long.parquet",
+        fits=f"{SALMON_SIM}/model_fits/exp_skewgauss2_fits.csv"
+    output:
+        f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png"
+    shell:
+        "python3 scripts/plot_salmon_conditions.py {input.parquet} {input.fits} {output}"
