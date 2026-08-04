@@ -6,10 +6,9 @@ every tissue row so the whole comparison lives in one tidy, joinable CSV. Per mo
 counts how many of its top-3 PCs (rank-matched: PC1 vs PC1, PC2 vs PC2, PC3 vs PC3)
 explain more variance than the expression data's top-3 PCs."""
 import sys
-import json
 import pandas as pd
 import numpy as np
-from mixture_core import theta_from_fit, canonicalize_by_weight
+from mixture_core import theta_from_fit, canonicalize_by_weight, unflatten_fit
 from model_registry import MODELS
 
 IN_EXPR_MATRIX = sys.argv[1]
@@ -40,7 +39,7 @@ for model, comp_types in MODELS.items():
     fits = pd.read_csv(f"{MODEL_FITS_DIR}/{model}_fits.csv")
     X_model = np.stack([
         theta_from_fit(comp_types, *canonicalize_by_weight(
-            comp_types, json.loads(row.weights), json.loads(row.params)))
+            comp_types, *unflatten_fit(comp_types, row)))
         for _, row in fits.iterrows()
     ])
     model_vars[model] = top3_var_ratio(X_model, standardize=True)

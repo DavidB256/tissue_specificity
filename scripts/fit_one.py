@@ -1,9 +1,8 @@
 """Fit one named mixture model (model_registry.MODELS) to one tissue's log10_tpm. One-row CSV out."""
 import sys
-import json
 import pandas as pd
 from scipy.stats import ks_1samp
-from mixture_core import fit_mixture, mixture_cdf
+from mixture_core import fit_mixture, mixture_cdf, flatten_fit
 from model_registry import MODELS
 
 MODEL = sys.argv[1]
@@ -21,7 +20,6 @@ row = {
     "tissue": TISSUE, "n": len(x), "n_params": fit["n_params"],
     "aic": fit["aic"], "bic": fit["bic"], "loglik": fit["loglik"],
     "ks_stat": ks_stat, "ks_pval": ks_p,
-    "weights": json.dumps(fit["weights"]),
-    "params": json.dumps(fit["params"]),
 }
+row.update(flatten_fit(COMP_TYPES, fit["weights"], fit["params"]))
 pd.DataFrame([row]).to_csv(OUT_CSV, index=False)

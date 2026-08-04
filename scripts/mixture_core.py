@@ -72,6 +72,37 @@ def canonicalize_by_weight(comp_types, weights, params_list):
     return new_weights, new_params
 
 
+COMP_PARAM_KEYS = {
+    "expon": ["rate"],
+    "norm": ["mean", "std"],
+    "skewnorm": ["loc", "scale", "a"],
+    "t": ["loc", "scale", "df"],
+}
+
+
+def flatten_fit(comp_types, weights, params_list):
+    """Flatten a fit's weights/params into a flat {colname: scalar} dict (one value
+    per cell, no embedded lists/dicts): weight_1..weight_k, then comp{i}_{param} for
+    each component's own params, e.g. comp1_rate, comp2_mean, comp2_std, ..."""
+    row = {}
+    for i, w in enumerate(weights):
+        row[f"weight_{i + 1}"] = w
+    for i, (ct, p) in enumerate(zip(comp_types, params_list)):
+        for key in COMP_PARAM_KEYS[ct]:
+            row[f"comp{i + 1}_{key}"] = p[key]
+    return row
+
+
+def unflatten_fit(comp_types, row):
+    """Inverse of flatten_fit: row is a dict-like (e.g. a pandas Series) with
+    weight_i / comp{i}_{key} columns. Returns (weights, params_list)."""
+    weights = [row[f"weight_{i + 1}"] for i in range(len(comp_types))]
+    params_list = []
+    for i, ct in enumerate(comp_types):
+        params_list.append({key: row[f"comp{i + 1}_{key}"] for key in COMP_PARAM_KEYS[ct]})
+    return weights, params_list
+
+
 def theta_from_fit(comp_types, weights, params_list):
     """Reconstruct the raw unconstrained optimization vector (k-1 weight logits,
     referenced against the last component, plus each component's raw params) from a

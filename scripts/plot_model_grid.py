@@ -1,12 +1,11 @@
 """3x3 grid of fits at BIC quantiles 0,12.5,...,100% for one model."""
 import sys
-import json
 import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from mixture_core import logpdf as comp_logpdf
+from mixture_core import logpdf as comp_logpdf, unflatten_fit
 from model_registry import MODELS
 
 MODEL = sys.argv[1]
@@ -26,8 +25,7 @@ for ax, q, i in zip(axes.ravel(), quantiles, idxs):
     row = fits.iloc[i]
     tissue = row.tissue
     x = long_df.loc[long_df.tissue == tissue, "log10_tpm"].values
-    weights = json.loads(row.weights)
-    params = json.loads(row.params)
+    weights, params = unflatten_fit(COMP_TYPES, row)
     ax.hist(x, bins=40, density=True, alpha=0.5, color="steelblue")
     xs = np.linspace(x.min(), x.max(), 500)
     total = np.zeros_like(xs)

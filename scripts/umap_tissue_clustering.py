@@ -1,14 +1,13 @@
 """UMAP of tissues in one model's fitted (unconstrained) parameter space.
 Same standardized theta feature space as pca_tissue_clustering.py."""
 import sys
-import json
 import pandas as pd
 import numpy as np
 import umap
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from mixture_core import theta_from_fit, canonicalize_by_weight
+from mixture_core import theta_from_fit, canonicalize_by_weight, unflatten_fit
 from model_registry import MODELS
 
 MODEL = sys.argv[1]
@@ -23,7 +22,7 @@ fits = pd.read_csv(IN_FITS)
 tissues = fits["tissue"].tolist()
 X = np.stack([
     theta_from_fit(COMP_TYPES, *canonicalize_by_weight(
-        COMP_TYPES, json.loads(row.weights), json.loads(row.params)))
+        COMP_TYPES, *unflatten_fit(COMP_TYPES, row)))
     for _, row in fits.iterrows()
 ])
 
