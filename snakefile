@@ -46,27 +46,40 @@ NHP_LIST = list(NHP_SPECIES.keys())
 
 # Salmon quantification-error simulation: does deviation from the exp_skewgauss2 fit
 # detect quantification errors? "control" (real reads, unmodified) vs "miscall_k"
-# (k% of read positions randomly changed to a different base), k in 0.01/0.1/1 (%).
-# Reads come from the single largest Kidney CRAM (read-only source, never modified);
-# guided quantification = mapping-based salmon quant against a GENCODE v50 BASIC
-# transcriptome, decoy-aware index (genome as decoy) built from the same reference
-# used to decode the CRAM -- standard current-best-practice salmon indexing; only
-# --recoverOrphans and -p 8 are used as explicit salmon quant flags, per instruction.
+# (k% of read positions randomly changed to a different base), k in 1/5 (%).
+# Reads pooled from the 10 largest Kidney CRAMs (read-only source, never modified) --
+# single-CRAM data gave a degenerate single-peak-near-0 TPM distribution, too little
+# data. guided quantification = mapping-based salmon quant against a GENCODE v50
+# BASIC transcriptome, decoy-aware index (genome as decoy) built from the same
+# reference used to decode the CRAMs -- standard current-best-practice salmon
+# indexing; only --recoverOrphans and -p are used as explicit salmon quant flags,
+# per instruction (-p bumped to 20 to use more of this machine's cores).
 SALMON_SIM = f"{DATA}/salmon_error_sim"
-KIDNEY_CRAM = "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR810007.cram"  # largest Kidney CRAM by size
+KIDNEY_CRAMS = [  # 10 largest Kidney CRAMs by size, hardcoded (not wildcarded, per instruction)
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR810007.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1416516.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1325483.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1469746.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR821356.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1380931.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1486080.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1432650.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1445835.cram",
+    "/ccb/salz8-1/avaraby/GTEx_2019_hisat2/Kidney/SRR1443092.cram",
+]
 REF_GENOME = "/ccb/salz4-4/dbass13/recursive_introns_data/GRCh38/hg38.p12.fa"
 GENCODE_V50_BASIC_URL = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/gencode.v50.basic.annotation.gtf.gz"
-MISCALL_RATES = ["0.01", "0.1", "1"]
+MISCALL_RATES = ["1", "5"]
 SALMON_CONDITIONS = ["control"] + [f"miscall_{k}" for k in MISCALL_RATES]
 
 wildcard_constraints:
     species = "macaque|marmoset",
-    k = r"0\.01|0\.1|1"
+    k = r"1|5"
 
 rule all:
     input:
         f"{MODEL_FITS}/model_comparison.csv",
-        f"{DATA}/methods.md",
+        "methods.md",
         expand(f"{DIST_FIGS}/{{model}}_grid.png", model=MODEL_NAMES),
         expand(f"{PCA_FIGS}/{{model}}_pca.png", model=MODEL_NAMES),
         expand(f"{UMAP_FIGS}/{{model}}_umap.png", model=UMAP_MODELS),
@@ -244,7 +257,7 @@ rule expr_vs_model_pca_allgenes:
 
 rule write_methods:
     output:
-        f"{DATA}/methods.md"
+        "methods.md"
     shell:
         "python3 scripts/write_methods.py {output}"
 
@@ -258,16 +271,28 @@ rule download_gencode_v50_basic:
 
 rule extract_reads_from_cram:
     input:
-        KIDNEY_CRAM
+        KIDNEY_CRAMS
     output:
         r1=f"{SALMON_SIM}/reads/control_R1.fastq.gz",
         r2=f"{SALMON_SIM}/reads/control_R2.fastq.gz"
     params:
-        genome=REF_GENOME
-    threads: 8
+        genome=REF_GENOME,
+        tmpdir=f"{SALMON_SIM}/reads/tmp_percram"
+    threads: 16
     shell:
-        "samtools collate -f -@ 8 --reference {params.genome} -O {input} "
-        "| samtools fastq -@ 8 -1 {output.r1} -2 {output.r2} -0 /dev/null -s /dev/null -F 0x900 -c 1 -"
+        """
+        mkdir -p {params.tmpdir}
+        rm -f {output.r1} {output.r2}
+        for cram in {input}; do
+            name=$(basename "$cram" .cram)
+            samtools collate -f -@ 16 --reference {params.genome} -O "$cram" \
+                | samtools fastq -@ 16 -1 {params.tmpdir}/${{name}}_R1.fastq.gz -2 {params.tmpdir}/${{name}}_R2.fastq.gz -0 /dev/null -s /dev/null -F 0x900 -c 1 -
+            cat {params.tmpdir}/${{name}}_R1.fastq.gz >> {output.r1}
+            cat {params.tmpdir}/${{name}}_R2.fastq.gz >> {output.r2}
+            rm -f {params.tmpdir}/${{name}}_R1.fastq.gz {params.tmpdir}/${{name}}_R2.fastq.gz
+        done
+        rmdir {params.tmpdir} 2>/dev/null || true
+        """
 
 rule simulate_miscalls:
     input:
@@ -332,9 +357,9 @@ rule salmon_quant_control:
         f"{SALMON_SIM}/quant/control/quant.sf"
     params:
         outdir=f"{SALMON_SIM}/quant/control"
-    threads: 8
+    threads: 20
     shell:
-        "salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p 8 --recoverOrphans -o {params.outdir}"
+        "salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p 20 --recoverOrphans -o {params.outdir}"
 
 rule salmon_quant_miscall:
     input:
@@ -345,9 +370,9 @@ rule salmon_quant_miscall:
         f"{SALMON_SIM}/quant/miscall_{{k}}/quant.sf"
     params:
         outdir=f"{SALMON_SIM}/quant/miscall_{{k}}"
-    threads: 8
+    threads: 20
     shell:
-        "salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p 8 --recoverOrphans -o {params.outdir}"
+        "salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p 20 --recoverOrphans -o {params.outdir}"
 
 rule preprocess_salmon_conditions:
     input:

@@ -1,11 +1,11 @@
 """Generic 1D mixture-model fitting via direct MLE (scipy.optimize), for arbitrary
 combinations of norm / expon / skewnorm / t components."""
 import numpy as np
-from scipy.stats import norm, expon, skewnorm, t as student_t
+from scipy.stats import norm, expon, skewnorm, t as student_t, beta as beta_dist, gamma as gamma_dist
 from scipy.special import logsumexp
 from scipy.optimize import minimize
 
-COMP_NPARAMS = {"norm": 2, "expon": 1, "skewnorm": 3, "t": 3}
+COMP_NPARAMS = {"norm": 2, "expon": 1, "skewnorm": 3, "t": 3, "beta": 4, "gamma": 3}
 
 
 def n_params(comp_types):
@@ -21,6 +21,13 @@ def _raw_to_params(ct, raw):
         return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "a": float(np.clip(raw[2], -100, 100))}
     if ct == "t":
         return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "df": float(np.clip(np.exp(np.clip(raw[2], -50, 50)), 0.3, 50))}
+    if ct == "beta":
+        return {"a": float(np.clip(np.exp(np.clip(raw[0], -50, 50)), 0.1, 100)),
+                "b": float(np.clip(np.exp(np.clip(raw[1], -50, 50)), 0.1, 100)),
+                "loc": float(raw[2]), "scale": float(np.exp(raw[3]))}
+    if ct == "gamma":
+        return {"a": float(np.clip(np.exp(np.clip(raw[0], -50, 50)), 0.1, 100)),
+                "loc": float(raw[1]), "scale": float(np.exp(raw[2]))}
     raise ValueError(ct)
 
 
@@ -33,6 +40,10 @@ def _params_to_raw(ct, params):
         return [params["loc"], np.log(params["scale"]), params["a"]]
     if ct == "t":
         return [params["loc"], np.log(params["scale"]), np.log(params["df"])]
+    if ct == "beta":
+        return [np.log(params["a"]), np.log(params["b"]), params["loc"], np.log(params["scale"])]
+    if ct == "gamma":
+        return [np.log(params["a"]), params["loc"], np.log(params["scale"])]
     raise ValueError(ct)
 
 
@@ -77,6 +88,8 @@ COMP_PARAM_KEYS = {
     "norm": ["mean", "std"],
     "skewnorm": ["loc", "scale", "a"],
     "t": ["loc", "scale", "df"],
+    "beta": ["a", "b", "loc", "scale"],
+    "gamma": ["a", "loc", "scale"],
 }
 
 
@@ -125,6 +138,10 @@ def logpdf(x, ct, params):
         return skewnorm.logpdf(x, a=params["a"], loc=params["loc"], scale=params["scale"])
     if ct == "t":
         return student_t.logpdf(x, df=params["df"], loc=params["loc"], scale=params["scale"])
+    if ct == "beta":
+        return beta_dist.logpdf(x, a=params["a"], b=params["b"], loc=params["loc"], scale=params["scale"])
+    if ct == "gamma":
+        return gamma_dist.logpdf(x, a=params["a"], loc=params["loc"], scale=params["scale"])
     raise ValueError(ct)
 
 
@@ -137,6 +154,10 @@ def cdf(x, ct, params):
         return skewnorm.cdf(x, a=params["a"], loc=params["loc"], scale=params["scale"])
     if ct == "t":
         return student_t.cdf(x, df=params["df"], loc=params["loc"], scale=params["scale"])
+    if ct == "beta":
+        return beta_dist.cdf(x, a=params["a"], b=params["b"], loc=params["loc"], scale=params["scale"])
+    if ct == "gamma":
+        return gamma_dist.cdf(x, a=params["a"], loc=params["loc"], scale=params["scale"])
     raise ValueError(ct)
 
 
@@ -161,6 +182,7 @@ def _init_theta(x, comp_types, rng):
     k = len(comp_types)
     logits = rng.normal(0, 0.5, size=k - 1)
     q = np.quantile(x, np.linspace(0.15, 0.85, k))
+    xmin, xmax, xrange = x.min(), x.max(), x.max() - x.min()
     raw = []
     for ct, center in zip(comp_types, q):
         center = max(center, 0.05)
@@ -172,6 +194,17 @@ def _init_theta(x, comp_types, rng):
             p = {"loc": center * rng.uniform(0.8, 1.2), "scale": max(x.std() * rng.uniform(0.3, 0.7), 0.05), "a": rng.uniform(-3, 3)}
         elif ct == "t":
             p = {"loc": center * rng.uniform(0.8, 1.2), "scale": max(x.std() * rng.uniform(0.3, 0.7), 0.05), "df": rng.uniform(3, 15)}
+        elif ct == "beta":
+            # bounded support: init must cover the full data range or logpdf is -inf outside it
+            margin = max(xrange * 0.05, 0.05)
+            loc = xmin - margin * rng.uniform(0.5, 1.5)
+            scale = (xmax - loc) + margin * rng.uniform(0.5, 1.5)
+            p = {"a": rng.uniform(1.5, 4), "b": rng.uniform(1.5, 4), "loc": loc, "scale": scale}
+        elif ct == "gamma":
+            # half-bounded support (x >= loc): loc must sit below the data min
+            margin = max(xrange * 0.05, 0.05)
+            loc = xmin - margin * rng.uniform(0.5, 1.5)
+            p = {"a": rng.uniform(1.5, 4), "loc": loc, "scale": max(x.std() * rng.uniform(0.3, 0.7), 0.05)}
         raw += _params_to_raw(ct, p)
     return np.concatenate([logits, raw])
 

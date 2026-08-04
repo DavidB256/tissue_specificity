@@ -10,6 +10,8 @@ COMP_DESC = {
     "norm": "Gaussian (mean, std)",
     "skewnorm": "Skew-normal (loc, scale, shape)",
     "t": "Student-t (loc, scale, df)",
+    "beta": "Beta type I (a, b, loc, scale)",
+    "gamma": "Gamma (a, loc, scale)",
 }
 
 lines = []
@@ -34,12 +36,16 @@ lines.append(
     "shape parameter buys nothing and an unconstrained fit tends to run away toward "
     "df->infinity wherever the data don't need real heavy tails.\n"
 )
+lines.append(
+    "Skew-normal shape (a) is capped at |a|<=100, and beta/gamma shape params (a, b) "
+    "at <=100, for the same reason: an unconstrained fit can run these away to extreme "
+    "values chasing a degenerate near-Gaussian shape.\n"
+)
 lines.append("| model | components | n_params | notes |")
 lines.append("|---|---|---|---|")
 
 NOTES = {
     "gauss2": "baseline mixture, no explicit near-zero handling",
-    "gauss3": "baseline mixture, no explicit near-zero handling",
     "exp_gauss": "exponential absorbs truncation-boundary pileup; single bulk mode",
     "exp_gauss2": "exponential + 2 gaussians for bulk/tail structure",
     "exp_skewgauss": "skew-normal bulk mode instead of symmetric gaussian",
@@ -48,6 +54,8 @@ NOTES = {
     "exp_t": "heavy-tailed (df<=50) bulk mode instead of gaussian",
     "exp_gauss_t": "gaussian bulk + separate heavy-tailed (df<=50) component",
     "exp_skewgauss_t": "skew-normal bulk + separate heavy-tailed (df<=50) component",
+    "exp_beta": "bounded (4-param) beta bulk mode instead of gaussian",
+    "exp_gamma": "half-bounded gamma bulk mode instead of gaussian",
 }
 
 for model, comps in MODELS.items():
