@@ -18,7 +18,7 @@ def _raw_to_params(ct, raw):
     if ct == "norm":
         return {"mean": float(raw[0]), "std": float(np.exp(raw[1]))}
     if ct == "skewnorm":
-        return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "a": float(raw[2])}
+        return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "a": float(np.clip(raw[2], -100, 100))}
     if ct == "t":
         return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "df": float(np.clip(np.exp(np.clip(raw[2], -50, 50)), 0.3, 50))}
     raise ValueError(ct)
