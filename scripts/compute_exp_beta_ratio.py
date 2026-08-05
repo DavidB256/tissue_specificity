@@ -1,7 +1,9 @@
 """Per gene-tissue likelihood ratio of the exp_beta model's exponential component
 vs its beta component, evaluated at each gene's log10(TPM) -- the domain the model
 was fit on (log10(TPM>=1) per tissue). TPM<1 falls outside that domain -> NaN.
-Adds exp_beta_ratio = mean across tissues (ignoring NaN)."""
+Adds exp_beta_ratio = mean across tissues (ignoring NaN), and exp_beta_ratio_median
+= median across tissues (more robust to the occasional extreme per-tissue ratio when
+a gene's expression sits right at the edge of a tissue's fitted beta support)."""
 import sys
 import pandas as pd
 import numpy as np
@@ -35,5 +37,6 @@ for j, t in enumerate(tissues):
 out = pd.DataFrame(ratio_cols)
 out.insert(0, "gene", genes)
 out["exp_beta_ratio"] = out[tissues].mean(axis=1, skipna=True)
+out["exp_beta_ratio_median"] = out[tissues].median(axis=1, skipna=True)
 out.to_csv(OUT_CSV, index=False)
 print(f"genes={len(out)} tissues={len(tissues)}", file=sys.stderr)
