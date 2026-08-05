@@ -14,6 +14,7 @@ DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
 UMAP_FIGS = f"{DATA}/tissue_umap"
 UMAP_MODELS = ["exp_skewgauss2"]  # trying UMAP out on this model first
+GENE_SPEC = f"{DATA}/gene_specificity"
 
 # dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
 # per-tissue-median like the human file. The bucket also publishes a pre-split
@@ -88,7 +89,8 @@ rule all:
         expand(f"{DATA}/{{species}}/raw/gene_tpm_combined.gct.gz", species=NHP_LIST),
         expand(f"{DATA}/{{species}}/model_fits/model_comparison.csv", species=NHP_LIST),
         expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
-        f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png"
+        f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
+        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
 
 rule preprocess:
     input:
@@ -409,3 +411,29 @@ rule plot_salmon_conditions:
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png"
     shell:
         "python3 scripts/plot_salmon_conditions.py {input.parquet} {input.fits} {output}"
+
+rule compute_tau:
+    input:
+        GCT
+    output:
+        f"{GENE_SPEC}/tau.csv"
+    shell:
+        "python3 scripts/compute_tau.py {input} {output}"
+
+rule compute_exp_beta_ratio:
+    input:
+        gct=GCT,
+        fits=f"{MODEL_FITS}/exp_beta_fits.csv"
+    output:
+        f"{GENE_SPEC}/exp_beta_ratio.csv"
+    shell:
+        "python3 scripts/compute_exp_beta_ratio.py {input.gct} {input.fits} {output}"
+
+rule plot_tau_exp_beta:
+    input:
+        tau=f"{GENE_SPEC}/tau.csv",
+        ratio=f"{GENE_SPEC}/exp_beta_ratio.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
+    shell:
+        "python3 scripts/plot_tau_exp_beta.py {input.tau} {input.ratio} {output}"
