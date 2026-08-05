@@ -6,7 +6,7 @@ Component weights are free except for the sum-to-1 constraint (k components -> k
 
 Student-t degrees of freedom is capped at df<=50 (hardcoded clip, not a smooth reparameterization): beyond df~50 a t-distribution is statistically indistinguishable from a Gaussian (excess kurtosis 6/(df-4) < 0.13), so the extra shape parameter buys nothing and an unconstrained fit tends to run away toward df->infinity wherever the data don't need real heavy tails.
 
-Skew-normal shape (a) is capped at |a|<=100, and beta/gamma shape params (a, b) at <=100, for the same reason: an unconstrained fit can run these away to extreme values chasing a degenerate near-Gaussian shape.
+Skew-normal shape (a) is capped at |a|<=100, and gamma shape (a) at <=100, for the same reason: an unconstrained fit can run these away to extreme values chasing a degenerate near-Gaussian shape. Beta shape params (a, b) are bounded to [1, 50]: a,b>=1 keeps the beta concave-down (matches the intended bulk-mode role), and <=50 bounds the search space / prevents runaway.
 
 | model | components | n_params | notes |
 |---|---|---|---|

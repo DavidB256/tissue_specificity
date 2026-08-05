@@ -90,7 +90,8 @@ rule all:
         expand(f"{DATA}/{{species}}/model_fits/model_comparison.csv", species=NHP_LIST),
         expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
-        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
+        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png",
+        f"{GENE_SPEC}/partition_grid_search/summary.csv"
 
 rule preprocess:
     input:
@@ -446,4 +447,34 @@ rule plot_tau_exp_beta:
         f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
     shell:
         "python3 scripts/plot_tau_exp_beta.py {input.tau} {input.posterior} {output}"
+
+PARTITION = f"{GENE_SPEC}/partition_grid_search"
+
+rule partition_grid_search_one:
+    input:
+        gct=GCT,
+        tau=f"{GENE_SPEC}/tau.csv"
+    output:
+        summary=f"{PARTITION}/by_tissue/{{tissue}}_summary.csv",
+        labels=f"{PARTITION}/by_tissue/{{tissue}}_labels.csv"
+    shell:
+        "python3 scripts/partition_grid_search_one.py {wildcards.tissue} {input.gct} {input.tau} {output.summary} {output.labels}"
+
+rule combine_partition_grid_search:
+    input:
+        summaries=expand(f"{PARTITION}/by_tissue/{{tissue}}_summary.csv", tissue=TISSUES),
+        labels=expand(f"{PARTITION}/by_tissue/{{tissue}}_labels.csv", tissue=TISSUES),
+        exp_beta_fits=f"{MODEL_FITS}/exp_beta_fits.csv"
+    output:
+        summary=f"{PARTITION}/summary.csv",
+        labels=f"{PARTITION}/labels.parquet"
+    run:
+        summ = pd.concat([pd.read_csv(f) for f in input.summaries], ignore_index=True)
+        cont = pd.read_csv(input.exp_beta_fits)[["tissue", "n", "bic", "aic", "loglik"]].rename(
+            columns={"n": "n_continuous", "bic": "bic_continuous", "aic": "aic_continuous", "loglik": "loglik_continuous"})
+        summ = summ.merge(cont, on="tissue", how="left")
+        summ["bic_delta"] = summ["bic"] - summ["bic_continuous"]
+        summ.to_csv(output.summary, index=False)
+        labels = pd.concat([pd.read_csv(f) for f in input.labels], ignore_index=True)
+        labels.to_parquet(output.labels, index=False)
 

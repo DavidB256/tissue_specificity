@@ -37,9 +37,11 @@ lines.append(
     "df->infinity wherever the data don't need real heavy tails.\n"
 )
 lines.append(
-    "Skew-normal shape (a) is capped at |a|<=100, and beta/gamma shape params (a, b) "
-    "at <=100, for the same reason: an unconstrained fit can run these away to extreme "
-    "values chasing a degenerate near-Gaussian shape.\n"
+    "Skew-normal shape (a) is capped at |a|<=100, and gamma shape (a) at <=100, for "
+    "the same reason: an unconstrained fit can run these away to extreme values "
+    "chasing a degenerate near-Gaussian shape. Beta shape params (a, b) are bounded "
+    "to [1, 50]: a,b>=1 keeps the beta concave-down (matches the intended bulk-mode "
+    "role), and <=50 bounds the search space / prevents runaway.\n"
 )
 lines.append("| model | components | n_params | notes |")
 lines.append("|---|---|---|---|")

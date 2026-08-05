@@ -22,8 +22,9 @@ def _raw_to_params(ct, raw):
     if ct == "t":
         return {"loc": float(raw[0]), "scale": float(np.exp(raw[1])), "df": float(np.clip(np.exp(np.clip(raw[2], -50, 50)), 0.3, 50))}
     if ct == "beta":
-        return {"a": float(np.clip(np.exp(np.clip(raw[0], -50, 50)), 0.1, 100)),
-                "b": float(np.clip(np.exp(np.clip(raw[1], -50, 50)), 0.1, 100)),
+        # a,b >= 1 (concave-down beta) and <= 50 (bounds the search space, prevents runaway)
+        return {"a": float(np.clip(np.exp(np.clip(raw[0], -50, 50)), 1, 50)),
+                "b": float(np.clip(np.exp(np.clip(raw[1], -50, 50)), 1, 50)),
                 "loc": float(raw[2]), "scale": float(np.exp(raw[3]))}
     if ct == "gamma":
         return {"a": float(np.clip(np.exp(np.clip(raw[0], -50, 50)), 0.1, 100)),
