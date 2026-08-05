@@ -90,7 +90,8 @@ rule all:
         expand(f"{DATA}/{{species}}/model_fits/model_comparison.csv", species=NHP_LIST),
         expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
-        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
+        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png",
+        f"{GENE_SPEC}/figures/ratio_vs_tau_loess_quad.png"
 
 rule preprocess:
     input:
@@ -437,3 +438,12 @@ rule plot_tau_exp_beta:
         f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
     shell:
         "python3 scripts/plot_tau_exp_beta.py {input.tau} {input.ratio} {output}"
+
+rule plot_ratio_vs_tau:
+    input:
+        tau=f"{GENE_SPEC}/tau.csv",
+        ratio=f"{GENE_SPEC}/exp_beta_ratio.csv"
+    output:
+        f"{GENE_SPEC}/figures/ratio_vs_tau_loess_quad.png"
+    shell:
+        "python3 scripts/plot_ratio_vs_tau.py {input.tau} {input.ratio} {output}"
