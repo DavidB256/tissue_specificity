@@ -478,3 +478,15 @@ rule combine_partition_grid_search:
         labels = pd.concat([pd.read_csv(f) for f in input.labels], ignore_index=True)
         labels.to_parquet(output.labels, index=False)
 
+rule plot_tissue_partition:
+    input:
+        parquet=f"{PROCESSED}/log10_tpm_long.parquet",
+        exp_beta_fits=f"{MODEL_FITS}/exp_beta_fits.csv",
+        partition_summary=f"{PARTITION}/summary.csv",
+        partition_labels=f"{PARTITION}/labels.parquet"
+    output:
+        f"{GENE_SPEC}/partition_figures/{{tissue}}.png"
+    shell:
+        "python3 scripts/plot_tissue_partition.py {wildcards.tissue} {input.parquet} {input.exp_beta_fits} "
+        "{input.partition_summary} {input.partition_labels} {output}"
+
