@@ -1,6 +1,7 @@
 """Per-tissue figure: (i) the continuous exp_beta mixture fit against the whole
 tissue's log10(TPM), (ii) the grid-search 'exp' group's data against its fitted
-exponential, (iii) the grid-search 'beta' group's data against its fitted beta.
+exponential, (iii) the grid-search 'beta' group's data against its fitted beta,
+(iv) the rank-normalized (log10TPM, tau) plane with the discriminant line drawn in.
 Subtitles report each component's share of the data, and (for ii/iii) a description
 of the discriminant line that produced the hard partition."""
 import sys
@@ -33,18 +34,18 @@ long_df = pd.read_parquet(IN_PARQUET)
 x_all = long_df.loc[long_df.tissue == TISSUE, ["gene", "log10_tpm"]]
 
 cont = pd.read_csv(IN_EXP_BETA_FITS).set_index("tissue").loc[TISSUE]
-part = pd.read_csv(IN_PARTITION_SUMMARY).set_index("tissue").loc[TISSUE]
-labels = pd.read_parquet(IN_PARTITION_LABELS)
-labels = labels.loc[labels.tissue == TISSUE, ["gene", "group"]]
+part = pd.read_csv(IN_PARTITION_SUMMARY).iloc[0]
+labels = pd.read_csv(IN_PARTITION_LABELS)
+bic_delta = part["bic"] - cont["bic"]
 
-merged = x_all.merge(labels, on="gene", how="inner")
+merged = x_all.merge(labels[["gene", "group"]], on="gene", how="inner")
 x_exp_group = merged.loc[merged.group == "exp", "log10_tpm"].values
 x_beta_group = merged.loc[merged.group == "beta", "log10_tpm"].values
 x = x_all["log10_tpm"].values
 
 desc = discriminant_description(part["theta_deg"], part["offset"])
 
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+fig, axes = plt.subplots(1, 4, figsize=(24, 5))
 
 # (i) continuous exp_beta fit, whole data
 ax = axes[0]
@@ -83,7 +84,27 @@ frac_beta = part["n_beta"] / part["n"]
 ax.set_title(f"Grid-search BETA group (n={part['n_beta']}, {frac_beta:.1%} of data)\n{desc}", fontsize=8)
 ax.set_xlabel("log10(TPM)")
 
-fig.suptitle(f"{TISSUE}: exp_beta continuous fit vs grid-search hard partition (BIC delta={part['bic_delta']:.0f})")
+# (iv) rank(log10TPM) vs rank(tau) plane, with the discriminant line
+ax = axes[3]
+for grp, color in [("exp", "tab:orange"), ("beta", "tab:blue")]:
+    sub = labels[labels.group == grp]
+    ax.scatter(sub["rank_tpm"], sub["rank_tau"], s=2, alpha=0.2, color=color, label=grp)
+theta = np.radians(part["theta_deg"])
+w_expr, w_tau = np.cos(theta), np.sin(theta)
+uu = np.linspace(0, 1, 200)
+if abs(w_tau) > 1e-6:
+    vv = (part["offset"] - w_expr * uu) / w_tau
+    ax.plot(uu, vv, color="black", lw=2)
+else:
+    ax.axvline(part["offset"], color="black", lw=2)
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+ax.set_xlabel("rank(log10TPM)")
+ax.set_ylabel("rank(tau)")
+ax.legend(markerscale=5, fontsize=8)
+ax.set_title(f"Discriminant plane\n{desc}", fontsize=8)
+
+fig.suptitle(f"{TISSUE}: exp_beta continuous fit vs grid-search hard partition (BIC delta={bic_delta:.0f})")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

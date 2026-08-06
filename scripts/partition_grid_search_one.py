@@ -31,8 +31,8 @@ IN_TAU = sys.argv[3]
 OUT_SUMMARY = sys.argv[4]
 OUT_LABELS = sys.argv[5]
 
-N_ANGLES = 24            # 15-degree steps over the full circle
-N_OFFSETS = 9             # quantiles 0.1 .. 0.9 of the projected coordinate
+N_ANGLES = 12            # 30-degree steps over the full circle
+OFFSET_QS = np.arange(0.05, 1.0, 0.05)  # quantiles 0.05, 0.10, .. 0.95 of the projected coordinate
 MIN_GROUP_FRAC = 0.02      # both groups must have >=2% of the tissue's genes
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2, usecols=["Name", TISSUE])
@@ -51,12 +51,11 @@ u = rankdata(x) / n
 v = rankdata(tau) / n
 
 angles = np.linspace(0, 2 * np.pi, N_ANGLES, endpoint=False)
-offset_qs = np.linspace(0.1, 0.9, N_OFFSETS)
 
 best = None
 for theta in angles:
     proj = u * np.cos(theta) + v * np.sin(theta)
-    for off in np.quantile(proj, offset_qs):
+    for off in np.quantile(proj, OFFSET_QS):
         is_beta = proj >= off
         n_beta = int(is_beta.sum())
         n_exp = n - n_beta
@@ -85,7 +84,7 @@ for theta in angles:
                 "loglik": total_ll, "bic": bic, "is_beta": is_beta,
             }
 
-labels = pd.DataFrame({"tissue": TISSUE, "gene": genes,
+labels = pd.DataFrame({"tissue": TISSUE, "gene": genes, "rank_tpm": u, "rank_tau": v,
                         "group": np.where(best["is_beta"], "beta", "exp")})
 labels.to_csv(OUT_LABELS, index=False)
 

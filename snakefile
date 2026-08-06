@@ -75,7 +75,8 @@ SALMON_CONDITIONS = ["control"] + [f"miscall_{k}" for k in MISCALL_RATES]
 
 wildcard_constraints:
     species = "macaque|marmoset",
-    k = r"1|5"
+    k = r"1|5",
+    tissue = r"[^/]+"
 
 rule all:
     input:
@@ -482,11 +483,20 @@ rule plot_tissue_partition:
     input:
         parquet=f"{PROCESSED}/log10_tpm_long.parquet",
         exp_beta_fits=f"{MODEL_FITS}/exp_beta_fits.csv",
-        partition_summary=f"{PARTITION}/summary.csv",
-        partition_labels=f"{PARTITION}/labels.parquet"
+        partition_summary=f"{PARTITION}/by_tissue/{{tissue}}_summary.csv",
+        partition_labels=f"{PARTITION}/by_tissue/{{tissue}}_labels.csv"
     output:
         f"{GENE_SPEC}/partition_figures/{{tissue}}.png"
     shell:
         "python3 scripts/plot_tissue_partition.py {wildcards.tissue} {input.parquet} {input.exp_beta_fits} "
         "{input.partition_summary} {input.partition_labels} {output}"
+
+rule plot_bic_heatmap:
+    input:
+        parquet=f"{PROCESSED}/log10_tpm_long.parquet",
+        partition_labels=f"{PARTITION}/by_tissue/{{tissue}}_labels.csv"
+    output:
+        f"{GENE_SPEC}/partition_figures/bic_heatmap/{{tissue}}.png"
+    shell:
+        "python3 scripts/plot_bic_heatmap_one.py {wildcards.tissue} {input.parquet} {input.partition_labels} {output}"
 
