@@ -1,12 +1,13 @@
-"""Per-tissue fit-quality landscape: two 20x20 heatmaps over disjoint (rank(log10TPM),
-rank(tau)) bins -- a genuine 2D histogram, each cell an equal-width (not equal-count,
-since u,v are correlated) rank interval on each axis. For each cell, using only the
-points that fall in that cell:
-  exp LL/n  = mean log-likelihood per point of fitting a lone exponential to the cell
-  beta LL/n = mean log-likelihood per point of fitting a lone (bounded) beta to the cell
-LL/n (not BIC) so cells are comparable regardless of how many points they contain --
-this shows which regions of the rank plane locally look exponential- vs beta-shaped.
-Cells with <10 points are masked."""
+"""Per-tissue fit-quality landscape: two 20x20 heatmaps over (rank(log10TPM),
+rank(tau)) corner-threshold pairs (u_cut, v_cut). For each grid cell:
+  exp LL/n  = mean log-likelihood per point of fitting a lone exponential to the
+              cumulative corner box {rank_tpm <= u_cut AND rank_tau <= v_cut}
+  beta LL/n = mean log-likelihood per point of fitting a lone (bounded) beta to the
+              complementary corner box {rank_tpm >= u_cut AND rank_tau >= v_cut}
+LL/n (not BIC) so cells are comparable despite the corner boxes growing/shrinking in
+size across the grid -- this isolates whether tau adds real discriminating power from
+the sample-size effect a summed-likelihood score (BIC) would otherwise show. Cells
+with <10 points are masked."""
 import sys
 import warnings
 import numpy as np
@@ -35,38 +36,39 @@ x = merged["log10_tpm"].values
 u = merged["rank_tpm"].values
 v = merged["rank_tau"].values
 
-bin_u = np.clip((u * N_BINS).astype(int), 0, N_BINS - 1)
-bin_v = np.clip((v * N_BINS).astype(int), 0, N_BINS - 1)
-
+thresholds = np.linspace(0.05, 1.0, N_BINS)
 exp_ll = np.full((N_BINS, N_BINS), np.nan)
 beta_ll = np.full((N_BINS, N_BINS), np.nan)
 
-for i in range(N_BINS):
-    for j in range(N_BINS):
-        cell_mask = (bin_u == i) & (bin_v == j)
-        n_cell = int(cell_mask.sum())
-        if n_cell < MIN_N:
-            continue
-        x_cell = x[cell_mask]
+for i, u_cut in enumerate(thresholds):
+    for j, v_cut in enumerate(thresholds):
+        exp_mask = (u <= u_cut) & (v <= v_cut)
+        beta_mask = (u >= u_cut) & (v >= v_cut)
 
-        rate = 1.0 / x_cell.mean()
-        exp_ll[j, i] = logpdf(x_cell, "expon", {"rate": rate}).mean()
+        n_exp = int(exp_mask.sum())
+        if n_exp >= MIN_N:
+            x_exp = x[exp_mask]
+            rate = 1.0 / x_exp.mean()
+            exp_ll[j, i] = logpdf(x_exp, "expon", {"rate": rate}).mean()
 
-        beta_fit = fit_mixture(x_cell, ["beta"], n_init=2)
-        if beta_fit["loglik"] > -1e6:  # else: optimizer hit the non-finite-likelihood fallback penalty
-            beta_ll[j, i] = beta_fit["loglik"] / n_cell
+        n_beta = int(beta_mask.sum())
+        if n_beta >= MIN_N:
+            x_beta = x[beta_mask]
+            beta_fit = fit_mixture(x_beta, ["beta"], n_init=2)
+            if beta_fit["loglik"] > -1e6:  # else: optimizer hit the non-finite-likelihood fallback penalty
+                beta_ll[j, i] = beta_fit["loglik"] / n_beta
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-for ax, grid, title in [(axes[0], exp_ll, "exp: mean log-likelihood / point"),
-                         (axes[1], beta_ll, "beta: mean log-likelihood / point")]:
-    im = ax.imshow(grid, origin="lower", extent=[0, 1, 0, 1], aspect="auto", cmap="viridis")
+for ax, grid, title in [(axes[0], exp_ll, "exp: mean log-likelihood / point (lower-left corner box)"),
+                         (axes[1], beta_ll, "beta: mean log-likelihood / point (upper-right corner box)")]:
+    im = ax.imshow(grid, origin="lower", extent=[0.05, 1.0, 0.05, 1.0], aspect="auto", cmap="viridis")
     fig.colorbar(im, ax=ax, label="LL/n")
-    ax.set_xlabel("rank(log10TPM) bin")
-    ax.set_ylabel("rank(tau) bin")
+    ax.set_xlabel("u_cut = rank(log10TPM) threshold")
+    ax.set_ylabel("v_cut = rank(tau) threshold")
     ax.set_title(title, fontsize=10)
 
-fig.suptitle(f"{TISSUE}: local fit quality (LL/n) over disjoint (log10TPM rank, tau rank) bins, {N_BINS}x{N_BINS}")
+fig.suptitle(f"{TISSUE}: local fit quality (LL/n) over (log10TPM rank, tau rank) corner thresholds, {N_BINS}x{N_BINS}")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
