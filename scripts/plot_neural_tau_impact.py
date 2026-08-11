@@ -7,6 +7,7 @@ shrink."""
 import sys
 import numpy as np
 import pandas as pd
+from scipy.stats import pearsonr
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -45,6 +46,11 @@ for ax, ycol, label, robust in [(axes[0], "tau_weighted_gls", "GLS weighted (raw
     else:
         ax.set_ylim(0, 1)
         ax.set_title(f"neural genes (n={len(neural_df)}): unweighted vs {label}", fontsize=10)
+        r, _ = pearsonr(neural_df["tau_unweighted"], neural_df[ycol])
+        frac_below_diag = (neural_df["tau_unweighted"] > neural_df[ycol]).mean()
+        ax.text(0.03, 0.97, f"pearson r={r:.3f}\nbelow diag={frac_below_diag:.1%}",
+                transform=ax.transAxes, va="top", ha="left", fontsize=9,
+                bbox=dict(facecolor="white", alpha=0.7, edgecolor="none"))
 
 ax = axes[2]
 bins = np.linspace(-1, 1, 61)
@@ -62,4 +68,5 @@ fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
 
 print(f"neural genes: {len(neural_df)}; median delta_gls_ridge neural={neural_df['delta_gls_ridge'].median():.4f} "
-      f"vs all={df['delta_gls_ridge'].median():.4f}", file=sys.stderr)
+      f"vs all={df['delta_gls_ridge'].median():.4f}; pearson r(unweighted,ridge)={r:.4f}; "
+      f"frac below diag (unweighted>ridge)={frac_below_diag:.4f}", file=sys.stderr)

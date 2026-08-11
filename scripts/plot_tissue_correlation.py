@@ -1,0 +1,21 @@
+"""Visualize the tissue x tissue correlation matrix (heatmap + dendrogram) using the
+precomputed linkage from compute_tissue_correlation.py."""
+import sys
+import pandas as pd
+import seaborn as sns
+import matplotlib
+matplotlib.use("Agg")
+
+IN_CORR_CSV = sys.argv[1]
+IN_LINKAGE_CSV = sys.argv[2]
+OUT_PNG = sys.argv[3]
+
+corr_df = pd.read_csv(IN_CORR_CSV, index_col=0)
+Z = pd.read_csv(IN_LINKAGE_CSV).values
+
+g = sns.clustermap(corr_df, row_linkage=Z, col_linkage=Z, cmap="vlag", center=0,
+                    figsize=(18, 18), xticklabels=True, yticklabels=True)
+g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), fontsize=5)
+g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=5)
+g.figure.suptitle(f"GTEx tissue correlation (log10 TPM, TPM<1->0), n={len(corr_df)} tissues", y=1.02)
+g.savefig(OUT_PNG, dpi=300)
