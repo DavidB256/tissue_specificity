@@ -1,0 +1,16 @@
+
+Write a Python script that computes weighted tau with GLS weights. Output a CSV where rows are genes and cols are versions of tau. Run it and integrate in snakefile. Use Python, but looking at the code for the R package `corpcor::cov.shrink` may be helpful; lmk if I can download/install that for you.
+
+Output:
+
+1.  Unweighted tau for each gene.
+2.  Weighted tau using GLS weights from R (w ∝ R⁻¹1), handling negative weights by reporting them.
+3.  Ridge-regularized GLS weights with lambda chosen as the smallest value that makes all weights positive. Report lambda, the regularized weights, and weighted tau under regularization. The weighting for "ridge regularization" here looks like: $R_λ=(1−λ)R+λI$.
+4.  For each gene, show: gene name, unweighted tau, weighted tau (no regularization), weighted tau (regularized), and the number of negative weights in the unregularized case.
+
+The script should:
+
+-   Compute R from the expression matrix if not provided (e.g., using Pearson correlation on log-scale).
+-   Use numpy.linalg.solve or similar for efficiency; avoid explicit inversion if possible.
+-   Include a binary search or simple loop to find the lambda threshold (start at 0, increment until all weights are positive).
+-   Handle ties in max expression gracefully (e.g., use the first index or take the mean of tied tissues).

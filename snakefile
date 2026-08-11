@@ -94,7 +94,10 @@ rule all:
         f"{GENE_SPEC}/figures/tau_expbeta_scatter.png",
         f"{GENE_SPEC}/partition_grid_search/summary.csv",
         f"{GENE_SPEC}/weighted_tau.csv",
-        f"{GENE_SPEC}/figures/weighted_tau_pairplot.png"
+        f"{GENE_SPEC}/figures/weighted_tau_pairplot.png",
+        f"{GENE_SPEC}/tau_stability_spearman.csv",
+        f"{GENE_SPEC}/tau_stability_loto.csv",
+        f"{GENE_SPEC}/figures/neural_tau_impact.png"
 
 rule preprocess:
     input:
@@ -432,6 +435,34 @@ rule compute_weighted_tau:
         weights=f"{GENE_SPEC}/weighted_tau_weights.csv"
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule compute_tau_stability:
+    input:
+        gct=GCT,
+        tau=f"{GENE_SPEC}/weighted_tau.csv"
+    output:
+        spearman=f"{GENE_SPEC}/tau_stability_spearman.csv",
+        loto=f"{GENE_SPEC}/tau_stability_loto.csv"
+    shell:
+        "python3 scripts/compute_tau_stability.py {input.gct} {input.tau} {output.spearman} {output.loto}"
+
+rule identify_neural_genes:
+    input:
+        GCT
+    output:
+        f"{GENE_SPEC}/neural_genes.csv"
+    shell:
+        "python3 scripts/identify_neural_genes.py {input} {output}"
+
+rule plot_neural_tau_impact:
+    input:
+        tau=f"{GENE_SPEC}/weighted_tau.csv",
+        neural=f"{GENE_SPEC}/neural_genes.csv"
+    output:
+        csv=f"{GENE_SPEC}/neural_tau_impact.csv",
+        png=f"{GENE_SPEC}/figures/neural_tau_impact.png"
+    shell:
+        "python3 scripts/plot_neural_tau_impact.py {input.tau} {input.neural} {output.csv} {output.png}"
 
 rule plot_weighted_tau_pairplot:
     input:
