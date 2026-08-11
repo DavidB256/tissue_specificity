@@ -98,7 +98,8 @@ rule all:
         f"{GENE_SPEC}/tau_stability_spearman.csv",
         f"{GENE_SPEC}/tau_stability_loto.csv",
         f"{GENE_SPEC}/figures/neural_tau_impact.png",
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png"
+        f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC}/figures/tau_bootstrap_variance.png"
 
 rule preprocess:
     input:
@@ -490,6 +491,33 @@ rule plot_tissue_correlation:
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png"
     shell:
         "python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output}"
+
+BOOTSTRAP_REPS = 100
+
+rule compute_tau_bootstrap_variance:
+    input:
+        gct=GCT,
+        corr=f"{GENE_SPEC}/tissue_correlation.csv"
+    output:
+        f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_{{tau_type}}_{{mode}}.csv"
+    wildcard_constraints:
+        tau_type="unweighted|ridge",
+        mode="tissue|cluster"
+    shell:
+        "python3 scripts/compute_tau_bootstrap_variance.py {input.gct} {input.corr} "
+        "{wildcards.tau_type} {wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output}"
+
+rule plot_tau_bootstrap_variance:
+    input:
+        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
+        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
+        unweighted_cluster=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster.csv",
+        ridge_cluster=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_bootstrap_variance.png"
+    shell:
+        "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
+        "{input.unweighted_cluster} {input.ridge_cluster} {output}"
 
 rule compute_exp_beta_ratio:
     input:

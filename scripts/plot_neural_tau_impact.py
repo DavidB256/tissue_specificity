@@ -7,10 +7,10 @@ shrink."""
 import sys
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from plot_utils import annotate_diag_stats
 
 IN_TAU = sys.argv[1]
 IN_NEURAL = sys.argv[2]
@@ -30,6 +30,7 @@ neural_df[["gene", "max_tissue", "tau_unweighted", "tau_weighted_gls", "tau_weig
            "delta_gls", "delta_gls_ridge"]].to_csv(OUT_CSV, index=False)
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+stats = {}
 
 for ax, ycol, label, robust in [(axes[0], "tau_weighted_gls", "GLS weighted (raw)", True),
                                  (axes[1], "tau_weighted_gls_ridge", "GLS ridge weighted", False)]:
@@ -38,6 +39,7 @@ for ax, ycol, label, robust in [(axes[0], "tau_weighted_gls", "GLS weighted (raw
     ax.set_xlim(0, 1)
     ax.set_xlabel("tau_unweighted")
     ax.set_ylabel(ycol)
+    stats[ycol] = annotate_diag_stats(ax, neural_df["tau_unweighted"], neural_df[ycol])
     if robust:
         lo, hi = np.nanpercentile(neural_df[ycol], [1, 99])
         pad = 0.05 * (hi - lo)
@@ -46,11 +48,6 @@ for ax, ycol, label, robust in [(axes[0], "tau_weighted_gls", "GLS weighted (raw
     else:
         ax.set_ylim(0, 1)
         ax.set_title(f"neural genes (n={len(neural_df)}): unweighted vs {label}", fontsize=10)
-        r, _ = pearsonr(neural_df["tau_unweighted"], neural_df[ycol])
-        frac_below_diag = (neural_df["tau_unweighted"] > neural_df[ycol]).mean()
-        ax.text(0.03, 0.97, f"pearson r={r:.3f}\nbelow diag={frac_below_diag:.1%}",
-                transform=ax.transAxes, va="top", ha="left", fontsize=9,
-                bbox=dict(facecolor="white", alpha=0.7, edgecolor="none"))
 
 ax = axes[2]
 bins = np.linspace(-1, 1, 61)
@@ -67,6 +64,9 @@ fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
 
+r_gls, rho_gls, below_gls = stats["tau_weighted_gls"]
+r_ridge, rho_ridge, below_ridge = stats["tau_weighted_gls_ridge"]
 print(f"neural genes: {len(neural_df)}; median delta_gls_ridge neural={neural_df['delta_gls_ridge'].median():.4f} "
-      f"vs all={df['delta_gls_ridge'].median():.4f}; pearson r(unweighted,ridge)={r:.4f}; "
-      f"frac below diag (unweighted>ridge)={frac_below_diag:.4f}", file=sys.stderr)
+      f"vs all={df['delta_gls_ridge'].median():.4f}; "
+      f"gls: pearson={r_gls:.4f} spearman={rho_gls:.4f} below_diag={below_gls:.4f}; "
+      f"ridge: pearson={r_ridge:.4f} spearman={rho_ridge:.4f} below_diag={below_ridge:.4f}", file=sys.stderr)

@@ -10,6 +10,8 @@ def tissue_corr(mat):
 
 
 def gls_weights(R, lam=0.0):
+    """Raises np.linalg.LinAlgError if R_lam is exactly singular (e.g. lam=0 with
+    duplicate tissue columns from resampling with replacement)."""
     n = R.shape[0]
     R_lam = (1 - lam) * R + lam * np.eye(n)
     return np.linalg.solve(R_lam, np.ones(n))
@@ -17,14 +19,21 @@ def gls_weights(R, lam=0.0):
 
 def ridge_lambda_search(R, n_iter=60):
     """Smallest lambda in [0,1] s.t. gls_weights(R, lambda) is all positive.
-    lambda=1 (R_lambda=I) is always all-positive, so the search is well-posed."""
-    w0 = gls_weights(R, 0.0)
-    if np.all(w0 > 0):
-        return 0.0, w0
+    lambda=1 (R_lambda=I) is always all-positive, so the search is well-posed.
+    Singular R_lam (e.g. from duplicate tissues under resampling) is treated as
+    "not all positive" so the search pushes lambda up until it's invertible."""
+    def all_positive(lam):
+        try:
+            return np.all(gls_weights(R, lam) > 0)
+        except np.linalg.LinAlgError:
+            return False
+
+    if all_positive(0.0):
+        return 0.0, gls_weights(R, 0.0)
     lo, hi = 0.0, 1.0
     for _ in range(n_iter):
         mid = (lo + hi) / 2
-        if np.all(gls_weights(R, mid) > 0):
+        if all_positive(mid):
             hi = mid
         else:
             lo = mid
