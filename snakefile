@@ -92,7 +92,8 @@ rule all:
         expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
         f"{GENE_SPEC}/figures/tau_expbeta_scatter.png",
-        f"{GENE_SPEC}/partition_grid_search/summary.csv"
+        f"{GENE_SPEC}/partition_grid_search/summary.csv",
+        f"{GENE_SPEC}/weighted_tau.csv"
 
 rule preprocess:
     input:
@@ -421,6 +422,15 @@ rule compute_tau:
         f"{GENE_SPEC}/tau.csv"
     shell:
         "python3 scripts/compute_tau.py {input} {output}"
+
+rule compute_weighted_tau:
+    input:
+        GCT
+    output:
+        tau=f"{GENE_SPEC}/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
 rule compute_exp_beta_ratio:
     input:
