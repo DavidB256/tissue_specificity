@@ -93,7 +93,8 @@ rule all:
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
         f"{GENE_SPEC}/figures/tau_expbeta_scatter.png",
         f"{GENE_SPEC}/partition_grid_search/summary.csv",
-        f"{GENE_SPEC}/weighted_tau.csv"
+        f"{GENE_SPEC}/weighted_tau.csv",
+        f"{GENE_SPEC}/figures/weighted_tau_pairplot.png"
 
 rule preprocess:
     input:
@@ -431,6 +432,14 @@ rule compute_weighted_tau:
         weights=f"{GENE_SPEC}/weighted_tau_weights.csv"
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule plot_weighted_tau_pairplot:
+    input:
+        f"{GENE_SPEC}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC}/figures/weighted_tau_pairplot.png"
+    shell:
+        "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
 
 rule compute_exp_beta_ratio:
     input:
