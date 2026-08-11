@@ -10,7 +10,7 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from gls_tau import tissue_corr, gls_weights, ridge_lambda_search, weighted_tau
+from gls_tau import tissue_corr, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 IN_TAU = sys.argv[2]
@@ -32,7 +32,7 @@ print(f"Spearman correlation between variants (n={len(tau_df)} genes):\n{corr}",
 df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
 genes = df["Name"].values
-mat_full = df[tissues].values.astype(float)
+mat_full = floor_tpm(df[tissues].values.astype(float))  # TPM<1 -> 0
 n_tissues, n_genes = len(tissues), mat_full.shape[0]
 
 loto = {v: np.full((n_tissues, n_genes), np.nan) for v in VARIANTS}
@@ -45,7 +45,7 @@ for k in range(n_tissues):
     lam_star, w_reg = ridge_lambda_search(R)
 
     loto["tau_unweighted"][k] = weighted_tau(mat, np.ones(n))
-    loto["tau_weighted_gls"][k] = weighted_tau(mat, w_unreg)
+    loto["tau_weighted_gls"][k] = censor_floor(weighted_tau(mat, w_unreg))
     loto["tau_weighted_gls_ridge"][k] = weighted_tau(mat, w_reg)
     print(f"LOTO {k + 1}/{n_tissues} ({tissues[k]}) done, lambda*={lam_star:.4g}", file=sys.stderr)
 

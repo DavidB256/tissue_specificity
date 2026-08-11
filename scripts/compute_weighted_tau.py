@@ -7,11 +7,13 @@ exactly when R=I, so no extra rescaling is needed. Negative entries in w are pos
 under multicollinearity and are reported, not clipped. Ridge-shrunk weights use
 R_lambda = (1-lambda)*R + lambda*I with the smallest lambda that makes every weight
 positive (see gls_tau.ridge_lambda_search). Ties for a gene's max-expressing tissue
-go to the first occurrence (np.argmax default)."""
+go to the first occurrence (np.argmax default). TPM<1 floored to 0 before any
+computation. tau_weighted_gls (unregularized, unbounded below) is left-censored at
+-1 to drop runaway outliers we don't care about."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr, gls_weights, ridge_lambda_search, weighted_tau
+from gls_tau import tissue_corr, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]
@@ -21,6 +23,7 @@ df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
 genes = df["Name"].values
 mat = df[tissues].values.astype(float)  # genes x tissues
+mat = floor_tpm(mat)  # TPM<1 -> 0
 
 R = tissue_corr(mat)
 w_unreg = gls_weights(R, 0.0)
@@ -36,7 +39,7 @@ print(f"ridge lambda*={lam_star:.6g}", file=sys.stderr)
 out = pd.DataFrame({
     "gene": genes,
     "tau_unweighted": weighted_tau(mat, np.ones(len(tissues))),
-    "tau_weighted_gls": weighted_tau(mat, w_unreg),
+    "tau_weighted_gls": censor_floor(weighted_tau(mat, w_unreg)),
     "tau_weighted_gls_ridge": weighted_tau(mat, w_reg),
     "n_negative_weights_unregularized": n_negative,
 })

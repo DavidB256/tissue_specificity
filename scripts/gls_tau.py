@@ -41,3 +41,15 @@ def weighted_tau(mat, w):
     numer = term @ w
     denom = w.sum() - w[argmax_idx]
     return np.where(max_i > 0, numer / denom, np.nan)
+
+
+def floor_tpm(mat, floor=1.0):
+    """TPM<floor -> 0 (treated as unexpressed noise), matches TPM>=1 convention used
+    elsewhere in the pipeline (e.g. build_expr_matrix_allgenes.py)."""
+    return np.where(mat >= floor, mat, 0.0)
+
+
+def censor_floor(tau, floor=-1.0):
+    """Left-censor: tau < floor -> floor. Ignores NaN. Used for tau_weighted_gls
+    (unregularized), which is unbounded below and can produce runaway outliers."""
+    return np.where(np.isnan(tau), tau, np.maximum(tau, floor))
