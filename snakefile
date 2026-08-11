@@ -497,14 +497,14 @@ BOOTSTRAP_REPS = 100
 rule compute_tau_bootstrap_variance:
     input:
         gct=GCT,
-        corr=f"{GENE_SPEC}/tissue_correlation.csv"
+        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv"
     output:
         f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_{{tau_type}}_{{mode}}.csv"
     wildcard_constraints:
         tau_type="unweighted|ridge",
         mode="tissue|cluster"
     shell:
-        "python3 scripts/compute_tau_bootstrap_variance.py {input.gct} {input.corr} "
+        "python3 scripts/compute_tau_bootstrap_variance.py {input.gct} {input.linkage} "
         "{wildcards.tau_type} {wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output}"
 
 rule plot_tau_bootstrap_variance:

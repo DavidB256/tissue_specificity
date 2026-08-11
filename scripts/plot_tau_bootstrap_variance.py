@@ -15,25 +15,30 @@ IN_UNWEIGHTED_CLUSTER = sys.argv[3]
 IN_RIDGE_CLUSTER = sys.argv[4]
 OUT_PNG = sys.argv[5]
 
+VAR_FLOOR = 1e-5  # left-censor displayed variances at this floor
+
 
 def load_pair(unweighted_csv, ridge_csv, mode):
     ucol, rcol = f"tau_unweighted_{mode}_var", f"tau_ridge_{mode}_var"
-    u = pd.read_csv(unweighted_csv)[["gene", ucol]]
+    mcol = f"tau_unweighted_{mode}_mean"
+    u = pd.read_csv(unweighted_csv)[["gene", ucol, mcol]]
     w = pd.read_csv(ridge_csv)[["gene", rcol]]
     df = u.merge(w, on="gene", how="inner").replace([np.inf, -np.inf], np.nan).dropna()
-    df = df[(df[ucol] > 0) & (df[rcol] > 0)]
-    return df, ucol, rcol
+    df[ucol] = np.maximum(df[ucol], VAR_FLOOR)
+    df[rcol] = np.maximum(df[rcol], VAR_FLOOR)
+    return df, ucol, rcol, mcol
 
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
 
 for ax, unweighted_csv, ridge_csv, mode, title in [
     (axes[0], IN_UNWEIGHTED_TISSUE, IN_RIDGE_TISSUE, "tissue", "tissue resampling"),
     (axes[1], IN_UNWEIGHTED_CLUSTER, IN_RIDGE_CLUSTER, "cluster", "correlation-block resampling"),
 ]:
-    df, ucol, rcol = load_pair(unweighted_csv, ridge_csv, mode)
-    x, y = df[ucol], df[rcol]
-    ax.scatter(x, y, s=4, alpha=0.15, color="tab:blue")
+    df, ucol, rcol, mcol = load_pair(unweighted_csv, ridge_csv, mode)
+    x, y, c = df[ucol], df[rcol], df[mcol]
+    sc = ax.scatter(x, y, c=c, cmap="viridis", s=4, alpha=0.1)
+    fig.colorbar(sc, ax=ax, label="tau_unweighted (mean across resamples)")
     lo, hi = min(x.min(), y.min()), max(x.max(), y.max())
     ax.plot([lo, hi], [lo, hi], "--", color="gray", lw=1)
     ax.set_xscale("log")
