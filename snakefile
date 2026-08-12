@@ -105,7 +105,8 @@ rule all:
         f"{GENE_SPEC}/figures/tau_bootstrap_variance_highspec.png",
         f"{GENE_SPEC}/figures/tau_bootstrap_variance_lowspec.png",
         f"{GENE_SPEC}/figures/tau_vs_variance.png",
-        f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability.png"
+        f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability.png",
+        f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png"
 
 rule preprocess:
     input:
@@ -611,6 +612,35 @@ rule plot_tau_bootstrap_rank_stability:
         f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability.png"
     shell:
         "python3 scripts/plot_tau_bootstrap_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
+        "{input.unweighted_cluster10} {input.ridge_cluster10} "
+        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
+
+rule compute_tau_jackknife_rank_stability:
+    input:
+        gct=GCT,
+        tau=f"{GENE_SPEC}/weighted_tau.csv",
+        clusters=bootstrap_clusters_input
+    output:
+        f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_{{tau_type}}_{{mode}}.csv"
+    wildcard_constraints:
+        tau_type="unweighted|ridge",
+        mode="tissue|cluster10|cluster20"
+    shell:
+        "python3 scripts/compute_tau_jackknife_rank_stability.py {input.gct} {input.tau} {input.clusters} "
+        "{wildcards.tau_type} {wildcards.mode} {output}"
+
+rule plot_tau_jackknife_rank_stability:
+    input:
+        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_tissue.csv",
+        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_tissue.csv",
+        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster10.csv",
+        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster10.csv",
+        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster20.csv",
+        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png"
+    shell:
+        "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
         "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
 
