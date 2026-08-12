@@ -102,6 +102,7 @@ rule all:
         f"{GENE_SPEC}/tissue_clusters_10.csv",
         f"{GENE_SPEC}/tissue_clusters_20.csv",
         f"{GENE_SPEC}/figures/tau_bootstrap_variance.png",
+        f"{GENE_SPEC}/figures/tau_bootstrap_variance_highspec.png",
         f"{GENE_SPEC}/figures/tau_vs_variance.png"
 
 rule preprocess:
@@ -538,6 +539,23 @@ rule plot_tau_bootstrap_variance:
         f"{GENE_SPEC}/figures/tau_bootstrap_variance.png"
     shell:
         "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
+        "{input.unweighted_cluster10} {input.ridge_cluster10} "
+        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
+
+rule plot_tau_bootstrap_variance_highspec:
+    input:
+        tau=f"{GENE_SPEC}/weighted_tau.csv",
+        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
+        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
+        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
+        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster10.csv",
+        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
+        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_bootstrap_variance_highspec.png"
+    shell:
+        "python3 scripts/plot_tau_bootstrap_variance_highspec.py {input.tau} "
+        "{input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
         "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
 
