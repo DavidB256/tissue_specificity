@@ -1,4 +1,5 @@
 """Shared plotting helpers."""
+import numpy as np
 from scipy.stats import pearsonr, spearmanr
 
 
@@ -13,3 +14,22 @@ def annotate_diag_stats(ax, x, y, loc=(0.03, 0.97), fontsize=9):
             transform=ax.transAxes, va="top", ha="left", fontsize=fontsize,
             bbox=dict(facecolor="white", alpha=0.7, edgecolor="none"))
     return r, rho, frac_below
+
+
+def bootstrap_scatter_panel(fig, ax, x, y, c, title, xlabel, ylabel,
+                             floor=1e-5, clabel="tau_unweighted (mean across resamples)"):
+    """Log-log diagonal-comparison scatter (left-censored at `floor`), colored by `c`,
+    with y=x reference line and annotate_diag_stats. Used for both the bootstrap
+    variance and coefficient-of-variation figures."""
+    x = np.maximum(x, floor)
+    y = np.maximum(y, floor)
+    sc = ax.scatter(x, y, c=c, cmap="viridis", s=4, alpha=0.1)
+    fig.colorbar(sc, ax=ax, label=clabel)
+    lo, hi = min(x.min(), y.min()), max(x.max(), y.max())
+    ax.plot([lo, hi], [lo, hi], "--", color="gray", lw=1)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=10)
+    return annotate_diag_stats(ax, x, y)

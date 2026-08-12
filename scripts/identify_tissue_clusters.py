@@ -1,16 +1,15 @@
 """Cut the tissue hierarchical-clustering dendrogram (from compute_tissue_correlation.py)
-at t=10 (first 9 splits) into tissue blocks. Used for cluster-level resampling in
-compute_tau_bootstrap_variance.py; also recorded here as an intermediate data file so
-the block membership is inspectable independent of that script."""
+at t=N_BLOCKS (first N_BLOCKS-1 splits) into tissue blocks. Used for cluster-level
+resampling in compute_tau_bootstrap_variance.py; also recorded here as an intermediate
+data file so the block membership is inspectable independent of that script."""
 import sys
 import pandas as pd
 from scipy.cluster.hierarchy import fcluster
 
 IN_CORR = sys.argv[1]
 IN_LINKAGE = sys.argv[2]
-OUT_CSV = sys.argv[3]
-
-N_BLOCKS = 10
+N_BLOCKS = int(sys.argv[3])
+OUT_CSV = sys.argv[4]
 
 tissues = list(pd.read_csv(IN_CORR, index_col=0).index)
 Z = pd.read_csv(IN_LINKAGE).values

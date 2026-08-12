@@ -1,11 +1,14 @@
-"""Bootstrap variance of tau_unweighted / tau_weighted_gls_ridge per gene, under two
+"""Bootstrap variance of tau_unweighted / tau_weighted_gls_ridge per gene, under three
 resampling schemes:
-  tissue  -- resample the 68 GTEx tissues with replacement (standard tissue bootstrap).
-  cluster -- resample the 10 tissue blocks (see identify_tissue_clusters.py) with
-             replacement; each drawn block contributes all its member tissues. Tests
-             whether GLS/ridge weighting is specifically robust to whole correlated
-             blocks (e.g. all 13 Brain_* tissues) being duplicated/dropped together,
-             vs single tissues under plain tissue resampling.
+  tissue     -- resample the 68 GTEx tissues with replacement (standard tissue
+                bootstrap).
+  cluster10  -- resample the 10 tissue blocks (t=10 dendrogram cut, see
+                identify_tissue_clusters.py) with replacement; each drawn block
+                contributes all its member tissues.
+  cluster20  -- same, with a finer t=20 dendrogram cut (20 tissue blocks).
+Cluster resampling tests whether GLS/ridge weighting is specifically robust to whole
+correlated blocks (e.g. all 13 Brain_* tissues) being duplicated/dropped together, vs
+single tissues under plain tissue resampling.
 
 Seed is fixed (not a CLI arg) so tissue/cluster draws are identical across the
 unweighted and ridge jobs for the same mode -- keeps the two tau types directly
@@ -18,7 +21,7 @@ from gls_tau import tissue_corr, ridge_lambda_search, weighted_tau, floor_tpm
 IN_GCT = sys.argv[1]
 IN_CLUSTERS = sys.argv[2]
 TAU_TYPE = sys.argv[3]       # unweighted | ridge
-RESAMPLE_MODE = sys.argv[4]  # tissue | cluster
+RESAMPLE_MODE = sys.argv[4]  # tissue | cluster10 | cluster20
 N_REPS = int(sys.argv[5])
 OUT_CSV = sys.argv[6]
 
@@ -32,7 +35,7 @@ n_tissues, n_genes = len(tissues), mat.shape[0]
 
 rng = np.random.default_rng(SEED)
 
-if RESAMPLE_MODE == "cluster":
+if RESAMPLE_MODE.startswith("cluster"):
     clusters = pd.read_csv(IN_CLUSTERS)
     tissue_to_idx = {t: i for i, t in enumerate(tissues)}
     blocks = [np.array([tissue_to_idx[t] for t in g["tissue"]])
