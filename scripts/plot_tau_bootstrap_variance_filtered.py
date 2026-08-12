@@ -1,7 +1,8 @@
-"""Same as plot_tau_bootstrap_variance.py, restricted to high-specificity genes:
-tau_unweighted >= 0.8 OR tau_weighted_gls_ridge >= 0.8 (canonical values from
-weighted_tau.csv, not the bootstrap mean, so the same gene set is used across all
-three resampling panels)."""
+"""Same as plot_tau_bootstrap_variance.py, restricted to a tau-filtered gene subset:
+mode=high -> tau_unweighted >= threshold OR tau_weighted_gls_ridge >= threshold
+mode=low  -> tau_unweighted <= threshold OR tau_weighted_gls_ridge <= threshold
+Canonical values from weighted_tau.csv (not the bootstrap mean), so the same gene set
+is used across all three resampling panels."""
 import sys
 import numpy as np
 import pandas as pd
@@ -11,24 +12,27 @@ import matplotlib.pyplot as plt
 from plot_utils import bootstrap_scatter_panel
 
 IN_TAU = sys.argv[1]
-IN_UNWEIGHTED_TISSUE = sys.argv[2]
-IN_RIDGE_TISSUE = sys.argv[3]
-IN_UNWEIGHTED_CLUSTER10 = sys.argv[4]
-IN_RIDGE_CLUSTER10 = sys.argv[5]
-IN_UNWEIGHTED_CLUSTER20 = sys.argv[6]
-IN_RIDGE_CLUSTER20 = sys.argv[7]
-OUT_PNG = sys.argv[8]
+MODE = sys.argv[2]           # high | low
+THRESHOLD = float(sys.argv[3])
+IN_UNWEIGHTED_TISSUE = sys.argv[4]
+IN_RIDGE_TISSUE = sys.argv[5]
+IN_UNWEIGHTED_CLUSTER10 = sys.argv[6]
+IN_RIDGE_CLUSTER10 = sys.argv[7]
+IN_UNWEIGHTED_CLUSTER20 = sys.argv[8]
+IN_RIDGE_CLUSTER20 = sys.argv[9]
+OUT_PNG = sys.argv[10]
 
 VAR_FLOOR = 1e-5
-TAU_THRESHOLD = 0.8
+CMP = ">=" if MODE == "high" else "<="
 
 tau = pd.read_csv(IN_TAU)
-high_spec_genes = set(tau.loc[
-    (tau["tau_unweighted"] >= TAU_THRESHOLD) | (tau["tau_weighted_gls_ridge"] >= TAU_THRESHOLD),
-    "gene"
-])
-print(f"high-specificity genes (tau_unweighted>={TAU_THRESHOLD} or "
-      f"tau_weighted_gls_ridge>={TAU_THRESHOLD}): {len(high_spec_genes)}/{len(tau)}", file=sys.stderr)
+if MODE == "high":
+    mask = (tau["tau_unweighted"] >= THRESHOLD) | (tau["tau_weighted_gls_ridge"] >= THRESHOLD)
+else:
+    mask = (tau["tau_unweighted"] <= THRESHOLD) | (tau["tau_weighted_gls_ridge"] <= THRESHOLD)
+filtered_genes = set(tau.loc[mask, "gene"])
+print(f"filtered genes (tau_unweighted{CMP}{THRESHOLD} or "
+      f"tau_weighted_gls_ridge{CMP}{THRESHOLD}): {len(filtered_genes)}/{len(tau)}", file=sys.stderr)
 
 
 def load_pair(unweighted_csv, ridge_csv, mode):
@@ -37,7 +41,7 @@ def load_pair(unweighted_csv, ridge_csv, mode):
     u = pd.read_csv(unweighted_csv)[["gene", ucol, mcol]]
     w = pd.read_csv(ridge_csv)[["gene", rcol]]
     df = u.merge(w, on="gene", how="inner").replace([np.inf, -np.inf], np.nan).dropna()
-    df = df[df["gene"].isin(high_spec_genes)]
+    df = df[df["gene"].isin(filtered_genes)]
     return df, ucol, rcol, mcol
 
 
@@ -58,8 +62,8 @@ for ax, unweighted_csv, ridge_csv, mode, title in [
     )
     print(f"{mode}: n={len(df)}", file=sys.stderr)
 
-fig.suptitle(f"Bootstrap variance of tau, high-specificity genes "
-             f"(tau_unweighted>={TAU_THRESHOLD} or tau_weighted_gls_ridge>={TAU_THRESHOLD})")
+fig.suptitle(f"Bootstrap variance of tau, genes with tau_unweighted{CMP}{THRESHOLD} "
+             f"or tau_weighted_gls_ridge{CMP}{THRESHOLD}")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
