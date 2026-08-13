@@ -25,6 +25,10 @@ df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
 genes = df["Name"].values
 mat = floor_tpm(df[tissues].values.astype(float))
+
+expressed = mat.max(axis=1) > 0
+print(f"dropping {(~expressed).sum()}/{len(genes)} genes with no tissue TPM>=1", file=sys.stderr)
+genes, mat = genes[expressed], mat[expressed]
 n_tissues = len(tissues)
 
 tau_ref = pd.read_csv(IN_TAU).set_index("gene").loc[genes, TAU_COL].values
