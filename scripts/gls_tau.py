@@ -62,3 +62,27 @@ def censor_floor(tau, floor=-1.0):
     """Left-censor: tau < floor -> floor. Ignores NaN. Used for tau_weighted_gls
     (unregularized), which is unbounded below and can produce runaway outliers."""
     return np.where(np.isnan(tau), tau, np.maximum(tau, floor))
+
+
+GENE_SUBSETS = ["all", "highspec", "lowspec", "multitissue", "onlyneural", "maxneural"]
+
+
+def gene_subset_mask(subset, mat, tissues, tau_unweighted):
+    """Boolean gene mask for a named subset. mat: genes x tissues, floor_tpm'd (TPM<1 ->
+    0). tissues: column names aligned to mat. tau_unweighted: per-gene tau_unweighted
+    from weighted_tau.csv, aligned to mat's gene rows."""
+    if subset == "all":
+        return np.ones(mat.shape[0], dtype=bool)
+    if subset == "highspec":
+        return tau_unweighted > 0.9
+    if subset == "lowspec":
+        return tau_unweighted <= 0.6
+    if subset == "multitissue":
+        return (mat > 0).sum(axis=1) > 1
+    brain_idx = np.array([i for i, t in enumerate(tissues) if "Brain" in t])
+    nonbrain_idx = np.array([i for i in range(len(tissues)) if i not in brain_idx])
+    if subset == "onlyneural":
+        return (mat[:, nonbrain_idx] > 0).sum(axis=1) == 0
+    if subset == "maxneural":
+        return np.isin(mat.argmax(axis=1), brain_idx)
+    raise ValueError(f"unknown gene subset: {subset}")

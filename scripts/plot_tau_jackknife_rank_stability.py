@@ -16,6 +16,7 @@ IN_RIDGE_CLUSTER10 = sys.argv[4]
 IN_UNWEIGHTED_CLUSTER20 = sys.argv[5]
 IN_RIDGE_CLUSTER20 = sys.argv[6]
 OUT_PNG = sys.argv[7]
+SUBSET_LABEL = sys.argv[8] if len(sys.argv) > 8 else None  # e.g. "highspec"
 
 
 def load_pair(unweighted_csv, ridge_csv, mode):
@@ -43,8 +44,11 @@ for ax, unweighted_csv, ridge_csv, mode, title in [
     print(f"{mode}: n={len(df)} median_unweighted={df[ucol].median():.4f} "
           f"median_ridge={df[rcol].median():.4f}", file=sys.stderr)
 
-fig.suptitle("Rank stability of tau under jackknifing: unweighted vs ridge-weighted "
-              "(Spearman rho vs canonical tau ranking, per leave-out unit)")
+title = ("Rank stability of tau under jackknifing: unweighted vs ridge-weighted "
+         "(Spearman rho vs canonical tau ranking, per leave-out unit)")
+if SUBSET_LABEL:
+    title += f" -- gene subset: {SUBSET_LABEL}"
+fig.suptitle(title)
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

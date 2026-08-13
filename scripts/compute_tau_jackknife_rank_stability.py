@@ -10,7 +10,7 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from gls_tau import tissue_corr, ridge_lambda_search, weighted_tau, floor_tpm
+from gls_tau import tissue_corr, ridge_lambda_search, weighted_tau, floor_tpm, gene_subset_mask
 
 IN_GCT = sys.argv[1]
 IN_TAU = sys.argv[2]
@@ -18,6 +18,7 @@ IN_CLUSTERS = sys.argv[3]
 TAU_TYPE = sys.argv[4]       # unweighted | ridge
 RESAMPLE_MODE = sys.argv[5]  # tissue | cluster10 | cluster20
 OUT_CSV = sys.argv[6]
+GENE_SUBSET = sys.argv[7] if len(sys.argv) > 7 else "all"  # all | highspec | lowspec | multitissue | onlyneural | maxneural
 
 TAU_COL = "tau_unweighted" if TAU_TYPE == "unweighted" else "tau_weighted_gls_ridge"
 
@@ -31,7 +32,10 @@ print(f"dropping {(~expressed).sum()}/{len(genes)} genes with no tissue TPM>=1",
 genes, mat = genes[expressed], mat[expressed]
 n_tissues = len(tissues)
 
-tau_ref = pd.read_csv(IN_TAU).set_index("gene").loc[genes, TAU_COL].values
+tau_df = pd.read_csv(IN_TAU).set_index("gene").loc[genes]
+tau_ref = tau_df[TAU_COL].values
+subset_mask = gene_subset_mask(GENE_SUBSET, mat, tissues, tau_df["tau_unweighted"].values)
+print(f"gene_subset={GENE_SUBSET}: {subset_mask.sum()}/{len(genes)} genes", file=sys.stderr)
 
 if RESAMPLE_MODE == "tissue":
     units = tissues
@@ -57,7 +61,7 @@ for r, drop_idx in enumerate(leave_out_idx):
         _, w = ridge_lambda_search(R)
         tau_r = weighted_tau(mat_r, w)
 
-    ok = np.isfinite(tau_ref) & np.isfinite(tau_r)
+    ok = np.isfinite(tau_ref) & np.isfinite(tau_r) & subset_mask
     rho, _ = spearmanr(tau_ref[ok], tau_r[ok])
     rhos[r] = rho
     n_used[r] = ok.sum()
