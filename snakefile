@@ -109,7 +109,8 @@ rule all:
         f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability.png",
         f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png",
         expand(f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
-        expand(f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png", subset=GENE_SUBSETS)
+        expand(f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
+        f"{GENE_SPEC}/figures/tau_neural_downsample.png"
 
 rule preprocess:
     input:
@@ -710,6 +711,23 @@ rule plot_tau_jackknife_rank_stability_subset:
         "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
         "{input.unweighted_cluster20} {input.ridge_cluster20} {output} {wildcards.subset}"
+
+rule compute_tau_neural_downsample:
+    input:
+        gct=GCT
+    output:
+        f"{GENE_SPEC}/tau_neural_downsample.csv"
+    shell:
+        "python3 scripts/compute_tau_neural_downsample.py {input.gct} {output}"
+
+rule plot_tau_neural_downsample:
+    input:
+        tau=f"{GENE_SPEC}/weighted_tau.csv",
+        downsample=f"{GENE_SPEC}/tau_neural_downsample.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_neural_downsample.png"
+    shell:
+        "python3 scripts/plot_tau_neural_downsample.py {input.tau} {input.downsample} {output}"
 
 rule compute_exp_beta_ratio:
     input:
