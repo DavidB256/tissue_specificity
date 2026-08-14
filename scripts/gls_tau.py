@@ -9,6 +9,25 @@ def tissue_corr(mat):
     return np.corrcoef(np.log10(mat + 1.0), rowvar=False)
 
 
+def tissue_corr_pairwise_masked(mat):
+    """Pairwise-masked variant of tissue_corr: each tissue-pair's correlation (log10
+    TPM+1) is restricted to genes with TPM>=1 (post floor_tpm) in at least one of the
+    two tissues, rather than one fixed gene set for the whole matrix. Violates the
+    single-consistent-sample-matrix assumption behind PSD -- R here is NOT guaranteed
+    PSD; downstream gls_weights/ridge_lambda_search still work (ridge_lambda_search
+    pushes lambda up until R_lam is invertible with all-positive weights), but the
+    unregularized (lambda=0) weights lose their usual GLS interpretation."""
+    n = mat.shape[1]
+    log_mat = np.log10(mat + 1.0)
+    R = np.eye(n)
+    for i in range(n):
+        for j in range(i + 1, n):
+            mask = (mat[:, i] > 0) | (mat[:, j] > 0)
+            r = np.corrcoef(log_mat[mask, i], log_mat[mask, j])[0, 1]
+            R[i, j] = R[j, i] = r
+    return R
+
+
 def gls_weights(R, lam=0.0):
     """Raises np.linalg.LinAlgError if R_lam is exactly singular (e.g. lam=0 with
     duplicate tissue columns from resampling with replacement)."""

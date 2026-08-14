@@ -15,6 +15,7 @@ PCA_FIGS = f"{DATA}/tissue_pca"
 UMAP_FIGS = f"{DATA}/tissue_umap"
 UMAP_MODELS = ["exp_skewgauss2"]  # trying UMAP out on this model first
 GENE_SPEC = f"{DATA}/gene_specificity"
+GENE_SPEC_PAIRWISE = f"{DATA}/gene_specificity_pairwise"
 GENE_SUBSETS = ["highspec", "lowspec", "multitissue", "onlyneural", "maxneural"]
 
 # dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
@@ -112,7 +113,12 @@ rule all:
         f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png",
         expand(f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
         expand(f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
-        f"{GENE_SPEC}/figures/tau_neural_downsample.png"
+        f"{GENE_SPEC}/figures/tau_neural_downsample.png",
+        f"{GENE_SPEC_PAIRWISE}/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC_PAIRWISE}/tissue_clusters_10.csv",
+        f"{GENE_SPEC_PAIRWISE}/tissue_clusters_20.csv",
+        f"{GENE_SPEC_PAIRWISE}/figures/weighted_tau_pairplot.png",
+        f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png"
 
 rule preprocess:
     input:
@@ -553,6 +559,69 @@ rule identify_tissue_clusters:
         n_blocks=r"\d+"
     shell:
         "python3 scripts/identify_tissue_clusters.py {input.corr} {input.linkage} {wildcards.n_blocks} {output}"
+
+# Parallel "pairwise" pipeline: same core outputs as above, but R comes from
+# gls_tau.tissue_corr_pairwise_masked instead of gls_tau.tissue_corr (each tissue-pair's
+# correlation restricted to genes with TPM>=1 in at least one of the two tissues; not
+# PSD-guaranteed). Core outputs only -- excludes the bootstrap/jackknife rank-stability
+# and variance validation rules, which would each recompute R per resample.
+
+rule compute_tissue_correlation_pairwise_dir:
+    input:
+        GCT
+    output:
+        corr=f"{GENE_SPEC_PAIRWISE}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_PAIRWISE}/tissue_correlation_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation_pairwise.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_pairwise_dir:
+    input:
+        corr=f"{GENE_SPEC_PAIRWISE}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_PAIRWISE}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC_PAIRWISE}/figures/tissue_correlation_clustermap.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM>=1 pairwise-masked, not PSD-guaranteed" """
+
+rule identify_tissue_clusters_pairwise:
+    input:
+        corr=f"{GENE_SPEC_PAIRWISE}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_PAIRWISE}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC_PAIRWISE}/tissue_clusters_{{n_blocks}}.csv"
+    wildcard_constraints:
+        n_blocks=r"\d+"
+    shell:
+        "python3 scripts/identify_tissue_clusters.py {input.corr} {input.linkage} {wildcards.n_blocks} {output}"
+
+rule compute_weighted_tau_pairwise:
+    input:
+        GCT
+    output:
+        tau=f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_PAIRWISE}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_pairwise.py {input} {output.tau} {output.weights}"
+
+rule plot_weighted_tau_pairplot_pairwise:
+    input:
+        f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_PAIRWISE}/figures/weighted_tau_pairplot.png"
+    shell:
+        "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
+
+rule plot_neural_tau_impact_pairwise:
+    input:
+        tau=f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv",
+        neural=f"{GENE_SPEC}/neural_genes.csv"
+    output:
+        csv=f"{GENE_SPEC_PAIRWISE}/neural_tau_impact.csv",
+        png=f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png"
+    shell:
+        "python3 scripts/plot_neural_tau_impact.py {input.tau} {input.neural} {output.csv} {output.png}"
 
 BOOTSTRAP_REPS = 100
 MODE_TO_NBLOCKS = {"cluster10": 10, "cluster20": 20}
