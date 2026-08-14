@@ -118,7 +118,8 @@ rule all:
         f"{GENE_SPEC_PAIRWISE}/tissue_clusters_10.csv",
         f"{GENE_SPEC_PAIRWISE}/tissue_clusters_20.csv",
         f"{GENE_SPEC_PAIRWISE}/figures/weighted_tau_pairplot.png",
-        f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png"
+        f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png",
+        f"{GENE_SPEC_PAIRWISE}/figures/tau_jackknife_rank_stability.png"
 
 rule preprocess:
     input:
@@ -630,6 +631,10 @@ def bootstrap_clusters_input(wildcards):
     n = MODE_TO_NBLOCKS.get(wildcards.mode, 10)  # unused dummy for mode="tissue"
     return f"{GENE_SPEC}/tissue_clusters_{n}.csv"
 
+def bootstrap_clusters_input_pairwise(wildcards):
+    n = MODE_TO_NBLOCKS.get(wildcards.mode, 10)  # unused dummy for mode="tissue"
+    return f"{GENE_SPEC_PAIRWISE}/tissue_clusters_{n}.csv"
+
 rule compute_tau_bootstrap_variance:
     input:
         gct=GCT,
@@ -757,6 +762,36 @@ rule plot_tau_jackknife_rank_stability:
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
         "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
 
+rule compute_tau_jackknife_rank_stability_pairwise:
+    input:
+        gct=GCT,
+        tau=f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv",
+        clusters=bootstrap_clusters_input_pairwise
+    output:
+        f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_{{tau_type}}_{{mode}}.csv"
+    wildcard_constraints:
+        tau_type="unweighted|ridge",
+        mode="tissue|cluster10|cluster20"
+    shell:
+        "python3 scripts/compute_tau_jackknife_rank_stability_pairwise.py {input.gct} {input.tau} {input.clusters} "
+        "{wildcards.tau_type} {wildcards.mode} {output}"
+
+rule plot_tau_jackknife_rank_stability_pairwise:
+    input:
+        unweighted_tissue=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_unweighted_tissue.csv",
+        ridge_tissue=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_ridge_tissue.csv",
+        unweighted_cluster10=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster10.csv",
+        ridge_cluster10=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_ridge_cluster10.csv",
+        unweighted_cluster20=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster20.csv",
+        ridge_cluster20=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20.csv"
+    output:
+        f"{GENE_SPEC_PAIRWISE}/figures/tau_jackknife_rank_stability.png"
+    shell:
+        "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
+        "{input.unweighted_cluster10} {input.ridge_cluster10} "
+        "{input.unweighted_cluster20} {input.ridge_cluster20} {output} "
+        "\"pairwise corr, TPM>=1 pairwise-masked, not PSD-guaranteed\""
+
 rule compute_tau_bootstrap_rank_stability_subset:
     input:
         gct=GCT,
@@ -819,7 +854,7 @@ rule plot_tau_jackknife_rank_stability_subset:
     shell:
         "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output} {wildcards.subset}"
+        "{input.unweighted_cluster20} {input.ridge_cluster20} {output} \"gene subset: {wildcards.subset}\""
 
 rule compute_tau_neural_downsample:
     input:

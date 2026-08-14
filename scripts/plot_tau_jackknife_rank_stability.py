@@ -16,7 +16,7 @@ IN_RIDGE_CLUSTER10 = sys.argv[4]
 IN_UNWEIGHTED_CLUSTER20 = sys.argv[5]
 IN_RIDGE_CLUSTER20 = sys.argv[6]
 OUT_PNG = sys.argv[7]
-SUBSET_LABEL = sys.argv[8] if len(sys.argv) > 8 else None  # e.g. "highspec"
+TITLE_SUFFIX = sys.argv[8] if len(sys.argv) > 8 else None  # e.g. "gene subset: highspec"
 
 
 def load_pair(unweighted_csv, ridge_csv, mode):
@@ -46,8 +46,8 @@ for ax, unweighted_csv, ridge_csv, mode, title in [
 
 title = ("Rank stability of tau under jackknifing: unweighted vs ridge-weighted "
          "(Spearman rho vs canonical tau ranking, per leave-out unit)")
-if SUBSET_LABEL:
-    title += f" -- gene subset: {SUBSET_LABEL}"
+if TITLE_SUFFIX:
+    title += f" -- {TITLE_SUFFIX}"
 fig.suptitle(title)
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
