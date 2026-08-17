@@ -13,11 +13,12 @@ computation. tau_weighted_gls (unregularized, unbounded below) is left-censored 
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
+from gls_tau import tissue_corr, tissue_corr_expressed_only, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]
 OUT_WEIGHTS_CSV = sys.argv[3]
+CORR_MODE = sys.argv[4] if len(sys.argv) > 4 else "all"  # all | expressed (TPM>=1 in >=1 tissue)
 
 df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
@@ -25,7 +26,8 @@ genes = df["Name"].values
 mat = df[tissues].values.astype(float)  # genes x tissues
 mat = floor_tpm(mat)  # TPM<1 -> 0
 
-R = tissue_corr(mat)
+corr_fn = tissue_corr_expressed_only if CORR_MODE == "expressed" else tissue_corr
+R = corr_fn(mat)
 w_unreg = gls_weights(R, 0.0)
 neg_mask = w_unreg < 0
 n_negative = int(neg_mask.sum())

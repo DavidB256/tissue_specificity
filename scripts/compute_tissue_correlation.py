@@ -7,17 +7,19 @@ import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
-from gls_tau import tissue_corr, floor_tpm
+from gls_tau import tissue_corr, tissue_corr_expressed_only, floor_tpm
 
 IN_GCT = sys.argv[1]
 OUT_CORR_CSV = sys.argv[2]
 OUT_LINKAGE_CSV = sys.argv[3]
+CORR_MODE = sys.argv[4] if len(sys.argv) > 4 else "all"  # all | expressed (TPM>=1 in >=1 tissue)
 
 df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
 mat = floor_tpm(df[tissues].values.astype(float))
 
-R = tissue_corr(mat)
+corr_fn = tissue_corr_expressed_only if CORR_MODE == "expressed" else tissue_corr
+R = corr_fn(mat)
 pd.DataFrame(R, index=tissues, columns=tissues).to_csv(OUT_CORR_CSV)
 
 dist = 1 - R

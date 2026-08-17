@@ -28,6 +28,14 @@ def tissue_corr_pairwise_masked(mat):
     return R
 
 
+def tissue_corr_expressed_only(mat):
+    """tissue_corr restricted to genes with TPM>=1 (post floor_tpm) in at least one
+    tissue. Single consistent gene set across all tissue pairs, so R stays PSD (unlike
+    tissue_corr_pairwise_masked)."""
+    expressed = mat.max(axis=1) > 0
+    return tissue_corr(mat[expressed])
+
+
 def gls_weights(R, lam=0.0):
     """Raises np.linalg.LinAlgError if R_lam is exactly singular (e.g. lam=0 with
     duplicate tissue columns from resampling with replacement)."""

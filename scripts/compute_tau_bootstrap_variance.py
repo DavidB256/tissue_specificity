@@ -16,7 +16,7 @@ comparable per rep even though they run as separate parallel snakemake jobs."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr, ridge_lambda_search, weighted_tau, floor_tpm
+from gls_tau import tissue_corr, tissue_corr_expressed_only, ridge_lambda_search, weighted_tau, floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_CLUSTERS = sys.argv[2]
@@ -24,6 +24,8 @@ TAU_TYPE = sys.argv[3]       # unweighted | ridge
 RESAMPLE_MODE = sys.argv[4]  # tissue | cluster10 | cluster20
 N_REPS = int(sys.argv[5])
 OUT_CSV = sys.argv[6]
+CORR_MODE = sys.argv[7] if len(sys.argv) > 7 else "all"  # all | expressed (TPM>=1 in >=1 tissue)
+corr_fn = tissue_corr_expressed_only if CORR_MODE == "expressed" else tissue_corr
 
 SEED = 0
 
