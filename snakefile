@@ -792,6 +792,21 @@ rule compute_tau_jackknife_rank_stability:
         "python3 scripts/compute_tau_jackknife_rank_stability.py {input.gct} {input.tau} {input.clusters} "
         "{wildcards.tau_type} {wildcards.mode} {output}"
 
+rule compute_tau_jackknife_rank_stability_clustersize:
+    input:
+        gct=GCT,
+        tau=f"{DATA}/gene_specificity_clustersize{{k}}/weighted_tau.csv",
+        leaveout_clusters=bootstrap_clusters_input,
+        weight_clusters=f"{GENE_SPEC}/tissue_clusters_{{k}}.csv"
+    output:
+        f"{DATA}/gene_specificity_clustersize{{k}}/bootstrap/tau_jackknife_rank_stability_clustersize_{{mode}}.csv"
+    wildcard_constraints:
+        k="10|20",
+        mode="tissue|cluster10|cluster20"
+    shell:
+        "python3 scripts/compute_tau_jackknife_rank_stability_clustersize.py {input.gct} {input.tau} "
+        "{input.leaveout_clusters} {input.weight_clusters} {wildcards.mode} {output}"
+
 rule plot_tau_jackknife_rank_stability:
     input:
         unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_tissue.csv",
@@ -799,13 +814,21 @@ rule plot_tau_jackknife_rank_stability:
         unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster10.csv",
         ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster10.csv",
         unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20.csv"
+        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20.csv",
+        clustersize10_tissue=f"{DATA}/gene_specificity_clustersize10/bootstrap/tau_jackknife_rank_stability_clustersize_tissue.csv",
+        clustersize10_cluster10=f"{DATA}/gene_specificity_clustersize10/bootstrap/tau_jackknife_rank_stability_clustersize_cluster10.csv",
+        clustersize10_cluster20=f"{DATA}/gene_specificity_clustersize10/bootstrap/tau_jackknife_rank_stability_clustersize_cluster20.csv",
+        clustersize20_tissue=f"{DATA}/gene_specificity_clustersize20/bootstrap/tau_jackknife_rank_stability_clustersize_tissue.csv",
+        clustersize20_cluster10=f"{DATA}/gene_specificity_clustersize20/bootstrap/tau_jackknife_rank_stability_clustersize_cluster10.csv",
+        clustersize20_cluster20=f"{DATA}/gene_specificity_clustersize20/bootstrap/tau_jackknife_rank_stability_clustersize_cluster20.csv"
     output:
         f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png"
     shell:
-        "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
+        "python3 scripts/plot_tau_jackknife_rank_stability_3x3.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
+        "{input.unweighted_cluster20} {input.ridge_cluster20} "
+        "{input.clustersize10_tissue} {input.clustersize10_cluster10} {input.clustersize10_cluster20} "
+        "{input.clustersize20_tissue} {input.clustersize20_cluster10} {input.clustersize20_cluster20} {output}"
 
 rule compute_tau_jackknife_rank_stability_pairwise:
     input:
