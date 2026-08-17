@@ -97,6 +97,7 @@ rule all:
         f"{GENE_SPEC}/partition_grid_search/summary.csv",
         f"{GENE_SPEC}/weighted_tau.csv",
         f"{GENE_SPEC}/figures/weighted_tau_pairplot.png",
+        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         f"{GENE_SPEC}/tau_stability_spearman.csv",
         f"{GENE_SPEC}/tau_stability_loto.csv",
         f"{GENE_SPEC}/figures/neural_tau_impact.png",
@@ -493,6 +494,14 @@ rule plot_weighted_tau_pairplot:
         f"{GENE_SPEC}/figures/weighted_tau_pairplot.png"
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
+
+rule plot_tissue_weights:
+    input:
+        f"{GENE_SPEC}/weighted_tau_weights.csv"
+    output:
+        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png"
+    shell:
+        "python3 scripts/plot_tissue_weights.py {input} {output}"
 
 rule compute_tissue_correlation:
     input:
