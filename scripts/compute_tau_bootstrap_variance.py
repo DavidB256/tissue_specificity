@@ -12,11 +12,13 @@ single tissues under plain tissue resampling.
 
 Seed is fixed (not a CLI arg) so tissue/cluster draws are identical across the
 unweighted and ridge jobs for the same mode -- keeps the two tau types directly
-comparable per rep even though they run as separate parallel snakemake jobs."""
+comparable per rep even though they run as separate parallel snakemake jobs. Each
+rep's R is restricted to genes with TPM>=1 in at least one of that rep's resampled
+tissues (see gls_tau.tissue_corr_expressed_only)."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr, tissue_corr_expressed_only, ridge_lambda_search, weighted_tau, floor_tpm
+from gls_tau import tissue_corr_expressed_only, ridge_lambda_search, weighted_tau, floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_CLUSTERS = sys.argv[2]
@@ -24,8 +26,6 @@ TAU_TYPE = sys.argv[3]       # unweighted | ridge
 RESAMPLE_MODE = sys.argv[4]  # tissue | cluster10 | cluster20
 N_REPS = int(sys.argv[5])
 OUT_CSV = sys.argv[6]
-CORR_MODE = sys.argv[7] if len(sys.argv) > 7 else "all"  # all | expressed (TPM>=1 in >=1 tissue)
-corr_fn = tissue_corr_expressed_only if CORR_MODE == "expressed" else tissue_corr
 
 SEED = 0
 
@@ -55,7 +55,7 @@ for r in range(N_REPS):
     if TAU_TYPE == "unweighted":
         tau_r = weighted_tau(mat_r, np.ones(len(idx)))
     else:
-        R = tissue_corr(mat_r)
+        R = tissue_corr_expressed_only(mat_r)
         _, w = ridge_lambda_search(R)
         tau_r = weighted_tau(mat_r, w)
     reps[r] = np.where(np.isfinite(tau_r), tau_r, np.nan)

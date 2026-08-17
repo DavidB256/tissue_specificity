@@ -16,7 +16,6 @@ UMAP_FIGS = f"{DATA}/tissue_umap"
 UMAP_MODELS = ["exp_skewgauss2"]  # trying UMAP out on this model first
 GENE_SPEC = f"{DATA}/gene_specificity"
 GENE_SPEC_PAIRWISE = f"{DATA}/gene_specificity_pairwise"
-GENE_SPEC_EXPRCORR = f"{DATA}/gene_specificity_exprcorr"
 GENE_SUBSETS = ["highspec", "lowspec", "multitissue", "onlyneural", "maxneural"]
 
 # dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
@@ -120,18 +119,7 @@ rule all:
         f"{GENE_SPEC_PAIRWISE}/tissue_clusters_20.csv",
         f"{GENE_SPEC_PAIRWISE}/figures/weighted_tau_pairplot.png",
         f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png",
-        f"{GENE_SPEC_PAIRWISE}/figures/tau_jackknife_rank_stability.png",
-        f"{GENE_SPEC_EXPRCORR}/figures/tissue_correlation_clustermap.png",
-        f"{GENE_SPEC_EXPRCORR}/tissue_clusters_10.csv",
-        f"{GENE_SPEC_EXPRCORR}/tissue_clusters_20.csv",
-        f"{GENE_SPEC_EXPRCORR}/figures/weighted_tau_pairplot.png",
-        f"{GENE_SPEC_EXPRCORR}/figures/neural_tau_impact.png",
-        f"{GENE_SPEC_EXPRCORR}/tau_stability_spearman.csv",
-        f"{GENE_SPEC_EXPRCORR}/tau_stability_loto.csv",
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_bootstrap_variance.png",
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_bootstrap_variance_highspec.png",
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_bootstrap_variance_lowspec.png",
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_vs_variance.png"
+        f"{GENE_SPEC_PAIRWISE}/figures/tau_jackknife_rank_stability.png"
 
 rule preprocess:
     input:
@@ -636,82 +624,6 @@ rule plot_neural_tau_impact_pairwise:
     shell:
         "python3 scripts/plot_neural_tau_impact.py {input.tau} {input.neural} {output.csv} {output.png}"
 
-# Second parallel pipeline: "exprcorr" -- R computed with gls_tau.tissue_corr_expressed_only,
-# i.e. the standard single-consistent-gene-set correlation, but restricted to genes with
-# TPM>=1 in at least one tissue (unlike the default R, which uses all genes including
-# rows that are all-zero post floor_tpm). Still PSD, unlike the pairwise variant above.
-# Covers every rule whose default R computation is NOT already expressed-only --
-# compute_tau_bootstrap_rank_stability.py/compute_tau_jackknife_rank_stability.py already
-# filter to expressed-only genes upstream of R (see their `expressed = mat.max(axis=1) > 0`
-# gate), so their default outputs already match this mode; no separate exprcorr copy needed.
-
-rule compute_tissue_correlation_exprcorr:
-    input:
-        GCT
-    output:
-        corr=f"{GENE_SPEC_EXPRCORR}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_EXPRCORR}/tissue_correlation_linkage.csv"
-    shell:
-        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage} expressed"
-
-rule plot_tissue_correlation_exprcorr:
-    input:
-        corr=f"{GENE_SPEC_EXPRCORR}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_EXPRCORR}/tissue_correlation_linkage.csv"
-    output:
-        f"{GENE_SPEC_EXPRCORR}/figures/tissue_correlation_clustermap.png"
-    shell:
-        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
-            "log10 TPM, TPM<1->0, genes TPM>=1 in >=1 tissue" """
-
-rule identify_tissue_clusters_exprcorr:
-    input:
-        corr=f"{GENE_SPEC_EXPRCORR}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_EXPRCORR}/tissue_correlation_linkage.csv"
-    output:
-        f"{GENE_SPEC_EXPRCORR}/tissue_clusters_{{n_blocks}}.csv"
-    wildcard_constraints:
-        n_blocks=r"\d+"
-    shell:
-        "python3 scripts/identify_tissue_clusters.py {input.corr} {input.linkage} {wildcards.n_blocks} {output}"
-
-rule compute_weighted_tau_exprcorr:
-    input:
-        GCT
-    output:
-        tau=f"{GENE_SPEC_EXPRCORR}/weighted_tau.csv",
-        weights=f"{GENE_SPEC_EXPRCORR}/weighted_tau_weights.csv"
-    shell:
-        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights} expressed"
-
-rule plot_weighted_tau_pairplot_exprcorr:
-    input:
-        f"{GENE_SPEC_EXPRCORR}/weighted_tau.csv"
-    output:
-        f"{GENE_SPEC_EXPRCORR}/figures/weighted_tau_pairplot.png"
-    shell:
-        "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
-
-rule plot_neural_tau_impact_exprcorr:
-    input:
-        tau=f"{GENE_SPEC_EXPRCORR}/weighted_tau.csv",
-        neural=f"{GENE_SPEC}/neural_genes.csv"
-    output:
-        csv=f"{GENE_SPEC_EXPRCORR}/neural_tau_impact.csv",
-        png=f"{GENE_SPEC_EXPRCORR}/figures/neural_tau_impact.png"
-    shell:
-        "python3 scripts/plot_neural_tau_impact.py {input.tau} {input.neural} {output.csv} {output.png}"
-
-rule compute_tau_stability_exprcorr:
-    input:
-        gct=GCT,
-        tau=f"{GENE_SPEC_EXPRCORR}/weighted_tau.csv"
-    output:
-        spearman=f"{GENE_SPEC_EXPRCORR}/tau_stability_spearman.csv",
-        loto=f"{GENE_SPEC_EXPRCORR}/tau_stability_loto.csv"
-    shell:
-        "python3 scripts/compute_tau_stability.py {input.gct} {input.tau} {output.spearman} {output.loto} expressed"
-
 BOOTSTRAP_REPS = 100
 MODE_TO_NBLOCKS = {"cluster10": 10, "cluster20": 20}
 
@@ -722,10 +634,6 @@ def bootstrap_clusters_input(wildcards):
 def bootstrap_clusters_input_pairwise(wildcards):
     n = MODE_TO_NBLOCKS.get(wildcards.mode, 10)  # unused dummy for mode="tissue"
     return f"{GENE_SPEC_PAIRWISE}/tissue_clusters_{n}.csv"
-
-def bootstrap_clusters_input_exprcorr(wildcards):
-    n = MODE_TO_NBLOCKS.get(wildcards.mode, 10)  # unused dummy for mode="tissue"
-    return f"{GENE_SPEC_EXPRCORR}/tissue_clusters_{n}.csv"
 
 rule compute_tau_bootstrap_variance:
     input:
@@ -791,72 +699,6 @@ rule plot_tau_vs_variance:
         ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
     output:
         f"{GENE_SPEC}/figures/tau_vs_variance.png"
-    shell:
-        "python3 scripts/plot_tau_vs_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-rule compute_tau_bootstrap_variance_exprcorr:
-    input:
-        gct=GCT,
-        clusters=bootstrap_clusters_input_exprcorr
-    output:
-        f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_{{tau_type}}_{{mode}}.csv"
-    wildcard_constraints:
-        tau_type="unweighted|ridge",
-        mode="tissue|cluster10|cluster20"
-    shell:
-        "python3 scripts/compute_tau_bootstrap_variance.py {input.gct} {input.clusters} "
-        "{wildcards.tau_type} {wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output} expressed"
-
-rule plot_tau_bootstrap_variance_exprcorr:
-    input:
-        unweighted_tissue=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_bootstrap_variance.png"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-rule plot_tau_bootstrap_variance_filtered_exprcorr:
-    input:
-        tau=f"{GENE_SPEC_EXPRCORR}/weighted_tau.csv",
-        unweighted_tissue=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_bootstrap_variance_{{spec}}spec.png"
-    params:
-        mode=lambda wc: "high" if wc.spec == "high" else "low",
-        threshold=lambda wc: HIGHSPEC_THRESHOLD if wc.spec == "high" else LOWSPEC_THRESHOLD
-    wildcard_constraints:
-        spec="high|low"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_variance_filtered.py {input.tau} "
-        "{params.mode} {params.threshold} "
-        "{input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-rule plot_tau_vs_variance_exprcorr:
-    input:
-        unweighted_tissue=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC_EXPRCORR}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC_EXPRCORR}/figures/tau_vs_variance.png"
     shell:
         "python3 scripts/plot_tau_vs_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "

@@ -8,17 +8,17 @@ under multicollinearity and are reported, not clipped. Ridge-shrunk weights use
 R_lambda = (1-lambda)*R + lambda*I with the smallest lambda that makes every weight
 positive (see gls_tau.ridge_lambda_search). Ties for a gene's max-expressing tissue
 go to the first occurrence (np.argmax default). TPM<1 floored to 0 before any
-computation. tau_weighted_gls (unregularized, unbounded below) is left-censored at
--1 to drop runaway outliers we don't care about."""
+computation. R is restricted to genes with TPM>=1 in at least one tissue (see
+gls_tau.tissue_corr_expressed_only). tau_weighted_gls (unregularized, unbounded below)
+is left-censored at -1 to drop runaway outliers we don't care about."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr, tissue_corr_expressed_only, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
+from gls_tau import tissue_corr_expressed_only, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]
 OUT_WEIGHTS_CSV = sys.argv[3]
-CORR_MODE = sys.argv[4] if len(sys.argv) > 4 else "all"  # all | expressed (TPM>=1 in >=1 tissue)
 
 df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
@@ -26,8 +26,7 @@ genes = df["Name"].values
 mat = df[tissues].values.astype(float)  # genes x tissues
 mat = floor_tpm(mat)  # TPM<1 -> 0
 
-corr_fn = tissue_corr_expressed_only if CORR_MODE == "expressed" else tissue_corr
-R = corr_fn(mat)
+R = tissue_corr_expressed_only(mat)
 w_unreg = gls_weights(R, 0.0)
 neg_mask = w_unreg < 0
 n_negative = int(neg_mask.sum())

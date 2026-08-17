@@ -10,14 +10,12 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from gls_tau import tissue_corr, tissue_corr_expressed_only, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
+from gls_tau import tissue_corr_expressed_only, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 IN_TAU = sys.argv[2]
 OUT_SPEARMAN_CSV = sys.argv[3]
 OUT_LOTO_CSV = sys.argv[4]
-CORR_MODE = sys.argv[5] if len(sys.argv) > 5 else "all"  # all | expressed (TPM>=1 in >=1 tissue)
-corr_fn = tissue_corr_expressed_only if CORR_MODE == "expressed" else tissue_corr
 
 VARIANTS = ["tau_unweighted", "tau_weighted_gls", "tau_weighted_gls_ridge"]
 
@@ -42,7 +40,7 @@ loto = {v: np.full((n_tissues, n_genes), np.nan) for v in VARIANTS}
 for k in range(n_tissues):
     mat = mat_full[:, np.arange(n_tissues) != k]
     n = mat.shape[1]
-    R = corr_fn(mat)
+    R = tissue_corr_expressed_only(mat)
     w_unreg = gls_weights(R, 0.0)
     lam_star, w_reg = ridge_lambda_search(R)
 
