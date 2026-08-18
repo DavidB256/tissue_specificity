@@ -117,6 +117,7 @@ rule all:
         expand(f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
         expand(f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
+        f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png",
         f"{GENE_SPEC_PAIRWISE}/figures/tissue_correlation_clustermap.png",
         f"{GENE_SPEC_PAIRWISE}/tissue_clusters_10.csv",
         f"{GENE_SPEC_PAIRWISE}/tissue_clusters_20.csv",
@@ -923,6 +924,37 @@ rule plot_tau_jackknife_rank_stability_subset:
         "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
         "{input.unweighted_cluster20} {input.ridge_cluster20} {output} \"gene subset: {wildcards.subset}\""
+
+# delta_tau: per-gene, per-tissue leave-one-tissue-out tau (not rank-stability rho --
+# the actual tau values), used to look at within-gene tau variance/range under jackknifing.
+rule compute_tau_jackknife_pertissue:
+    input:
+        GCT
+    output:
+        f"{GENE_SPEC}/bootstrap/tau_jackknife_pertissue.csv"
+    shell:
+        "python3 scripts/compute_tau_jackknife_pertissue.py {input} {output}"
+
+rule compute_tau_jackknife_pertissue_ridge:
+    input:
+        gct=GCT,
+        weights=f"{GENE_SPEC}/weighted_tau_weights.csv"
+    output:
+        f"{GENE_SPEC}/bootstrap/tau_jackknife_pertissue_ridge.csv"
+    shell:
+        "python3 scripts/compute_tau_jackknife_pertissue_ridge.py {input.gct} {input.weights} {output}"
+
+rule plot_tau_range_unweighted_vs_ridge_fewtissues:
+    input:
+        gct=GCT,
+        unweighted=f"{GENE_SPEC}/bootstrap/tau_jackknife_pertissue.csv",
+        ridge=f"{GENE_SPEC}/bootstrap/tau_jackknife_pertissue_ridge.csv",
+        tau=f"{GENE_SPEC}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png"
+    shell:
+        "python3 scripts/plot_tau_range_unweighted_vs_ridge_fewtissues.py {input.gct} {input.unweighted} "
+        "{input.ridge} {input.tau} {output} 5"
 
 rule compute_tau_neural_downsample:
     input:
