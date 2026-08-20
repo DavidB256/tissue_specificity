@@ -104,6 +104,7 @@ rule all:
         f"{GENE_SPEC}/tau_stability_loto.csv",
         f"{GENE_SPEC}/figures/neural_tau_impact.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_squared.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_rawtpm.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_pairwise.png",
         f"{GENE_SPEC}/tissue_clusters_10.csv",
@@ -557,6 +558,25 @@ rule plot_tissue_correlation:
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png"
     shell:
         "python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output}"
+
+rule compute_tissue_correlation_squared:
+    input:
+        f"{GENE_SPEC}/tissue_correlation.csv"
+    output:
+        corr=f"{GENE_SPEC}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC}/tissue_correlation_squared_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation_squared.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_squared:
+    input:
+        corr=f"{GENE_SPEC}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC}/tissue_correlation_squared_linkage.csv"
+    output:
+        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_squared.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM<1->0, R elementwise squared" """
 
 rule compute_tissue_correlation_rawtpm:
     input:
