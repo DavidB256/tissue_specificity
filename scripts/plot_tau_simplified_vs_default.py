@@ -4,6 +4,7 @@ collapsed into parent, see build_gct_simplified.py) tissues: (left) tau_unweight
 tau_weighted_gls_ridge with the elementwise-squared corr mat (see
 compute_weighted_tau_squared.py)."""
 import sys
+import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
@@ -46,6 +47,11 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.set_ylabel(f"{ycol} (simplified tissues)")
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
+
+    dist = (df[xcol] - df[ycol]).abs() / np.sqrt(2)
+    ax.legend(handles=[plt.Line2D([0], [0], color="none",
+                                   label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
+              loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
 fig.suptitle(f"tau: default vs simplified tissues, n={len(df)} genes")
 fig.tight_layout()
