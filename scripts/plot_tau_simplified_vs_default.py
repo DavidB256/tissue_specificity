@@ -34,10 +34,14 @@ PANELS = [
      "tau_weighted_gls_ridge (squared R): default vs simplified tissues"),
 ]
 
+AXIS_LO, AXIS_HI = 0.2, 1.0
+
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 for ax, (xcol, ycol, title) in zip(axes, PANELS):
-    ax.scatter(df[xcol], df[ycol], s=4, alpha=0.15, color="tab:blue")
-    ax.plot([0, 1], [0, 1], "--", color="gray", lw=1)
+    ax.scatter(df[xcol], df[ycol], s=4, alpha=0.1, color="tab:blue")
+    ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
+    ax.set_xlim(AXIS_LO, AXIS_HI)
+    ax.set_ylim(AXIS_LO, AXIS_HI)
     ax.set_xlabel(f"{xcol} (default, 68 tissues)")
     ax.set_ylabel(f"{ycol} (simplified tissues)")
     ax.set_title(title, fontsize=10)
