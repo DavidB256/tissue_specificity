@@ -99,6 +99,9 @@ rule all:
         f"{GENE_SPEC}/figures/weighted_tau_pairplot.png",
         f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge_squared.png",
+        f"{GENE_SPEC}/simplified/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC}/simplified/figures/tissue_correlation_clustermap_squared.png",
+        f"{GENE_SPEC}/simplified/figures/tau_simplified_vs_default.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -518,6 +521,85 @@ rule plot_weighted_tau_pairplot_squared:
         f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png"
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
+
+GENE_SPEC_SIMPLIFIED = f"{GENE_SPEC}/simplified"
+SIMPLIFIED_GCT = f"{GENE_SPEC_SIMPLIFIED}/gene_median_tpm_simplified.gct.gz"
+
+rule build_gct_simplified:
+    input:
+        GCT
+    output:
+        SIMPLIFIED_GCT
+    shell:
+        "python3 scripts/build_gct_simplified.py {input} {output}"
+
+rule compute_tissue_correlation_simplified:
+    input:
+        SIMPLIFIED_GCT
+    output:
+        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_simplified:
+    input:
+        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC_SIMPLIFIED}/figures/tissue_correlation_clustermap.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM<1->0, simplified tissues" """
+
+rule compute_tissue_correlation_squared_simplified:
+    input:
+        f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation.csv"
+    output:
+        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation_squared.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_squared_simplified:
+    input:
+        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared_linkage.csv"
+    output:
+        f"{GENE_SPEC_SIMPLIFIED}/figures/tissue_correlation_clustermap_squared.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM<1->0, simplified tissues, R elementwise squared" """
+
+rule compute_weighted_tau_simplified:
+    input:
+        SIMPLIFIED_GCT
+    output:
+        tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule compute_weighted_tau_squared_simplified:
+    input:
+        SIMPLIFIED_GCT
+    output:
+        tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared.csv",
+        weights=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_squared.py {input} {output.tau} {output.weights}"
+
+rule plot_tau_simplified_vs_default:
+    input:
+        default_tau=f"{GENE_SPEC}/weighted_tau.csv",
+        default_tau_squared=f"{GENE_SPEC}/weighted_tau_squared.csv",
+        simplified_tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau.csv",
+        simplified_tau_squared=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared.csv"
+    output:
+        f"{GENE_SPEC_SIMPLIFIED}/figures/tau_simplified_vs_default.png"
+    shell:
+        "python3 scripts/plot_tau_simplified_vs_default.py {input.default_tau} {input.default_tau_squared} "
+        "{input.simplified_tau} {input.simplified_tau_squared} {output}"
 
 rule plot_tissue_weights_squared:
     input:
