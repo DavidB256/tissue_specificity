@@ -112,6 +112,7 @@ rule all:
         f"{GENE_SPEC}/tissue_clusters_10.csv",
         f"{GENE_SPEC}/tissue_clusters_20.csv",
         f"{GENE_SPEC}/figures/tau_bootstrap_variance.png",
+        f"{GENE_SPEC}/figures/tau_bootstrap_variance_squared.png",
         f"{GENE_SPEC}/figures/tau_bootstrap_variance_highspec.png",
         f"{GENE_SPEC}/figures/tau_bootstrap_variance_lowspec.png",
         f"{GENE_SPEC}/figures/tau_vs_variance.png",
@@ -751,6 +752,33 @@ rule plot_tau_bootstrap_variance:
         ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
     output:
         f"{GENE_SPEC}/figures/tau_bootstrap_variance.png"
+    shell:
+        "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
+        "{input.unweighted_cluster10} {input.ridge_cluster10} "
+        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
+
+rule compute_tau_bootstrap_variance_squared:
+    input:
+        gct=GCT,
+        clusters=bootstrap_clusters_input
+    output:
+        f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_{{mode}}.csv"
+    wildcard_constraints:
+        mode="tissue|cluster10|cluster20"
+    shell:
+        "python3 scripts/compute_tau_bootstrap_variance_squared.py {input.gct} {input.clusters} "
+        "{wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output}"
+
+rule plot_tau_bootstrap_variance_squared:
+    input:
+        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
+        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_tissue.csv",
+        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
+        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_cluster10.csv",
+        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
+        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_cluster20.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_bootstrap_variance_squared.png"
     shell:
         "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
