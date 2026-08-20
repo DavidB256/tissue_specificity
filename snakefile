@@ -97,6 +97,8 @@ rule all:
         f"{GENE_SPEC}/partition_grid_search/summary.csv",
         f"{GENE_SPEC}/weighted_tau.csv",
         f"{GENE_SPEC}/figures/weighted_tau_pairplot.png",
+        f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png",
+        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge_squared.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -498,6 +500,31 @@ rule plot_weighted_tau_pairplot:
         f"{GENE_SPEC}/figures/weighted_tau_pairplot.png"
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
+
+rule compute_weighted_tau_squared:
+    input:
+        GCT
+    output:
+        tau=f"{GENE_SPEC}/weighted_tau_squared.csv",
+        weights=f"{GENE_SPEC}/weighted_tau_squared_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_squared.py {input} {output.tau} {output.weights}"
+
+rule plot_weighted_tau_pairplot_squared:
+    input:
+        f"{GENE_SPEC}/weighted_tau_squared.csv"
+    output:
+        f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png"
+    shell:
+        "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
+
+rule plot_tissue_weights_squared:
+    input:
+        f"{GENE_SPEC}/weighted_tau_squared_weights.csv"
+    output:
+        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge_squared.png"
+    shell:
+        "python3 scripts/plot_tissue_weights.py {input} {output}"
 
 rule plot_tissue_weights:
     input:

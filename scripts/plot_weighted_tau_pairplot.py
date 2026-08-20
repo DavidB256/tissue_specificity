@@ -1,5 +1,6 @@
-"""Seaborn pairplot (scatterplot matrix) of the three tau variants: unweighted,
-GLS-weighted, and ridge-regularized GLS-weighted."""
+"""Seaborn pairplot (scatterplot matrix) of unweighted vs ridge-regularized
+GLS-weighted tau. Unregularized tau_weighted_gls omitted -- only the ridge-adjusted
+variant is of interest."""
 import sys
 import pandas as pd
 import seaborn as sns
@@ -10,7 +11,7 @@ from plot_utils import annotate_diag_stats
 IN_CSV = sys.argv[1]
 OUT_PNG = sys.argv[2]
 
-COLS = ["tau_unweighted", "tau_weighted_gls", "tau_weighted_gls_ridge"]
+COLS = ["tau_unweighted", "tau_weighted_gls_ridge"]
 
 df = pd.read_csv(IN_CSV)[COLS].dropna()
 
