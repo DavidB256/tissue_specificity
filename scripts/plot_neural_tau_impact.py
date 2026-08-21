@@ -64,9 +64,10 @@ fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
 
-r_gls, rho_gls, below_gls = stats["tau_weighted_gls"]
-r_ridge, rho_ridge, below_ridge = stats["tau_weighted_gls_ridge"]
+r_gls, rho_gls, below_gls, above_gls = stats["tau_weighted_gls"]
+r_ridge, rho_ridge, below_ridge, above_ridge = stats["tau_weighted_gls_ridge"]
 print(f"neural genes: {len(neural_df)}; median delta_gls_ridge neural={neural_df['delta_gls_ridge'].median():.4f} "
       f"vs all={df['delta_gls_ridge'].median():.4f}; "
-      f"gls: pearson={r_gls:.4f} spearman={rho_gls:.4f} below_diag={below_gls:.4f}; "
-      f"ridge: pearson={r_ridge:.4f} spearman={rho_ridge:.4f} below_diag={below_ridge:.4f}", file=sys.stderr)
+      f"gls: pearson={r_gls:.4f} spearman={rho_gls:.4f} below_diag={below_gls:.4f} above_diag={above_gls:.4f}; "
+      f"ridge: pearson={r_ridge:.4f} spearman={rho_ridge:.4f} below_diag={below_ridge:.4f} above_diag={above_ridge:.4f}",
+      file=sys.stderr)
