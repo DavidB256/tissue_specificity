@@ -109,6 +109,7 @@ rule all:
         f"{GENE_SPEC}/cluster_weights/onebrain/weighted_tau.csv",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default.png",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_bkl.png",
+        f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_pca.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -760,6 +761,15 @@ rule plot_tau_cluster_vs_default_bkl:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tau_cluster_onebrain_vs_default_bkl.png"
     shell:
         "python3 scripts/plot_tau_cluster_vs_default_bkl.py {input.gct} {input.default_tau} {input.onebrain_tau} {output} onebrain"
+
+rule plot_tissue_clusters_pca:
+    input:
+        gct=GCT,
+        clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/tissue_clusters.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_pca.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_pca.py {input.gct} {input.clusters} {output}"
 
 rule plot_tissue_weights_squared:
     input:
