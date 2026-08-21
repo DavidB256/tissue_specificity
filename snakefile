@@ -522,6 +522,15 @@ rule plot_weighted_tau_pairplot_squared:
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
 
+rule compute_weighted_tau_fourth:
+    input:
+        GCT
+    output:
+        tau=f"{GENE_SPEC}/weighted_tau_fourth.csv",
+        weights=f"{GENE_SPEC}/weighted_tau_fourth_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_fourth.py {input} {output.tau} {output.weights}"
+
 GENE_SPEC_SIMPLIFIED = f"{GENE_SPEC}/simplified"
 SIMPLIFIED_GCT = f"{GENE_SPEC_SIMPLIFIED}/gene_median_tpm_simplified.gct.gz"
 
@@ -589,17 +598,29 @@ rule compute_weighted_tau_squared_simplified:
     shell:
         "python3 scripts/compute_weighted_tau_squared.py {input} {output.tau} {output.weights}"
 
+rule compute_weighted_tau_fourth_simplified:
+    input:
+        SIMPLIFIED_GCT
+    output:
+        tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_fourth.csv",
+        weights=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_fourth_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_fourth.py {input} {output.tau} {output.weights}"
+
 rule plot_tau_simplified_vs_default:
     input:
         default_tau=f"{GENE_SPEC}/weighted_tau.csv",
         default_tau_squared=f"{GENE_SPEC}/weighted_tau_squared.csv",
+        default_tau_fourth=f"{GENE_SPEC}/weighted_tau_fourth.csv",
         simplified_tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau.csv",
-        simplified_tau_squared=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared.csv"
+        simplified_tau_squared=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared.csv",
+        simplified_tau_fourth=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_fourth.csv"
     output:
         f"{GENE_SPEC_SIMPLIFIED}/figures/tau_simplified_vs_default.png"
     shell:
         "python3 scripts/plot_tau_simplified_vs_default.py {input.default_tau} {input.default_tau_squared} "
-        "{input.simplified_tau} {input.simplified_tau_squared} {output}"
+        "{input.default_tau_fourth} {input.simplified_tau} {input.simplified_tau_squared} "
+        "{input.simplified_tau_fourth} {output}"
 
 rule plot_tissue_weights_squared:
     input:
