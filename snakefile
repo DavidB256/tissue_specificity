@@ -102,6 +102,9 @@ rule all:
         f"{GENE_SPEC}/simplified/figures/tissue_correlation_clustermap.png",
         f"{GENE_SPEC}/simplified/figures/tissue_correlation_clustermap_squared.png",
         f"{GENE_SPEC}/simplified/figures/tau_simplified_vs_default.png",
+        f"{GENE_SPEC}/onebrain/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC}/onebrain/figures/tissue_correlation_clustermap_squared.png",
+        f"{GENE_SPEC}/onebrain/figures/tau_onebrain_vs_default.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -620,7 +623,98 @@ rule plot_tau_simplified_vs_default:
     shell:
         "python3 scripts/plot_tau_simplified_vs_default.py {input.default_tau} {input.default_tau_squared} "
         "{input.default_tau_fourth} {input.simplified_tau} {input.simplified_tau_squared} "
-        "{input.simplified_tau_fourth} {output}"
+        "{input.simplified_tau_fourth} {output} simplified"
+
+GENE_SPEC_ONEBRAIN = f"{GENE_SPEC}/onebrain"
+ONEBRAIN_GCT = f"{GENE_SPEC_ONEBRAIN}/gene_median_tpm_onebrain.gct.gz"
+
+rule build_gct_onebrain:
+    input:
+        GCT
+    output:
+        ONEBRAIN_GCT
+    shell:
+        "python3 scripts/build_gct_onebrain.py {input} {output}"
+
+rule compute_tissue_correlation_onebrain:
+    input:
+        ONEBRAIN_GCT
+    output:
+        corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_onebrain:
+    input:
+        corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC_ONEBRAIN}/figures/tissue_correlation_clustermap.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM<1->0, onebrain tissues" """
+
+rule compute_tissue_correlation_squared_onebrain:
+    input:
+        f"{GENE_SPEC_ONEBRAIN}/tissue_correlation.csv"
+    output:
+        corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_squared_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation_squared.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_squared_onebrain:
+    input:
+        corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_squared_linkage.csv"
+    output:
+        f"{GENE_SPEC_ONEBRAIN}/figures/tissue_correlation_clustermap_squared.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM<1->0, onebrain tissues, R elementwise squared" """
+
+rule compute_weighted_tau_onebrain:
+    input:
+        ONEBRAIN_GCT
+    output:
+        tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule compute_weighted_tau_squared_onebrain:
+    input:
+        ONEBRAIN_GCT
+    output:
+        tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_squared.csv",
+        weights=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_squared_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_squared.py {input} {output.tau} {output.weights}"
+
+rule compute_weighted_tau_fourth_onebrain:
+    input:
+        ONEBRAIN_GCT
+    output:
+        tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_fourth.csv",
+        weights=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_fourth_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau_fourth.py {input} {output.tau} {output.weights}"
+
+rule plot_tau_onebrain_vs_default:
+    input:
+        default_tau=f"{GENE_SPEC}/weighted_tau.csv",
+        default_tau_squared=f"{GENE_SPEC}/weighted_tau_squared.csv",
+        default_tau_fourth=f"{GENE_SPEC}/weighted_tau_fourth.csv",
+        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
+        onebrain_tau_squared=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_squared.csv",
+        onebrain_tau_fourth=f"{GENE_SPEC_ONEBRAIN}/weighted_tau_fourth.csv"
+    output:
+        f"{GENE_SPEC_ONEBRAIN}/figures/tau_onebrain_vs_default.png"
+    shell:
+        "python3 scripts/plot_tau_simplified_vs_default.py {input.default_tau} {input.default_tau_squared} "
+        "{input.default_tau_fourth} {input.onebrain_tau} {input.onebrain_tau_squared} "
+        "{input.onebrain_tau_fourth} {output} onebrain"
 
 rule plot_tissue_weights_squared:
     input:

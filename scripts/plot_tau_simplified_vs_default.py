@@ -1,9 +1,9 @@
-"""4-panel comparison of tau on default (68) vs simplified (fine-grained sub-tissues
-collapsed into parent, see build_gct_simplified.py) tissues: (1) tau_unweighted,
-(2) tau_weighted_gls_ridge with the default (unraised) corr mat, (3) tau_weighted_gls_ridge
-with the elementwise-squared corr mat (see compute_weighted_tau_squared.py), (4)
-tau_weighted_gls_ridge with the elementwise-4th-power corr mat (see
-compute_weighted_tau_fourth.py)."""
+"""4-panel comparison of tau on default (68) vs a collapsed-tissue variant (e.g.
+"simplified" from build_gct_simplified.py, or "onebrain" from build_gct_onebrain.py)
+tissues: (1) tau_unweighted, (2) tau_weighted_gls_ridge with the default (unraised) corr
+mat, (3) tau_weighted_gls_ridge with the elementwise-squared corr mat (see
+compute_weighted_tau_squared.py), (4) tau_weighted_gls_ridge with the elementwise-4th-power
+corr mat (see compute_weighted_tau_fourth.py)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -19,6 +19,7 @@ IN_SIMPLIFIED_TAU = sys.argv[4]
 IN_SIMPLIFIED_TAU_SQUARED = sys.argv[5]
 IN_SIMPLIFIED_TAU_FOURTH = sys.argv[6]
 OUT_PNG = sys.argv[7]
+LABEL = sys.argv[8] if len(sys.argv) > 8 else "simplified"
 
 d = pd.read_csv(IN_DEFAULT_TAU)[["gene", "tau_unweighted", "tau_weighted_gls_ridge"]]
 d_sq = pd.read_csv(IN_DEFAULT_TAU_SQUARED)[["gene", "tau_weighted_gls_ridge"]].rename(
@@ -35,13 +36,13 @@ s_4 = pd.read_csv(IN_SIMPLIFIED_TAU_FOURTH)[["gene", "tau_weighted_gls_ridge"]].
 df = d.merge(d_sq, on="gene").merge(d_4, on="gene").merge(s, on="gene").merge(s_sq, on="gene").merge(s_4, on="gene").dropna()
 
 PANELS = [
-    ("tau_unweighted", "tau_unweighted_simp", "tau_unweighted: default vs simplified tissues"),
+    ("tau_unweighted", "tau_unweighted_simp", f"tau_unweighted: default vs {LABEL} tissues"),
     ("tau_weighted_gls_ridge", "tau_weighted_gls_ridge_simp",
-     "tau_weighted_gls_ridge (default R): default vs simplified tissues"),
+     f"tau_weighted_gls_ridge (default R): default vs {LABEL} tissues"),
     ("tau_weighted_gls_ridge_sq", "tau_weighted_gls_ridge_simp_sq",
-     "tau_weighted_gls_ridge (squared R): default vs simplified tissues"),
+     f"tau_weighted_gls_ridge (squared R): default vs {LABEL} tissues"),
     ("tau_weighted_gls_ridge_4th", "tau_weighted_gls_ridge_simp_4th",
-     "tau_weighted_gls_ridge (R**4): default vs simplified tissues"),
+     f"tau_weighted_gls_ridge (R**4): default vs {LABEL} tissues"),
 ]
 
 AXIS_LO, AXIS_HI = 0.2, 1.0
@@ -53,7 +54,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
     ax.set_xlabel(f"{xcol} (default, 68 tissues)")
-    ax.set_ylabel(f"{ycol} (simplified tissues)")
+    ax.set_ylabel(f"{ycol} ({LABEL} tissues)")
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
 
@@ -62,7 +63,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"tau: default vs simplified tissues, n={len(df)} genes")
+fig.suptitle(f"tau: default vs {LABEL} tissues, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
