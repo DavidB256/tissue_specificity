@@ -726,22 +726,24 @@ GENE_SPEC_CLUSTER_WEIGHTS = f"{GENE_SPEC}/cluster_weights"
 rule compute_tau_cluster_weighted_default:
     input:
         gct=GCT,
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv"
+        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC}/tissue_correlation.csv"
     output:
         clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/tissue_clusters.csv",
         tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/weighted_tau.csv"
     shell:
-        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {output.clusters} {output.tau}"
+        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
 
 rule compute_tau_cluster_weighted_onebrain:
     input:
         gct=ONEBRAIN_GCT,
-        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv"
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation.csv"
     output:
         clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/tissue_clusters.csv",
         tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/weighted_tau.csv"
     shell:
-        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {output.clusters} {output.tau}"
+        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
 
 rule plot_tau_cluster_vs_default:
     input:
