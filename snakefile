@@ -107,6 +107,8 @@ rule all:
         f"{GENE_SPEC}/onebrain/figures/tau_onebrain_vs_default.png",
         f"{GENE_SPEC}/cluster_weights/default/weighted_tau.csv",
         f"{GENE_SPEC}/cluster_weights/onebrain/weighted_tau.csv",
+        f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default.png",
+        f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_bkl.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -739,6 +741,25 @@ rule compute_tau_cluster_weighted_onebrain:
         tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/weighted_tau.csv"
     shell:
         "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {output.clusters} {output.tau}"
+
+rule plot_tau_cluster_vs_default:
+    input:
+        default_tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/weighted_tau.csv",
+        onebrain_tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tau_cluster_onebrain_vs_default.png"
+    shell:
+        "python3 scripts/plot_tau_cluster_vs_default.py {input.default_tau} {input.onebrain_tau} {output} onebrain"
+
+rule plot_tau_cluster_vs_default_bkl:
+    input:
+        gct=GCT,
+        default_tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/weighted_tau.csv",
+        onebrain_tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tau_cluster_onebrain_vs_default_bkl.png"
+    shell:
+        "python3 scripts/plot_tau_cluster_vs_default_bkl.py {input.gct} {input.default_tau} {input.onebrain_tau} {output} onebrain"
 
 rule plot_tissue_weights_squared:
     input:
