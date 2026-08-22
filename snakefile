@@ -110,6 +110,8 @@ rule all:
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default.png",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_bkl.png",
         f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_pca.png",
+        f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_dendrogram_default.png",
+        f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_dendrogram_onebrain.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -772,6 +774,24 @@ rule plot_tissue_clusters_pca:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_pca.png"
     shell:
         "python3 scripts/plot_tissue_clusters_pca.py {input.gct} {input.clusters} {output}"
+
+rule plot_tissue_clusters_dendrogram_default:
+    input:
+        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
+        clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/tissue_clusters.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_default.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} default"
+
+rule plot_tissue_clusters_dendrogram_onebrain:
+    input:
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv",
+        clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/tissue_clusters.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_onebrain.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} onebrain"
 
 rule plot_tissue_weights_squared:
     input:
