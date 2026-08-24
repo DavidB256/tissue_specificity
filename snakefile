@@ -112,6 +112,7 @@ rule all:
         f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_pca.png",
         f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_dendrogram_default.png",
         f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_dendrogram_onebrain.png",
+        f"{GENE_SPEC}/cluster_weights/param_search_best.csv",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -792,6 +793,22 @@ rule plot_tissue_clusters_dendrogram_onebrain:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_onebrain.png"
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} onebrain"
+
+rule optimize_cluster_weight_params:
+    input:
+        default_gct=GCT,
+        default_linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
+        default_corr=f"{GENE_SPEC}/tissue_correlation.csv",
+        onebrain_gct=ONEBRAIN_GCT,
+        onebrain_linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv",
+        onebrain_corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation.csv"
+    output:
+        trajectory=f"{GENE_SPEC_CLUSTER_WEIGHTS}/param_search_trajectory.csv",
+        best=f"{GENE_SPEC_CLUSTER_WEIGHTS}/param_search_best.csv"
+    shell:
+        "python3 scripts/optimize_cluster_weight_params.py {input.default_gct} {input.default_linkage} "
+        "{input.default_corr} {input.onebrain_gct} {input.onebrain_linkage} {input.onebrain_corr} "
+        "{output.trajectory} {output.best}"
 
 rule plot_tissue_weights_squared:
     input:
