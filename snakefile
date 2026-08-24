@@ -849,7 +849,7 @@ rule plot_tau_cluster_vs_default_naive:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tau_cluster_onebrain_vs_default_naive.png"
     shell:
         "python3 scripts/plot_tau_cluster_vs_default.py {input.default_tau} {input.onebrain_tau} {output} "
-        "onebrain_naive_t0.1_c0.5"
+        "'onebrain (t=0.10, c=0.50)'"
 
 rule plot_tau_cluster_vs_default_optimized:
     input:
@@ -859,7 +859,7 @@ rule plot_tau_cluster_vs_default_optimized:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tau_cluster_onebrain_vs_default_optimized.png"
     shell:
         "python3 scripts/plot_tau_cluster_vs_default.py {input.default_tau} {input.onebrain_tau} {output} "
-        "onebrain_optimized_t" + DIST_THRESHOLD_OPT + "_c" + WEIGHT_CAP_OPT
+        "'onebrain (t=0.013, c=0.10)'"
 
 rule plot_tissue_weights_squared:
     input:

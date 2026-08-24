@@ -23,11 +23,9 @@ c = pd.read_csv(IN_COLLAPSED_TAU)[["gene"] + COLS].rename(columns={col: f"{col}_
 df = d.merge(c, on="gene").dropna()
 
 PANELS = [
-    ("tau_unweighted", "tau_unweighted_simp", f"tau_unweighted: default vs {LABEL} tissues"),
-    ("tau_weighted_cluster", "tau_weighted_cluster_simp",
-     f"tau_weighted_cluster (1/cluster_size): default vs {LABEL} tissues"),
-    ("tau_weighted_cluster_diameter", "tau_weighted_cluster_diameter_simp",
-     f"tau_weighted_cluster_diameter ((1-d)/k+d): default vs {LABEL} tissues"),
+    ("tau_unweighted", "tau_unweighted_simp", "tau_unweighted"),
+    ("tau_weighted_cluster", "tau_weighted_cluster_simp", "tau_weighted_cluster (1/k)"),
+    ("tau_weighted_cluster_diameter", "tau_weighted_cluster_diameter_simp", "tau_weighted_cluster_diameter"),
 ]
 
 AXIS_LO, AXIS_HI = 0.2, 1.0
@@ -38,8 +36,8 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
-    ax.set_xlabel(f"{xcol} (default, 68 tissues)")
-    ax.set_ylabel(f"{ycol} ({LABEL} tissues)")
+    ax.set_xlabel("default (68 tissues)")
+    ax.set_ylabel(LABEL)
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
 
@@ -48,7 +46,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"cluster-weighted tau: default vs {LABEL} tissues, n={len(df)} genes")
+fig.suptitle(f"cluster-weighted tau: default vs {LABEL}, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
