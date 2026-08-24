@@ -12,10 +12,7 @@ PROCESSED = f"{DATA}/processed"
 MODEL_FITS = f"{DATA}/model_fits"
 DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
-UMAP_FIGS = f"{DATA}/tissue_umap"
-UMAP_MODELS = ["exp_skewgauss2"]  # trying UMAP out on this model first
 GENE_SPEC = f"{DATA}/gene_specificity"
-GENE_SPEC_PAIRWISE = f"{DATA}/gene_specificity_pairwise"
 GENE_SUBSETS = ["highspec", "lowspec", "multitissue", "onlyneural", "maxneural"]
 
 # dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
@@ -86,7 +83,6 @@ rule all:
         "methods.md",
         expand(f"{DIST_FIGS}/{{model}}_grid.png", model=MODEL_NAMES),
         expand(f"{PCA_FIGS}/{{model}}_pca.png", model=MODEL_NAMES),
-        expand(f"{UMAP_FIGS}/{{model}}_umap.png", model=UMAP_MODELS),
         f"{MODEL_FITS}/pca_compressibility_comparison.csv",
         f"{MODEL_FITS}/pca_compressibility_comparison_allgenes.csv",
         expand(f"{DATA}/{{species}}/raw/gene_tpm_combined.gct.gz", species=NHP_LIST),
@@ -99,9 +95,6 @@ rule all:
         f"{GENE_SPEC}/figures/weighted_tau_pairplot.png",
         f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge_squared.png",
-        f"{GENE_SPEC}/simplified/figures/tissue_correlation_clustermap.png",
-        f"{GENE_SPEC}/simplified/figures/tissue_correlation_clustermap_squared.png",
-        f"{GENE_SPEC}/simplified/figures/tau_simplified_vs_default.png",
         f"{GENE_SPEC}/onebrain/figures/tissue_correlation_clustermap.png",
         f"{GENE_SPEC}/onebrain/figures/tissue_correlation_clustermap_squared.png",
         f"{GENE_SPEC}/onebrain/figures/tau_onebrain_vs_default.png",
@@ -130,7 +123,6 @@ rule all:
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_squared.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_rawtpm.png",
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_pairwise.png",
         f"{GENE_SPEC}/tissue_clusters_10.csv",
         f"{GENE_SPEC}/tissue_clusters_20.csv",
         f"{GENE_SPEC}/figures/tau_bootstrap_variance.png",
@@ -143,13 +135,7 @@ rule all:
         expand(f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
         expand(f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
-        f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png",
-        f"{GENE_SPEC_PAIRWISE}/figures/tissue_correlation_clustermap.png",
-        f"{GENE_SPEC_PAIRWISE}/tissue_clusters_10.csv",
-        f"{GENE_SPEC_PAIRWISE}/tissue_clusters_20.csv",
-        f"{GENE_SPEC_PAIRWISE}/figures/weighted_tau_pairplot.png",
-        f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png",
-        f"{GENE_SPEC_PAIRWISE}/figures/tau_jackknife_rank_stability.png"
+        f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png"
 
 rule preprocess:
     input:
@@ -273,14 +259,6 @@ rule pca_tissue_clustering:
         f"{PCA_FIGS}/{{model}}_pca.png"
     shell:
         "python3 scripts/pca_tissue_clustering.py {wildcards.model} {input} {output}"
-
-rule umap_tissue_clustering:
-    input:
-        f"{MODEL_FITS}/{{model}}_fits.csv"
-    output:
-        f"{UMAP_FIGS}/{{model}}_umap.png"
-    shell:
-        "python3 scripts/umap_tissue_clustering.py {wildcards.model} {input} {output}"
 
 rule build_expr_matrix:
     input:
@@ -549,97 +527,6 @@ rule compute_weighted_tau_fourth:
         weights=f"{GENE_SPEC}/weighted_tau_fourth_weights.csv"
     shell:
         "python3 scripts/compute_weighted_tau_fourth.py {input} {output.tau} {output.weights}"
-
-GENE_SPEC_SIMPLIFIED = f"{GENE_SPEC}/simplified"
-SIMPLIFIED_GCT = f"{GENE_SPEC_SIMPLIFIED}/gene_median_tpm_simplified.gct.gz"
-
-rule build_gct_simplified:
-    input:
-        GCT
-    output:
-        SIMPLIFIED_GCT
-    shell:
-        "python3 scripts/build_gct_simplified.py {input} {output}"
-
-rule compute_tissue_correlation_simplified:
-    input:
-        SIMPLIFIED_GCT
-    output:
-        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_linkage.csv"
-    shell:
-        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage}"
-
-rule plot_tissue_correlation_simplified:
-    input:
-        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_linkage.csv"
-    output:
-        f"{GENE_SPEC_SIMPLIFIED}/figures/tissue_correlation_clustermap.png"
-    shell:
-        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
-            "log10 TPM, TPM<1->0, simplified tissues" """
-
-rule compute_tissue_correlation_squared_simplified:
-    input:
-        f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation.csv"
-    output:
-        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared.csv",
-        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared_linkage.csv"
-    shell:
-        "python3 scripts/compute_tissue_correlation_squared.py {input} {output.corr} {output.linkage}"
-
-rule plot_tissue_correlation_squared_simplified:
-    input:
-        corr=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared.csv",
-        linkage=f"{GENE_SPEC_SIMPLIFIED}/tissue_correlation_squared_linkage.csv"
-    output:
-        f"{GENE_SPEC_SIMPLIFIED}/figures/tissue_correlation_clustermap_squared.png"
-    shell:
-        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
-            "log10 TPM, TPM<1->0, simplified tissues, R elementwise squared" """
-
-rule compute_weighted_tau_simplified:
-    input:
-        SIMPLIFIED_GCT
-    output:
-        tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau.csv",
-        weights=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_weights.csv"
-    shell:
-        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
-
-rule compute_weighted_tau_squared_simplified:
-    input:
-        SIMPLIFIED_GCT
-    output:
-        tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared.csv",
-        weights=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared_weights.csv"
-    shell:
-        "python3 scripts/compute_weighted_tau_squared.py {input} {output.tau} {output.weights}"
-
-rule compute_weighted_tau_fourth_simplified:
-    input:
-        SIMPLIFIED_GCT
-    output:
-        tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_fourth.csv",
-        weights=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_fourth_weights.csv"
-    shell:
-        "python3 scripts/compute_weighted_tau_fourth.py {input} {output.tau} {output.weights}"
-
-rule plot_tau_simplified_vs_default:
-    input:
-        default_tau=f"{GENE_SPEC}/weighted_tau.csv",
-        default_tau_squared=f"{GENE_SPEC}/weighted_tau_squared.csv",
-        default_tau_fourth=f"{GENE_SPEC}/weighted_tau_fourth.csv",
-        simplified_tau=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau.csv",
-        simplified_tau_squared=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_squared.csv",
-        simplified_tau_fourth=f"{GENE_SPEC_SIMPLIFIED}/weighted_tau_fourth.csv"
-    output:
-        f"{GENE_SPEC_SIMPLIFIED}/figures/tau_simplified_vs_default.png"
-    shell:
-        "python3 scripts/plot_tau_simplified_vs_default.py {input.default_tau} {input.default_tau_squared} "
-        "{input.default_tau_fourth} {input.simplified_tau} {input.simplified_tau_squared} "
-        "{input.simplified_tau_fourth} {output} simplified"
 
 GENE_SPEC_ONEBRAIN = f"{GENE_SPEC}/onebrain"
 ONEBRAIN_GCT = f"{GENE_SPEC_ONEBRAIN}/gene_median_tpm_onebrain.gct.gz"
@@ -1113,25 +1000,6 @@ rule plot_tissue_correlation_rawtpm:
         """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
             "log10 TPM, no floor (raw TPM)" """
 
-rule compute_tissue_correlation_pairwise:
-    input:
-        GCT
-    output:
-        corr=f"{GENE_SPEC}/tissue_correlation_pairwise.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_pairwise_linkage.csv"
-    shell:
-        "python3 scripts/compute_tissue_correlation_pairwise.py {input} {output.corr} {output.linkage}"
-
-rule plot_tissue_correlation_pairwise:
-    input:
-        corr=f"{GENE_SPEC}/tissue_correlation_pairwise.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_pairwise_linkage.csv"
-    output:
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_pairwise.png"
-    shell:
-        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
-            "log10 TPM, TPM>=1 pairwise-masked, not PSD-guaranteed" """
-
 rule identify_tissue_clusters:
     input:
         corr=f"{GENE_SPEC}/tissue_correlation.csv",
@@ -1143,79 +1011,12 @@ rule identify_tissue_clusters:
     shell:
         "python3 scripts/identify_tissue_clusters.py {input.corr} {input.linkage} {wildcards.n_blocks} {output}"
 
-# Parallel "pairwise" pipeline: same core outputs as above, but R comes from
-# gls_tau.tissue_corr_pairwise_masked instead of gls_tau.tissue_corr (each tissue-pair's
-# correlation restricted to genes with TPM>=1 in at least one of the two tissues; not
-# PSD-guaranteed). Core outputs only -- excludes the bootstrap/jackknife rank-stability
-# and variance validation rules, which would each recompute R per resample.
-
-rule compute_tissue_correlation_pairwise_dir:
-    input:
-        GCT
-    output:
-        corr=f"{GENE_SPEC_PAIRWISE}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_PAIRWISE}/tissue_correlation_linkage.csv"
-    shell:
-        "python3 scripts/compute_tissue_correlation_pairwise.py {input} {output.corr} {output.linkage}"
-
-rule plot_tissue_correlation_pairwise_dir:
-    input:
-        corr=f"{GENE_SPEC_PAIRWISE}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_PAIRWISE}/tissue_correlation_linkage.csv"
-    output:
-        f"{GENE_SPEC_PAIRWISE}/figures/tissue_correlation_clustermap.png"
-    shell:
-        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
-            "log10 TPM, TPM>=1 pairwise-masked, not PSD-guaranteed" """
-
-rule identify_tissue_clusters_pairwise:
-    input:
-        corr=f"{GENE_SPEC_PAIRWISE}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC_PAIRWISE}/tissue_correlation_linkage.csv"
-    output:
-        f"{GENE_SPEC_PAIRWISE}/tissue_clusters_{{n_blocks}}.csv"
-    wildcard_constraints:
-        n_blocks=r"\d+"
-    shell:
-        "python3 scripts/identify_tissue_clusters.py {input.corr} {input.linkage} {wildcards.n_blocks} {output}"
-
-rule compute_weighted_tau_pairwise:
-    input:
-        GCT
-    output:
-        tau=f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv",
-        weights=f"{GENE_SPEC_PAIRWISE}/weighted_tau_weights.csv"
-    shell:
-        "python3 scripts/compute_weighted_tau_pairwise.py {input} {output.tau} {output.weights}"
-
-rule plot_weighted_tau_pairplot_pairwise:
-    input:
-        f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv"
-    output:
-        f"{GENE_SPEC_PAIRWISE}/figures/weighted_tau_pairplot.png"
-    shell:
-        "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
-
-rule plot_neural_tau_impact_pairwise:
-    input:
-        tau=f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv",
-        neural=f"{GENE_SPEC}/neural_genes.csv"
-    output:
-        csv=f"{GENE_SPEC_PAIRWISE}/neural_tau_impact.csv",
-        png=f"{GENE_SPEC_PAIRWISE}/figures/neural_tau_impact.png"
-    shell:
-        "python3 scripts/plot_neural_tau_impact.py {input.tau} {input.neural} {output.csv} {output.png}"
-
 BOOTSTRAP_REPS = 100
 MODE_TO_NBLOCKS = {"cluster10": 10, "cluster20": 20}
 
 def bootstrap_clusters_input(wildcards):
     n = MODE_TO_NBLOCKS.get(wildcards.mode, 10)  # unused dummy for mode="tissue"
     return f"{GENE_SPEC}/tissue_clusters_{n}.csv"
-
-def bootstrap_clusters_input_pairwise(wildcards):
-    n = MODE_TO_NBLOCKS.get(wildcards.mode, 10)  # unused dummy for mode="tissue"
-    return f"{GENE_SPEC_PAIRWISE}/tissue_clusters_{n}.csv"
 
 rule compute_tau_bootstrap_variance:
     input:
@@ -1393,36 +1194,6 @@ rule plot_tau_jackknife_rank_stability:
         "{input.unweighted_cluster20} {input.ridge_cluster20} "
         "{input.clustersize10_tissue} {input.clustersize10_cluster10} {input.clustersize10_cluster20} "
         "{input.clustersize20_tissue} {input.clustersize20_cluster10} {input.clustersize20_cluster20} {output}"
-
-rule compute_tau_jackknife_rank_stability_pairwise:
-    input:
-        gct=GCT,
-        tau=f"{GENE_SPEC_PAIRWISE}/weighted_tau.csv",
-        clusters=bootstrap_clusters_input_pairwise
-    output:
-        f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_{{tau_type}}_{{mode}}.csv"
-    wildcard_constraints:
-        tau_type="unweighted|ridge",
-        mode="tissue|cluster10|cluster20"
-    shell:
-        "python3 scripts/compute_tau_jackknife_rank_stability_pairwise.py {input.gct} {input.tau} {input.clusters} "
-        "{wildcards.tau_type} {wildcards.mode} {output}"
-
-rule plot_tau_jackknife_rank_stability_pairwise:
-    input:
-        unweighted_tissue=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC_PAIRWISE}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC_PAIRWISE}/figures/tau_jackknife_rank_stability.png"
-    shell:
-        "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output} "
-        "\"pairwise corr, TPM>=1 pairwise-masked, not PSD-guaranteed\""
 
 rule compute_tau_bootstrap_rank_stability_subset:
     input:
