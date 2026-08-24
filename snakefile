@@ -118,6 +118,7 @@ rule all:
         f"{GENE_SPEC}/free_weights/weighted_tau.csv",
         f"{GENE_SPEC}/free_weights/figures/tissue_weight_free.png",
         f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default.png",
+        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_redundancy.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -908,6 +909,16 @@ rule plot_tau_free_vs_default:
         f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default.png"
     shell:
         "python3 scripts/plot_tau_free_vs_default.py {input.free_tau} {input.onebrain_tau} {output}"
+
+rule plot_tau_free_vs_default_redundancy:
+    input:
+        gct=GCT,
+        free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
+        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default_redundancy.png"
+    shell:
+        "python3 scripts/plot_tau_free_vs_default_redundancy.py {input.gct} {input.free_tau} {input.onebrain_tau} {output}"
 
 rule plot_tissue_weights_squared:
     input:
