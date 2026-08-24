@@ -13,7 +13,6 @@ MODEL_FITS = f"{DATA}/model_fits"
 DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
 GENE_SPEC = f"{DATA}/gene_specificity"
-GENE_SUBSETS = ["highspec", "lowspec", "multitissue", "onlyneural", "maxneural"]
 
 # dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
 # per-tissue-median like the human file. The bucket also publishes a pre-split
@@ -125,15 +124,7 @@ rule all:
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_rawtpm.png",
         f"{GENE_SPEC}/tissue_clusters_10.csv",
         f"{GENE_SPEC}/tissue_clusters_20.csv",
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance.png",
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance_squared.png",
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance_highspec.png",
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance_lowspec.png",
         f"{GENE_SPEC}/figures/tau_vs_variance.png",
-        f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability.png",
-        f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png",
-        expand(f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
-        expand(f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png", subset=GENE_SUBSETS),
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
         f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png"
 
@@ -1031,74 +1022,6 @@ rule compute_tau_bootstrap_variance:
         "python3 scripts/compute_tau_bootstrap_variance.py {input.gct} {input.clusters} "
         "{wildcards.tau_type} {wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output}"
 
-rule plot_tau_bootstrap_variance:
-    input:
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance.png"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-rule compute_tau_bootstrap_variance_squared:
-    input:
-        gct=GCT,
-        clusters=bootstrap_clusters_input
-    output:
-        f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_{{mode}}.csv"
-    wildcard_constraints:
-        mode="tissue|cluster10|cluster20"
-    shell:
-        "python3 scripts/compute_tau_bootstrap_variance_squared.py {input.gct} {input.clusters} "
-        "{wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output}"
-
-rule plot_tau_bootstrap_variance_squared:
-    input:
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridgesquared_cluster20.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance_squared.png"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-HIGHSPEC_THRESHOLD = 0.9
-LOWSPEC_THRESHOLD = 0.5
-
-rule plot_tau_bootstrap_variance_filtered:
-    input:
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_bootstrap_variance_{{spec}}spec.png"
-    params:
-        mode=lambda wc: "high" if wc.spec == "high" else "low",
-        threshold=lambda wc: HIGHSPEC_THRESHOLD if wc.spec == "high" else LOWSPEC_THRESHOLD
-    wildcard_constraints:
-        spec="high|low"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_variance_filtered.py {input.tau} "
-        "{params.mode} {params.threshold} "
-        "{input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
 rule plot_tau_vs_variance:
     input:
         unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_variance_unweighted_tissue.csv",
@@ -1113,151 +1036,6 @@ rule plot_tau_vs_variance:
         "python3 scripts/plot_tau_vs_variance.py {input.unweighted_tissue} {input.ridge_tissue} "
         "{input.unweighted_cluster10} {input.ridge_cluster10} "
         "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-rule compute_tau_bootstrap_rank_stability:
-    input:
-        gct=GCT,
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        clusters=bootstrap_clusters_input
-    output:
-        f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_{{tau_type}}_{{mode}}.csv"
-    wildcard_constraints:
-        tau_type="unweighted|ridge",
-        mode="tissue|cluster10|cluster20"
-    shell:
-        "python3 scripts/compute_tau_bootstrap_rank_stability.py {input.gct} {input.tau} {input.clusters} "
-        "{wildcards.tau_type} {wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output}"
-
-rule plot_tau_bootstrap_rank_stability:
-    input:
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_ridge_cluster20.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability.png"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output}"
-
-rule compute_tau_jackknife_rank_stability:
-    input:
-        gct=GCT,
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        clusters=bootstrap_clusters_input
-    output:
-        f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_{{tau_type}}_{{mode}}.csv"
-    wildcard_constraints:
-        tau_type="unweighted|ridge",
-        mode="tissue|cluster10|cluster20"
-    shell:
-        "python3 scripts/compute_tau_jackknife_rank_stability.py {input.gct} {input.tau} {input.clusters} "
-        "{wildcards.tau_type} {wildcards.mode} {output}"
-
-rule compute_tau_jackknife_rank_stability_clustersize:
-    input:
-        gct=GCT,
-        tau=f"{DATA}/gene_specificity_clustersize{{k}}/weighted_tau.csv",
-        leaveout_clusters=bootstrap_clusters_input,
-        weight_clusters=f"{GENE_SPEC}/tissue_clusters_{{k}}.csv"
-    output:
-        f"{DATA}/gene_specificity_clustersize{{k}}/bootstrap/tau_jackknife_rank_stability_clustersize_{{mode}}.csv"
-    wildcard_constraints:
-        k="10|20",
-        mode="tissue|cluster10|cluster20"
-    shell:
-        "python3 scripts/compute_tau_jackknife_rank_stability_clustersize.py {input.gct} {input.tau} "
-        "{input.leaveout_clusters} {input.weight_clusters} {wildcards.mode} {output}"
-
-rule plot_tau_jackknife_rank_stability:
-    input:
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_tissue.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_tissue.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster10.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster10.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster20.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20.csv",
-        clustersize10_tissue=f"{DATA}/gene_specificity_clustersize10/bootstrap/tau_jackknife_rank_stability_clustersize_tissue.csv",
-        clustersize10_cluster10=f"{DATA}/gene_specificity_clustersize10/bootstrap/tau_jackknife_rank_stability_clustersize_cluster10.csv",
-        clustersize10_cluster20=f"{DATA}/gene_specificity_clustersize10/bootstrap/tau_jackknife_rank_stability_clustersize_cluster20.csv",
-        clustersize20_tissue=f"{DATA}/gene_specificity_clustersize20/bootstrap/tau_jackknife_rank_stability_clustersize_tissue.csv",
-        clustersize20_cluster10=f"{DATA}/gene_specificity_clustersize20/bootstrap/tau_jackknife_rank_stability_clustersize_cluster10.csv",
-        clustersize20_cluster20=f"{DATA}/gene_specificity_clustersize20/bootstrap/tau_jackknife_rank_stability_clustersize_cluster20.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_jackknife_rank_stability.png"
-    shell:
-        "python3 scripts/plot_tau_jackknife_rank_stability_3x3.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} "
-        "{input.clustersize10_tissue} {input.clustersize10_cluster10} {input.clustersize10_cluster20} "
-        "{input.clustersize20_tissue} {input.clustersize20_cluster10} {input.clustersize20_cluster20} {output}"
-
-rule compute_tau_bootstrap_rank_stability_subset:
-    input:
-        gct=GCT,
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        clusters=bootstrap_clusters_input
-    output:
-        f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_{{tau_type}}_{{mode}}_{{subset}}.csv"
-    wildcard_constraints:
-        tau_type="unweighted|ridge",
-        mode="tissue|cluster10|cluster20",
-        subset="highspec|lowspec|multitissue|onlyneural|maxneural"
-    shell:
-        "python3 scripts/compute_tau_bootstrap_rank_stability.py {input.gct} {input.tau} {input.clusters} "
-        "{wildcards.tau_type} {wildcards.mode} " + str(BOOTSTRAP_REPS) + " {output} {wildcards.subset}"
-
-rule plot_tau_bootstrap_rank_stability_subset:
-    input:
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_unweighted_tissue_{{subset}}.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_ridge_tissue_{{subset}}.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_unweighted_cluster10_{{subset}}.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_ridge_cluster10_{{subset}}.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_unweighted_cluster20_{{subset}}.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_bootstrap_rank_stability_ridge_cluster20_{{subset}}.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_bootstrap_rank_stability_{{subset}}.png"
-    wildcard_constraints:
-        subset="highspec|lowspec|multitissue|onlyneural|maxneural"
-    shell:
-        "python3 scripts/plot_tau_bootstrap_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output} {wildcards.subset}"
-
-rule compute_tau_jackknife_rank_stability_subset:
-    input:
-        gct=GCT,
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        clusters=bootstrap_clusters_input
-    output:
-        f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_{{tau_type}}_{{mode}}_{{subset}}.csv"
-    wildcard_constraints:
-        tau_type="unweighted|ridge",
-        mode="tissue|cluster10|cluster20",
-        subset="highspec|lowspec|multitissue|onlyneural|maxneural"
-    shell:
-        "python3 scripts/compute_tau_jackknife_rank_stability.py {input.gct} {input.tau} {input.clusters} "
-        "{wildcards.tau_type} {wildcards.mode} {output} {wildcards.subset}"
-
-rule plot_tau_jackknife_rank_stability_subset:
-    input:
-        unweighted_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_tissue_{{subset}}.csv",
-        ridge_tissue=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_tissue_{{subset}}.csv",
-        unweighted_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster10_{{subset}}.csv",
-        ridge_cluster10=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster10_{{subset}}.csv",
-        unweighted_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_unweighted_cluster20_{{subset}}.csv",
-        ridge_cluster20=f"{GENE_SPEC}/bootstrap/tau_jackknife_rank_stability_ridge_cluster20_{{subset}}.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_jackknife_rank_stability_{{subset}}.png"
-    wildcard_constraints:
-        subset="highspec|lowspec|multitissue|onlyneural|maxneural"
-    shell:
-        "python3 scripts/plot_tau_jackknife_rank_stability.py {input.unweighted_tissue} {input.ridge_tissue} "
-        "{input.unweighted_cluster10} {input.ridge_cluster10} "
-        "{input.unweighted_cluster20} {input.ridge_cluster20} {output} \"gene subset: {wildcards.subset}\""
 
 # delta_tau: per-gene, per-tissue leave-one-tissue-out tau (not rank-stability rho --
 # the actual tau values), used to look at within-gene tau variance/range under jackknifing.
