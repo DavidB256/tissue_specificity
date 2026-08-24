@@ -117,6 +117,7 @@ rule all:
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_optimized.png",
         f"{GENE_SPEC}/free_weights/weighted_tau.csv",
         f"{GENE_SPEC}/free_weights/figures/tissue_weight_free.png",
+        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -898,6 +899,15 @@ rule plot_free_weights:
         f"{GENE_SPEC_FREE_WEIGHTS}/figures/tissue_weight_free.png"
     shell:
         "python3 scripts/plot_free_weights.py {input} {output}"
+
+rule plot_tau_free_vs_default:
+    input:
+        free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
+        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default.png"
+    shell:
+        "python3 scripts/plot_tau_free_vs_default.py {input.free_tau} {input.onebrain_tau} {output}"
 
 rule plot_tissue_weights_squared:
     input:
