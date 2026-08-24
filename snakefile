@@ -954,14 +954,11 @@ rule plot_tau_free_vs_default_redundancy:
     input:
         gct=GCT,
         free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
-        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
-        onekidney_tau=f"{GENE_SPEC_ONEKIDNEY}/weighted_tau.csv",
-        oneliver_tau=f"{GENE_SPEC_ONELIVER}/weighted_tau.csv"
+        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
     output:
         f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default_redundancy.png"
     shell:
-        "python3 scripts/plot_tau_free_vs_default_redundancy.py {input.gct} {input.free_tau} "
-        "{input.onebrain_tau} {input.onekidney_tau} {input.oneliver_tau} {output}"
+        "python3 scripts/plot_tau_free_vs_default_redundancy.py {input.gct} {input.free_tau} {input.onebrain_tau} {output}"
 
 rule plot_tissue_weights_squared:
     input:
