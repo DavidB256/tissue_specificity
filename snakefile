@@ -115,6 +115,7 @@ rule all:
         f"{GENE_SPEC}/cluster_weights/param_search_best.csv",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_naive.png",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_optimized.png",
+        f"{GENE_SPEC}/free_weights/weighted_tau.csv",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -860,6 +861,34 @@ rule plot_tau_cluster_vs_default_optimized:
     shell:
         "python3 scripts/plot_tau_cluster_vs_default.py {input.default_tau} {input.onebrain_tau} {output} "
         "'onebrain (t=0.013, c=0.10)'"
+
+GENE_SPEC_FREE_WEIGHTS = f"{GENE_SPEC}/free_weights"
+
+N_FREE_WEIGHTS_CHAINS = 60
+
+rule optimize_free_weights_chain:
+    input:
+        default_gct=GCT,
+        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
+    output:
+        weights=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/weights.csv",
+        tau=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/best.csv"
+    shell:
+        "python3 scripts/optimize_free_weights.py {input.default_gct} {input.onebrain_tau} "
+        "{output.weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
+
+rule combine_free_weights_chains:
+    input:
+        expand(f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/best.csv", chain=range(N_FREE_WEIGHTS_CHAINS))
+    output:
+        weights=f"{GENE_SPEC_FREE_WEIGHTS}/weights.csv",
+        tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_FREE_WEIGHTS}/chains_summary.csv"
+    shell:
+        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS} {N_FREE_WEIGHTS_CHAINS} "
+        "{output.weights} {output.tau} {output.summary}"
 
 rule plot_tissue_weights_squared:
     input:
