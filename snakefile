@@ -887,7 +887,7 @@ rule combine_free_weights_chains:
         tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
         summary=f"{GENE_SPEC_FREE_WEIGHTS}/chains_summary.csv"
     shell:
-        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS} {N_FREE_WEIGHTS_CHAINS} "
+        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS}/chains {N_FREE_WEIGHTS_CHAINS} "
         "{output.weights} {output.tau} {output.summary}"
 
 rule plot_tissue_weights_squared:
