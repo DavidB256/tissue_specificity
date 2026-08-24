@@ -107,12 +107,13 @@ rule all:
         f"{GENE_SPEC}/cluster_weights/param_search_best.csv",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_naive.png",
         f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_optimized.png",
-        f"{GENE_SPEC}/free_weights/weighted_tau.csv",
-        f"{GENE_SPEC}/free_weights/figures/tissue_weight_free.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_redundancy.png",
-        f"{GENE_SPEC}/free_weights_simplified_0.1/weighted_tau.csv",
-        f"{GENE_SPEC}/figures/tau_delta_scatter.png",
+        f"{GENE_SPEC}/free_weights/onebrain/weighted_tau.csv",
+        f"{GENE_SPEC}/free_weights/simplified_0.1/weighted_tau.csv",
+        f"{GENE_SPEC}/free_weights/figures/tissue_weight_free_onebrain.png",
+        f"{GENE_SPEC}/free_weights/figures/tissue_weight_free_simplified_0.1.png",
+        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_onebrain.png",
+        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_simplified_0.1.png",
+        f"{GENE_SPEC}/free_weights/figures/tau_delta_scatter.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -747,51 +748,6 @@ rule plot_tau_cluster_vs_default_optimized:
         "python3 scripts/plot_tau_cluster_vs_default.py {input.default_tau} {input.onebrain_tau} {output} "
         "'onebrain (t=0.013, c=0.10)'"
 
-GENE_SPEC_FREE_WEIGHTS = f"{GENE_SPEC}/free_weights"
-
-N_FREE_WEIGHTS_CHAINS = 60
-
-rule optimize_free_weights_chain:
-    input:
-        default_gct=GCT,
-        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
-    output:
-        weights=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/weights.csv",
-        tau=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/weighted_tau.csv",
-        log=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/optimization_log.csv",
-        best=f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/best.csv"
-    shell:
-        "python3 scripts/optimize_free_weights.py {input.default_gct} {input.onebrain_tau} "
-        "{output.weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
-
-rule combine_free_weights_chains:
-    input:
-        expand(f"{GENE_SPEC_FREE_WEIGHTS}/chains/chain_{{chain}}/best.csv", chain=range(N_FREE_WEIGHTS_CHAINS))
-    output:
-        weights=f"{GENE_SPEC_FREE_WEIGHTS}/weights.csv",
-        tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
-        summary=f"{GENE_SPEC_FREE_WEIGHTS}/chains_summary.csv"
-    shell:
-        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS}/chains {N_FREE_WEIGHTS_CHAINS} "
-        "{output.weights} {output.tau} {output.summary}"
-
-rule plot_free_weights:
-    input:
-        f"{GENE_SPEC_FREE_WEIGHTS}/weights.csv"
-    output:
-        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tissue_weight_free.png"
-    shell:
-        "python3 scripts/plot_free_weights.py {input} {output}"
-
-rule plot_tau_free_vs_default:
-    input:
-        free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
-        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
-    output:
-        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default.png"
-    shell:
-        "python3 scripts/plot_tau_free_vs_default.py {input.free_tau} {input.onebrain_tau} {output}"
-
 GENE_SPEC_ONEKIDNEY = f"{GENE_SPEC}/onekidney"
 ONEKIDNEY_GCT = f"{GENE_SPEC_ONEKIDNEY}/gene_median_tpm_onekidney.gct.gz"
 
@@ -816,16 +772,6 @@ rule compute_weighted_tau_oneliver:
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
-rule plot_tau_free_vs_default_redundancy:
-    input:
-        gct=GCT,
-        free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
-        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
-    output:
-        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default_redundancy.png"
-    shell:
-        "python3 scripts/plot_tau_free_vs_default_redundancy.py {input.gct} {input.free_tau} {input.onebrain_tau} {output}"
-
 GENE_SPEC_CLUSTER_SIMPLIFIED = f"{GENE_SPEC}/simplified_0.1"
 CLUSTER_SIMPLIFIED_GCT = f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/gene_median_tpm_simplified_0.1.gct.gz"
 
@@ -847,40 +793,81 @@ rule compute_weighted_tau_cluster_simplified:
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
-GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED = f"{GENE_SPEC}/free_weights_simplified_0.1"
+# free_weights: one directory per collapse scenario ("leg"), each holding its own
+# independently-optimized 68-dim weight vector (see optimize_free_weights.py) fit
+# against that scenario's own reduced-resolution reference tau. Figures for both legs
+# live side by side in free_weights/figures/.
+GENE_SPEC_FREE_WEIGHTS = f"{GENE_SPEC}/free_weights"
+N_FREE_WEIGHTS_CHAINS = 60
 
-rule optimize_free_weights_simplified_chain:
+FREE_WEIGHTS_REF_TAU = {
+    "onebrain": f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
+    "simplified_0.1": f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/weighted_tau.csv",
+}
+
+def free_weights_ref_tau(wildcards):
+    return FREE_WEIGHTS_REF_TAU[wildcards.leg]
+
+rule optimize_free_weights_chain:
     input:
         default_gct=GCT,
-        ref_tau=f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/weighted_tau.csv"
+        ref_tau=free_weights_ref_tau
     output:
-        weights=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains/chain_{{chain}}/weights.csv",
-        tau=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains/chain_{{chain}}/weighted_tau.csv",
-        log=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains/chain_{{chain}}/optimization_log.csv",
-        best=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains/chain_{{chain}}/best.csv"
+        weights=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/chains/chain_{{chain}}/weights.csv",
+        tau=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/chains/chain_{{chain}}/best.csv"
+    wildcard_constraints:
+        leg=r"onebrain|simplified_0\.1"
     shell:
         "python3 scripts/optimize_free_weights.py {input.default_gct} {input.ref_tau} "
         "{output.weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
 
-rule combine_free_weights_simplified_chains:
+rule combine_free_weights_chains:
     input:
-        expand(f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains/chain_{{chain}}/best.csv", chain=range(N_FREE_WEIGHTS_CHAINS))
+        lambda wildcards: expand(
+            f"{GENE_SPEC_FREE_WEIGHTS}/{wildcards.leg}/chains/chain_{{chain}}/best.csv",
+            chain=range(N_FREE_WEIGHTS_CHAINS))
     output:
-        weights=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/weights.csv",
-        tau=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/weighted_tau.csv",
-        summary=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains_summary.csv"
+        weights=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/weights.csv",
+        tau=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/chains_summary.csv"
+    wildcard_constraints:
+        leg=r"onebrain|simplified_0\.1"
     shell:
-        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains {N_FREE_WEIGHTS_CHAINS} "
-        "{output.weights} {output.tau} {output.summary}"
+        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS}/{wildcards.leg}/chains "
+        "{N_FREE_WEIGHTS_CHAINS} {output.weights} {output.tau} {output.summary}"
+
+rule plot_free_weights:
+    input:
+        f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/weights.csv"
+    output:
+        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tissue_weight_free_{{leg}}.png"
+    wildcard_constraints:
+        leg=r"onebrain|simplified_0\.1"
+    shell:
+        "python3 scripts/plot_free_weights.py {input} {output}"
+
+rule plot_tau_free_vs_default:
+    input:
+        gct=GCT,
+        free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/weighted_tau.csv",
+        ref_tau=free_weights_ref_tau
+    output:
+        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default_{{leg}}.png"
+    wildcard_constraints:
+        leg=r"onebrain|simplified_0\.1"
+    shell:
+        "python3 scripts/plot_tau_free_vs_default.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
 rule plot_tau_delta_scatter:
     input:
-        onebrain_free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
+        onebrain_free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/onebrain/weighted_tau.csv",
         onebrain_ref_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
-        simplified_free_tau=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/weighted_tau.csv",
+        simplified_free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/simplified_0.1/weighted_tau.csv",
         simplified_ref_tau=f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/weighted_tau.csv"
     output:
-        f"{GENE_SPEC}/figures/tau_delta_scatter.png"
+        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_delta_scatter.png"
     shell:
         "python3 scripts/plot_tau_delta_scatter.py {input.onebrain_free_tau} {input.onebrain_ref_tau} "
         "{input.simplified_free_tau} {input.simplified_ref_tau} {output}"
