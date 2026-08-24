@@ -120,6 +120,7 @@ rule all:
         f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default.png",
         f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_redundancy.png",
         f"{GENE_SPEC}/free_weights_simplified_0.1/weighted_tau.csv",
+        f"{GENE_SPEC}/figures/tau_delta_scatter.png",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -993,6 +994,18 @@ rule combine_free_weights_simplified_chains:
     shell:
         "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/chains {N_FREE_WEIGHTS_CHAINS} "
         "{output.weights} {output.tau} {output.summary}"
+
+rule plot_tau_delta_scatter:
+    input:
+        onebrain_free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
+        onebrain_ref_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
+        simplified_free_tau=f"{GENE_SPEC_FREE_WEIGHTS_SIMPLIFIED}/weighted_tau.csv",
+        simplified_ref_tau=f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC}/figures/tau_delta_scatter.png"
+    shell:
+        "python3 scripts/plot_tau_delta_scatter.py {input.onebrain_free_tau} {input.onebrain_ref_tau} "
+        "{input.simplified_free_tau} {input.simplified_ref_tau} {output}"
 
 rule plot_tissue_weights_squared:
     input:
