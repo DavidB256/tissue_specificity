@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from plot_utils import annotate_diag_stats
 
 IN_ONEBRAIN_FREE_TAU = sys.argv[1]
@@ -44,6 +45,18 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     ax.set_ylabel(r"$|\Delta\tau_w|$")
     ax.set_title(f"default vs {label}, n={len(delta_tau)} genes", fontsize=10)
     annotate_diag_stats(ax, delta_tau, delta_tau_w)
+
+    x25, x75 = np.percentile(delta_tau, [25, 75])
+    y25, y75 = np.percentile(delta_tau_w, [25, 75])
+    ax.add_patch(Rectangle((x25, y25), x75 - x25, y75 - y25,
+                            fill=False, edgecolor="red", lw=1.5, ls="-", label="IQR (25-75%)"))
+
+    x025, x975 = np.percentile(delta_tau, [2.5, 97.5])
+    y025, y975 = np.percentile(delta_tau_w, [2.5, 97.5])
+    ax.add_patch(Rectangle((x025, y025), x975 - x025, y975 - y025,
+                            fill=False, edgecolor="red", lw=1.5, ls="--", label="middle 95% (2.5-97.5%)"))
+
+    ax.legend(loc="upper right", fontsize=7)
 
 fig.suptitle(r"$|\Delta\tau|$ vs $|\Delta\tau_w|$: magnitude of tau change from collapsing tissue resolution, unweighted vs free-weighted")
 fig.tight_layout()
