@@ -910,15 +910,58 @@ rule plot_tau_free_vs_default:
     shell:
         "python3 scripts/plot_tau_free_vs_default.py {input.free_tau} {input.onebrain_tau} {output}"
 
+GENE_SPEC_ONEKIDNEY = f"{GENE_SPEC}/onekidney"
+ONEKIDNEY_GCT = f"{GENE_SPEC_ONEKIDNEY}/gene_median_tpm_onekidney.gct.gz"
+
+rule build_gct_onekidney:
+    input:
+        GCT
+    output:
+        ONEKIDNEY_GCT
+    shell:
+        "python3 scripts/build_gct_onekidney.py {input} {output}"
+
+rule compute_weighted_tau_onekidney:
+    input:
+        ONEKIDNEY_GCT
+    output:
+        tau=f"{GENE_SPEC_ONEKIDNEY}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_ONEKIDNEY}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+GENE_SPEC_ONELIVER = f"{GENE_SPEC}/oneliver"
+ONELIVER_GCT = f"{GENE_SPEC_ONELIVER}/gene_median_tpm_oneliver.gct.gz"
+
+rule build_gct_oneliver:
+    input:
+        GCT
+    output:
+        ONELIVER_GCT
+    shell:
+        "python3 scripts/build_gct_oneliver.py {input} {output}"
+
+rule compute_weighted_tau_oneliver:
+    input:
+        ONELIVER_GCT
+    output:
+        tau=f"{GENE_SPEC_ONELIVER}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_ONELIVER}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
 rule plot_tau_free_vs_default_redundancy:
     input:
         gct=GCT,
         free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/weighted_tau.csv",
-        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv"
+        onebrain_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
+        onekidney_tau=f"{GENE_SPEC_ONEKIDNEY}/weighted_tau.csv",
+        oneliver_tau=f"{GENE_SPEC_ONELIVER}/weighted_tau.csv"
     output:
         f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_free_vs_default_redundancy.png"
     shell:
-        "python3 scripts/plot_tau_free_vs_default_redundancy.py {input.gct} {input.free_tau} {input.onebrain_tau} {output}"
+        "python3 scripts/plot_tau_free_vs_default_redundancy.py {input.gct} {input.free_tau} "
+        "{input.onebrain_tau} {input.onekidney_tau} {input.oneliver_tau} {output}"
 
 rule plot_tissue_weights_squared:
     input:
