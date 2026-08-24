@@ -642,13 +642,15 @@ rule plot_tau_simplified_vs_default:
 GENE_SPEC_ONEBRAIN = f"{GENE_SPEC}/onebrain"
 ONEBRAIN_GCT = f"{GENE_SPEC_ONEBRAIN}/gene_median_tpm_onebrain.gct.gz"
 
-rule build_gct_onebrain:
+rule build_gct_onetissue:
     input:
         GCT
     output:
-        ONEBRAIN_GCT
+        f"{GENE_SPEC}/one{{tissue}}/gene_median_tpm_one{{tissue}}.gct.gz"
+    params:
+        prefix=lambda wildcards: wildcards.tissue.capitalize()
     shell:
-        "python3 scripts/build_gct_onebrain.py {input} {output}"
+        "python3 scripts/build_gct_onetissue.py {input} {output} {params.prefix}"
 
 rule compute_tissue_correlation_onebrain:
     input:
@@ -913,14 +915,6 @@ rule plot_tau_free_vs_default:
 GENE_SPEC_ONEKIDNEY = f"{GENE_SPEC}/onekidney"
 ONEKIDNEY_GCT = f"{GENE_SPEC_ONEKIDNEY}/gene_median_tpm_onekidney.gct.gz"
 
-rule build_gct_onekidney:
-    input:
-        GCT
-    output:
-        ONEKIDNEY_GCT
-    shell:
-        "python3 scripts/build_gct_onekidney.py {input} {output}"
-
 rule compute_weighted_tau_onekidney:
     input:
         ONEKIDNEY_GCT
@@ -932,14 +926,6 @@ rule compute_weighted_tau_onekidney:
 
 GENE_SPEC_ONELIVER = f"{GENE_SPEC}/oneliver"
 ONELIVER_GCT = f"{GENE_SPEC_ONELIVER}/gene_median_tpm_oneliver.gct.gz"
-
-rule build_gct_oneliver:
-    input:
-        GCT
-    output:
-        ONELIVER_GCT
-    shell:
-        "python3 scripts/build_gct_oneliver.py {input} {output}"
 
 rule compute_weighted_tau_oneliver:
     input:

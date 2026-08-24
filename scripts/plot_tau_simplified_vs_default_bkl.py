@@ -1,7 +1,7 @@
 """plot_tau_simplified_vs_default.py restricted to genes whose max-expressing tissue
 (default, unsimplified, 68 tissues) is Brain_*, Kidney_*, or Liver* -- colored by which
 of the three. Works against any collapsed-tissue leg (see LABEL, e.g. "simplified" from
-build_gct_simplified.py or "onebrain" from build_gct_onebrain.py)."""
+build_gct_simplified.py or "onebrain" from build_gct_onetissue.py)."""
 import sys
 import numpy as np
 import pandas as pd

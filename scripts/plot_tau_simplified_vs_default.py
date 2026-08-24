@@ -1,5 +1,5 @@
 """4-panel comparison of tau on default (68) vs a collapsed-tissue variant (e.g.
-"simplified" from build_gct_simplified.py, or "onebrain" from build_gct_onebrain.py)
+"simplified" from build_gct_simplified.py, or "onebrain" from build_gct_onetissue.py)
 tissues: (1) tau_unweighted, (2) tau_weighted_gls_ridge with the default (unraised) corr
 mat, (3) tau_weighted_gls_ridge with the elementwise-squared corr mat (see
 compute_weighted_tau_squared.py), (4) tau_weighted_gls_ridge with the elementwise-4th-power
