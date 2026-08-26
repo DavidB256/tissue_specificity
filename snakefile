@@ -118,8 +118,6 @@ rule all:
         f"{GENE_SPEC}/free_weights/figures/tau_delta_delta_violin.png",
         f"{GENE_SPEC}/free_weights/top_delta_delta_tau.csv",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
-        expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
-        f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
         f"{GENE_SPEC}/tau_stability_spearman.csv",
         f"{GENE_SPEC}/tau_stability_loto.csv",
         f"{GENE_SPEC}/figures/neural_tau_impact.png",
@@ -931,40 +929,6 @@ rule plot_tissue_weights:
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png"
     shell:
         "python3 scripts/plot_tissue_weights.py {input} {output}"
-
-# Cluster-size downweighting: alternative to GLS/ridge. weight_i = 1/block_size(i) from
-# the k-block correlation-dendrogram cut (tissue_clusters_{k}.csv), no matrix inversion.
-rule compute_tau_clustersize:
-    input:
-        gct=GCT,
-        clusters=f"{GENE_SPEC}/tissue_clusters_{{k}}.csv"
-    output:
-        tau=f"{DATA}/gene_specificity_clustersize{{k}}/weighted_tau.csv",
-        weights=f"{DATA}/gene_specificity_clustersize{{k}}/weighted_tau_weights.csv"
-    wildcard_constraints:
-        k="10|20"
-    shell:
-        "python3 scripts/compute_tau_clustersize.py {input.gct} {input.clusters} {output.tau} {output.weights}"
-
-rule plot_tau_clustersize_scatter:
-    input:
-        f"{DATA}/gene_specificity_clustersize{{k}}/weighted_tau.csv"
-    output:
-        f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png"
-    wildcard_constraints:
-        k="10|20"
-    shell:
-        "python3 scripts/plot_tau_clustersize_scatter.py {input} {output} {wildcards.k}"
-
-rule plot_tau_clustersize_vs_ridge:
-    input:
-        ridge=f"{GENE_SPEC}/weighted_tau.csv",
-        c10=f"{DATA}/gene_specificity_clustersize10/weighted_tau.csv",
-        c20=f"{DATA}/gene_specificity_clustersize20/weighted_tau.csv"
-    output:
-        f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png"
-    shell:
-        "python3 scripts/plot_tau_clustersize_vs_ridge.py {input.ridge} {input.c10} {input.c20} {output}"
 
 rule compute_tissue_correlation:
     input:
