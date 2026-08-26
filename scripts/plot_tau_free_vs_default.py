@@ -1,11 +1,13 @@
-"""free_weights analog of plot_tau_cluster_vs_default.py: 2-panel comparison of tau on
+"""free_weights analog of plot_tau_cluster_vs_default.py: 4-panel comparison of tau on
 default (68 tissues) vs a reduced-resolution reference (LABEL, e.g. "onebrain" or
 "simplified_0.1" -- unweighted tau on that collapsed-tissue GCT, used as the
-optimization target, see optimize_free_weights.py): (1) tau_unweighted vs tau_unweighted,
-(2) tau_free_weighted (default) vs tau_unweighted (reference). Points colored by gene
-category: Brain/Kidney/Liver (by max-expressing tissue, default 68-tissue GCT) vs
-"other", to show how the free_weights correction differs across degrees of tissue
-redundancy (Brain/Kidney/Liver hold many highly correlated subtissues)."""
+optimization target, see optimize_free_weights.py). Row 1: (1) tau_unweighted vs
+tau_unweighted, (2) tau_free_weighted (default) vs tau_unweighted (reference). Row 2:
+(3) tau vs tau_weighted on default tissues, (4) tau vs tau_weighted on the reference's
+collapsed tissues (tau_weighted_gls_ridge). Points colored by gene category:
+Brain/Kidney/Liver (by max-expressing tissue, default 68-tissue GCT) vs "other", to show
+how the free_weights correction differs across degrees of tissue redundancy
+(Brain/Kidney/Liver hold many highly correlated subtissues)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -34,38 +36,46 @@ for cat in ["Brain", "Kidney", "Liver"]:
 cat_df = pd.DataFrame({"gene": gct["Name"].values, "category": category})
 
 d = pd.read_csv(IN_FREE_TAU)[["gene", "tau_unweighted", "tau_free_weighted"]]
-r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted"]].rename(columns={"tau_unweighted": "tau_ref"})
+r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_gls_ridge"]] \
+    .rename(columns={"tau_unweighted": "tau_ref", "tau_weighted_gls_ridge": "tau_weighted_alt"})
 
 df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
 
-PANELS = [
-    ("tau_unweighted", "tau_ref", "tau_unweighted"),
-    ("tau_free_weighted", "tau_ref", "tau_free_weighted"),
+ROW1_PANELS = [
+    ("tau_unweighted", "tau_ref", "tau_unweighted", "default (68 tissues)", LABEL),
+    ("tau_free_weighted", "tau_ref", "tau_free_weighted", "default (68 tissues)", LABEL),
+]
+ROW2_PANELS = [
+    ("tau_unweighted", "tau_free_weighted", "default: tau vs tau_weighted",
+     "tau (default)", "tau_weighted (default)"),
+    ("tau_ref", "tau_weighted_alt", f"{LABEL}: tau vs tau_weighted",
+     f"tau ({LABEL})", f"tau_weighted ({LABEL})"),
 ]
 
 AXIS_LO, AXIS_HI = 0.2, 1.0
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-for ax, (xcol, ycol, title) in zip(axes, PANELS):
-    for cat, color in CATEGORIES.items():
-        sub = df[df["category"] == cat]
-        alpha = 0.1 if cat == "other" else 0.3
-        ax.scatter(sub[xcol], sub[ycol], s=4, alpha=alpha, color=color, label=f"{cat} (n={len(sub)})")
-    ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
-    ax.set_xlim(AXIS_LO, AXIS_HI)
-    ax.set_ylim(AXIS_LO, AXIS_HI)
-    ax.set_xlabel("default (68 tissues)")
-    ax.set_ylabel(LABEL)
-    ax.set_title(title, fontsize=10)
-    annotate_diag_stats(ax, df[xcol], df[ycol])
+fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+for row_axes, panels in zip(axes, [ROW1_PANELS, ROW2_PANELS]):
+    for ax, (xcol, ycol, title, xlabel, ylabel) in zip(row_axes, panels):
+        for cat, color in CATEGORIES.items():
+            sub = df[df["category"] == cat]
+            alpha = 0.1 if cat == "other" else 0.3
+            ax.scatter(sub[xcol], sub[ycol], s=4, alpha=alpha, color=color, label=f"{cat} (n={len(sub)})")
+        ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
+        ax.set_xlim(AXIS_LO, AXIS_HI)
+        ax.set_ylim(AXIS_LO, AXIS_HI)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title, fontsize=10)
+        annotate_diag_stats(ax, df[xcol], df[ycol])
 
-    cat_legend = ax.legend(loc="center left", fontsize=7, markerscale=3)
-    ax.add_artist(cat_legend)
+        cat_legend = ax.legend(loc="center left", fontsize=7, markerscale=3)
+        ax.add_artist(cat_legend)
 
-    dist = (df[xcol] - df[ycol]).abs() / np.sqrt(2)
-    ax.legend(handles=[plt.Line2D([0], [0], color="none",
-                                   label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
-              loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
+        dist = (df[xcol] - df[ycol]).abs() / np.sqrt(2)
+        ax.legend(handles=[plt.Line2D([0], [0], color="none",
+                                       label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
+                  loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
 fig.suptitle(f"free_weights tau: default vs {LABEL}, n={len(df)} genes")
 fig.tight_layout()
