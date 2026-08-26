@@ -116,6 +116,7 @@ rule all:
         f"{GENE_SPEC}/free_weights/figures/tau_delta_scatter.png",
         f"{GENE_SPEC}/free_weights/figures/tau_delta_scatter_abs.png",
         f"{GENE_SPEC}/free_weights/figures/tau_delta_delta_violin.png",
+        f"{GENE_SPEC}/free_weights/top_delta_delta_tau.csv",
         f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
         expand(f"{DATA}/gene_specificity_clustersize{{k}}/figures/tau_clustersize_scatter.png", k=["10", "20"]),
         f"{GENE_SPEC}/figures/tau_clustersize_vs_ridge_pairplot.png",
@@ -898,6 +899,20 @@ rule plot_tau_delta_delta_violin:
         f"{GENE_SPEC_FREE_WEIGHTS}/figures/tau_delta_delta_violin.png"
     shell:
         "python3 scripts/plot_tau_delta_delta_violin.py {input.gct} {input.clusters} "
+        "{input.onebrain_free_tau} {input.onebrain_ref_tau} "
+        "{input.simplified_free_tau} {input.simplified_ref_tau} {output}"
+
+rule make_top_delta_delta_tau_table:
+    input:
+        gct=GCT,
+        onebrain_free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/onebrain/weighted_tau.csv",
+        onebrain_ref_tau=f"{GENE_SPEC_ONEBRAIN}/weighted_tau.csv",
+        simplified_free_tau=f"{GENE_SPEC_FREE_WEIGHTS}/simplified_0.1/weighted_tau.csv",
+        simplified_ref_tau=f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_FREE_WEIGHTS}/top_delta_delta_tau.csv"
+    shell:
+        "python3 scripts/make_top_delta_delta_tau_table.py {input.gct} "
         "{input.onebrain_free_tau} {input.onebrain_ref_tau} "
         "{input.simplified_free_tau} {input.simplified_ref_tau} {output}"
 
