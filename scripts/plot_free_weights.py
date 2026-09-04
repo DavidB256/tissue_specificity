@@ -23,7 +23,6 @@ colors = category.map({**CATEGORIES, "other": "tab:blue"})
 
 fig, ax = plt.subplots(figsize=(8, 16))
 ax.barh(df["tissue"], df["weight"], color=colors)
-ax.axvline(1 / len(df), ls="--", color="gray", lw=1, label=f"uniform (1/{len(df)})")
 ax.axvline(LO_BOUND, ls=":", color="black", lw=1, label=f"bounds [{LO_BOUND}, {HI_BOUND}]")
 ax.axvline(HI_BOUND, ls=":", color="black", lw=1)
 ax.set_xlabel("free weight")
@@ -35,7 +34,6 @@ ax.legend(handles=[
     plt.Rectangle((0, 0), 1, 1, color="tab:orange", label="Liver*"),
     plt.Rectangle((0, 0), 1, 1, color="tab:blue", label="other"),
     ax.lines[0],
-    ax.lines[1],
 ], loc="lower right", fontsize=8)
 ax.set_title(f"free_weights: optimized per-tissue weight (n={len(df)} tissues, winner chain)")
 fig.tight_layout()
