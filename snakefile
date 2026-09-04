@@ -143,7 +143,8 @@ rule all:
         f"{GENE_SPEC}/figures/tau_vs_variance.png",
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
         f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png",
-        f"{GENE_SPEC_BARON}/celltype_tpm.csv"
+        f"{GENE_SPEC_BARON}/celltype_tpm.csv",
+        f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png"
 
 rule preprocess:
     input:
@@ -1197,4 +1198,31 @@ rule build_baron_celltype_tpm:
         f"{GENE_SPEC_BARON}/celltype_tpm.csv"
     shell:
         "python3 scripts/build_baron_celltype_tpm.py {input.samples} {input.lengths} {output}"
+
+rule build_baron_gct:
+    input:
+        f"{GENE_SPEC_BARON}/celltype_tpm.csv"
+    output:
+        f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"
+    shell:
+        "python3 scripts/build_baron_gct.py {input} {output}"
+
+rule compute_tissue_correlation_baron:
+    input:
+        f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"
+    output:
+        corr=f"{GENE_SPEC_BARON}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_BARON}/tissue_correlation_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage}"
+
+rule plot_tissue_correlation_baron:
+    input:
+        corr=f"{GENE_SPEC_BARON}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_BARON}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png"
+    shell:
+        """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
+            "log10 TPM, TPM<1->0, Baron pancreas cell types" """
 
