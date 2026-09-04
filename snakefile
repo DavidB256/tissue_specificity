@@ -71,6 +71,20 @@ GENCODE_V50_BASIC_URL = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_hum
 MISCALL_RATES = ["1", "5"]
 SALMON_CONDITIONS = ["control"] + [f"miscall_{k}" for k in MISCALL_RATES]
 
+# Baron et al. (GSE84133) pancreas scRNA-seq -> per-cell-type TPM matrix. Gene
+# length for TPM = MANE_Select summed exon length, falling back to the longest
+# GENCODE transcript (by summed exon bp) for genes not in MANE.
+BARON_DIR = f"{DATA}/Baron"
+BARON_HUMAN_SAMPLES = [
+    f"{BARON_DIR}/GSM2230757_human1_umifm_counts.csv.gz",
+    f"{BARON_DIR}/GSM2230758_human2_umifm_counts.csv.gz",
+    f"{BARON_DIR}/GSM2230759_human3_umifm_counts.csv.gz",
+    f"{BARON_DIR}/GSM2230760_human4_umifm_counts.csv.gz",
+]
+GENE_SPEC_BARON = f"{GENE_SPEC}/baron"
+MANE_GTF_SRC = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/MANE.v1.5.gtf"
+GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/gencode.v47.annotation.gtf"
+
 wildcard_constraints:
     species = "macaque|marmoset",
     k = r"1|5",
@@ -128,7 +142,8 @@ rule all:
         f"{GENE_SPEC}/tissue_clusters_20.csv",
         f"{GENE_SPEC}/figures/tau_vs_variance.png",
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
-        f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png"
+        f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png",
+        f"{GENE_SPEC_BARON}/celltype_tpm.csv"
 
 rule preprocess:
     input:
@@ -1157,4 +1172,29 @@ rule plot_bic_heatmap:
         f"{GENE_SPEC}/partition_figures/bic_heatmap/{{tissue}}.png"
     shell:
         "python3 scripts/plot_bic_heatmap_one.py {wildcards.tissue} {input.parquet} {input.partition_labels} {output}"
+
+rule link_mane_gtf:
+    output:
+        f"{DATA}/MANE.v1.5.gtf"
+    shell:
+        "ln -s {MANE_GTF_SRC} {output}"
+
+rule build_baron_gene_lengths:
+    input:
+        mane=f"{DATA}/MANE.v1.5.gtf",
+        gencode=GENCODE_V47_GTF,
+        baron_csv=BARON_HUMAN_SAMPLES[0]
+    output:
+        f"{GENE_SPEC_BARON}/gene_lengths.csv"
+    shell:
+        "python3 scripts/build_baron_gene_lengths.py {input.mane} {input.gencode} {input.baron_csv} {output}"
+
+rule build_baron_celltype_tpm:
+    input:
+        samples=BARON_HUMAN_SAMPLES,
+        lengths=f"{GENE_SPEC_BARON}/gene_lengths.csv"
+    output:
+        f"{GENE_SPEC_BARON}/celltype_tpm.csv"
+    shell:
+        "python3 scripts/build_baron_celltype_tpm.py {input.samples} {input.lengths} {output}"
 
