@@ -84,6 +84,10 @@ BARON_HUMAN_SAMPLES = [
 GENE_SPEC_BARON = f"{GENE_SPEC}/baron"
 MANE_GTF_SRC = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/MANE.v1.5.gtf"
 GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/gencode.v47.annotation.gtf"
+GENE_SPEC_BARON_SIMPLIFIED = f"{GENE_SPEC_BARON}/simplified_0.1"
+BARON_SIMPLIFIED_GCT = f"{GENE_SPEC_BARON_SIMPLIFIED}/celltype_tpm_simplified_0.1.gct.gz"
+GENE_SPEC_BARON_FREE = f"{GENE_SPEC_BARON}/free_weights/simplified_0.1"
+N_BARON_FREE_WEIGHTS_CHAINS = 10  # 14-dim DE converges fast/consistently (single chain: rho=0.989 in 50s) -- far fewer chains needed than the 68-dim GTEx free_weights leg
 
 wildcard_constraints:
     species = "macaque|marmoset",
@@ -145,7 +149,9 @@ rule all:
         f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png",
         f"{GENE_SPEC_BARON}/celltype_tpm.csv",
         f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png",
-        f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png"
+        f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png",
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster.png",
+        f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png"
 
 rule preprocess:
     input:
@@ -1246,4 +1252,64 @@ rule plot_tissue_clusters_dendrogram_baron:
         f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png"
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} 'Baron pancreas cell types'"
+
+rule build_baron_gct_simplified:
+    input:
+        gct=f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz",
+        clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        BARON_SIMPLIFIED_GCT
+    shell:
+        "python3 scripts/build_gct_clustered.py {input.gct} {input.clusters} {output}"
+
+rule compute_weighted_tau_baron_simplified:
+    input:
+        BARON_SIMPLIFIED_GCT
+    output:
+        tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule optimize_baron_free_weights_chain:
+    input:
+        default_gct=f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz",
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
+    output:
+        weights=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/weights.csv",
+        tau=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/best.csv"
+    shell:
+        "python3 scripts/optimize_free_weights.py {input.default_gct} {input.ref_tau} "
+        "{output.weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
+
+rule combine_baron_free_weights_chains:
+    input:
+        expand(f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/best.csv", chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
+    output:
+        weights=f"{GENE_SPEC_BARON_FREE}/weights.csv",
+        tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_BARON_FREE}/chains_summary.csv"
+    shell:
+        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_BARON_FREE}/chains "
+        "{N_BARON_FREE_WEIGHTS_CHAINS} {output.weights} {output.tau} {output.summary}"
+
+rule plot_baron_free_weights_by_cluster:
+    input:
+        weights=f"{GENE_SPEC_BARON_FREE}/weights.csv",
+        clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster.png"
+    shell:
+        "python3 scripts/plot_free_weights_by_cluster.py {input.weights} {input.clusters} {output}"
+
+rule plot_baron_tau_scenarios_scatter:
+    input:
+        free_tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau.csv",
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
 
