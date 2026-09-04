@@ -144,7 +144,8 @@ rule all:
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
         f"{GENE_SPEC}/delta_tau/tau_range_unweighted_vs_ridge_fewtissues.png",
         f"{GENE_SPEC_BARON}/celltype_tpm.csv",
-        f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png"
+        f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png"
 
 rule preprocess:
     input:
@@ -1225,4 +1226,24 @@ rule plot_tissue_correlation_baron:
     shell:
         """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
             "log10 TPM, TPM<1->0, Baron pancreas cell types" """
+
+rule compute_tau_cluster_weighted_baron:
+    input:
+        gct=f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz",
+        linkage=f"{GENE_SPEC_BARON}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC_BARON}/tissue_correlation.csv"
+    output:
+        clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv",
+        tau=f"{GENE_SPEC_BARON}/cluster_weights/weighted_tau_simplified_0.1.csv"
+    shell:
+        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
+
+rule plot_tissue_clusters_dendrogram_baron:
+    input:
+        linkage=f"{GENE_SPEC_BARON}/tissue_correlation_linkage.csv",
+        clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} 'Baron pancreas cell types'"
 
