@@ -136,6 +136,7 @@ rule all:
         f"{GENE_SPEC}/tau_stability_loto.csv",
         f"{GENE_SPEC}/figures/neural_tau_impact.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC}/figures/tissue_correlation_heatmap_only.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_squared.png",
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap_rawtpm.png",
         f"{GENE_SPEC}/figures/tau_neural_downsample.png",
@@ -876,6 +877,15 @@ rule plot_tissue_correlation:
         f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png"
     shell:
         "python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output}"
+
+rule plot_tissue_correlation_heatmap_only:
+    input:
+        corr=f"{GENE_SPEC}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC}/figures/tissue_correlation_heatmap_only.png"
+    shell:
+        "python3 scripts/plot_tissue_correlation_heatmap_only.py {input.corr} {input.linkage} {output}"
 
 rule compute_tissue_correlation_squared:
     input:
