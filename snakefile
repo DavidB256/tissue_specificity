@@ -885,7 +885,8 @@ rule plot_tissue_correlation_heatmap_only:
     output:
         f"{GENE_SPEC}/figures/tissue_correlation_heatmap_only.png"
     shell:
-        "python3 scripts/plot_tissue_correlation_heatmap_only.py {input.corr} {input.linkage} {output}"
+        """python3 scripts/plot_tissue_correlation_heatmap_only.py {input.corr} {input.linkage} {output} \
+            "Correlation matrix of log10 TPM values in GTEx tissues" """
 
 rule compute_tissue_correlation_squared:
     input:
