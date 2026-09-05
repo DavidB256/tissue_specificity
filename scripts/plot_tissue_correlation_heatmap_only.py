@@ -1,10 +1,10 @@
 """Bare heatmap variant of plot_tissue_correlation.py: rows/cols reordered by the
 precomputed hierarchical clustering leaf order (tissue_correlation_linkage.csv) but
-with no dendrogram tree drawn, no tick labels. Colormap is a truncated "Reds" (skips
-the near-white bottom slice of the colormap, matching the red half of the original
-vlag clustermap but without washing out toward white at the low end), with vmin/vmax
-set to the actual off-diagonal data range to maximize contrast between cells. Colorbar
-is a separate axis, exactly as tall as the heatmap."""
+with no dendrogram tree drawn, no tick labels. Colormap is a truncated "Blues" (skips
+the near-white bottom slice of the colormap so low-but-still-positive correlations
+don't wash out toward white), with vmin/vmax set to the actual off-diagonal data range
+to maximize contrast between cells. Colorbar is a separate axis, exactly as tall as the
+heatmap."""
 import sys
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ IN_LINKAGE_CSV = sys.argv[2]
 OUT_PNG = sys.argv[3]
 TITLE = sys.argv[4] if len(sys.argv) > 4 else None
 
-REDS_LOW_CLIP = 0.15  # skip the near-white bottom slice of "Reds"
+CMAP_LOW_CLIP = 0.15  # skip the near-white bottom slice of "Blues"
 
 corr_df = pd.read_csv(IN_CORR_CSV, index_col=0)
 Z = pd.read_csv(IN_LINKAGE_CSV)[["cluster1", "cluster2", "distance", "n_obs"]].values
@@ -30,9 +30,9 @@ mat = corr_df.loc[order, order].values
 off_diag = mat[~np.eye(len(mat), dtype=bool)]
 vmin, vmax = off_diag.min(), off_diag.max()
 
-reds = colormaps["Reds"]
+blues = colormaps["Blues"]
 cmap = colors.LinearSegmentedColormap.from_list(
-    "reds_broad", reds(np.linspace(REDS_LOW_CLIP, 1.0, 256)))
+    "blues_broad", blues(np.linspace(CMAP_LOW_CLIP, 1.0, 256)))
 
 fig, ax = plt.subplots(figsize=(12, 12))
 im = ax.imshow(mat, cmap=cmap, vmin=vmin, vmax=vmax)
