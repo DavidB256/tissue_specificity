@@ -13,6 +13,7 @@ MODEL_FITS = f"{DATA}/model_fits"
 DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
 GENE_SPEC = f"{DATA}/gene_specificity"
+GENE_SPEC_GTEX = f"{GENE_SPEC}/gtex"
 
 # dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
 # per-tissue-median like the human file. The bucket also publishes a pre-split
@@ -106,40 +107,40 @@ rule all:
         expand(f"{DATA}/{{species}}/model_fits/model_comparison.csv", species=NHP_LIST),
         expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
-        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png",
-        f"{GENE_SPEC}/weighted_tau.csv",
-        f"{GENE_SPEC}/figures/weighted_tau_pairplot.png",
-        f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png",
-        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge_squared.png",
-        f"{GENE_SPEC}/cluster_weights/default/weighted_tau.csv",
-        f"{GENE_SPEC}/cluster_weights/onebrain/weighted_tau.csv",
-        f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default.png",
-        f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_bkl.png",
-        f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_pca.png",
-        f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_dendrogram_default.png",
-        f"{GENE_SPEC}/cluster_weights/figures/tissue_clusters_dendrogram_onebrain.png",
-        f"{GENE_SPEC}/cluster_weights/param_search_best.csv",
-        f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_naive.png",
-        f"{GENE_SPEC}/cluster_weights/figures/tau_cluster_onebrain_vs_default_optimized.png",
-        f"{GENE_SPEC}/free_weights/onebrain/weighted_tau.csv",
-        f"{GENE_SPEC}/free_weights/simplified_0.1/weighted_tau.csv",
-        f"{GENE_SPEC}/free_weights/figures/tissue_weight_free_onebrain.png",
-        f"{GENE_SPEC}/free_weights/figures/tissue_weight_free_simplified_0.1.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_onebrain.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_free_vs_default_simplified_0.1.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_delta_scatter.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_delta_scatter_abs.png",
-        f"{GENE_SPEC}/free_weights/figures/tau_delta_delta_violin.png",
-        f"{GENE_SPEC}/free_weights/top_delta_delta_tau.csv",
-        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png",
-        f"{GENE_SPEC}/tau_stability_spearman.csv",
-        f"{GENE_SPEC}/tau_stability_loto.csv",
-        f"{GENE_SPEC}/figures/neural_tau_impact.png",
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png",
-        f"{GENE_SPEC}/figures/tissue_correlation_heatmap_only.png",
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_squared.png",
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_rawtpm.png",
-        f"{GENE_SPEC}/figures/tau_neural_downsample.png",
+        f"{GENE_SPEC_GTEX}/figures/tau_expbeta_scatter.png",
+        f"{GENE_SPEC_GTEX}/weighted_tau.csv",
+        f"{GENE_SPEC_GTEX}/figures/weighted_tau_pairplot.png",
+        f"{GENE_SPEC_GTEX}/figures/weighted_tau_pairplot_squared.png",
+        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/default/weighted_tau.csv",
+        f"{GENE_SPEC_GTEX}/cluster_weights/onebrain/weighted_tau.csv",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_default.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_default_bkl.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_pca.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_dendrogram_default.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_dendrogram_onebrain.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/param_search_best.csv",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_default_naive.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_default_optimized.png",
+        f"{GENE_SPEC_GTEX}/free_weights/onebrain/weighted_tau.csv",
+        f"{GENE_SPEC_GTEX}/free_weights/simplified_0.1/weighted_tau.csv",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tissue_weight_free_onebrain.png",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tissue_weight_free_simplified_0.1.png",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tau_free_vs_default_onebrain.png",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tau_free_vs_default_simplified_0.1.png",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tau_delta_scatter.png",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tau_delta_scatter_abs.png",
+        f"{GENE_SPEC_GTEX}/free_weights/figures/tau_delta_delta_violin.png",
+        f"{GENE_SPEC_GTEX}/free_weights/top_delta_delta_tau.csv",
+        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge.png",
+        f"{GENE_SPEC_GTEX}/tau_stability_spearman.csv",
+        f"{GENE_SPEC_GTEX}/tau_stability_loto.csv",
+        f"{GENE_SPEC_GTEX}/figures/neural_tau_impact.png",
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_clustermap.png",
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_heatmap_only.png",
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_clustermap_squared.png",
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_clustermap_rawtpm.png",
+        f"{GENE_SPEC_GTEX}/figures/tau_neural_downsample.png",
         f"{GENE_SPEC_BARON}/celltype_tpm.csv",
         f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png",
         f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png",
@@ -462,7 +463,7 @@ rule compute_tau:
     input:
         GCT
     output:
-        f"{GENE_SPEC}/tau.csv"
+        f"{GENE_SPEC_GTEX}/tau.csv"
     shell:
         "python3 scripts/compute_tau.py {input} {output}"
 
@@ -470,18 +471,18 @@ rule compute_weighted_tau:
     input:
         GCT
     output:
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        weights=f"{GENE_SPEC}/weighted_tau_weights.csv"
+        tau=f"{GENE_SPEC_GTEX}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_GTEX}/weighted_tau_weights.csv"
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
 rule compute_tau_stability:
     input:
         gct=GCT,
-        tau=f"{GENE_SPEC}/weighted_tau.csv"
+        tau=f"{GENE_SPEC_GTEX}/weighted_tau.csv"
     output:
-        spearman=f"{GENE_SPEC}/tau_stability_spearman.csv",
-        loto=f"{GENE_SPEC}/tau_stability_loto.csv"
+        spearman=f"{GENE_SPEC_GTEX}/tau_stability_spearman.csv",
+        loto=f"{GENE_SPEC_GTEX}/tau_stability_loto.csv"
     shell:
         "python3 scripts/compute_tau_stability.py {input.gct} {input.tau} {output.spearman} {output.loto}"
 
@@ -489,25 +490,25 @@ rule identify_neural_genes:
     input:
         GCT
     output:
-        f"{GENE_SPEC}/neural_genes.csv"
+        f"{GENE_SPEC_GTEX}/neural_genes.csv"
     shell:
         "python3 scripts/identify_neural_genes.py {input} {output}"
 
 rule plot_neural_tau_impact:
     input:
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        neural=f"{GENE_SPEC}/neural_genes.csv"
+        tau=f"{GENE_SPEC_GTEX}/weighted_tau.csv",
+        neural=f"{GENE_SPEC_GTEX}/neural_genes.csv"
     output:
-        csv=f"{GENE_SPEC}/neural_tau_impact.csv",
-        png=f"{GENE_SPEC}/figures/neural_tau_impact.png"
+        csv=f"{GENE_SPEC_GTEX}/neural_tau_impact.csv",
+        png=f"{GENE_SPEC_GTEX}/figures/neural_tau_impact.png"
     shell:
         "python3 scripts/plot_neural_tau_impact.py {input.tau} {input.neural} {output.csv} {output.png}"
 
 rule plot_weighted_tau_pairplot:
     input:
-        f"{GENE_SPEC}/weighted_tau.csv"
+        f"{GENE_SPEC_GTEX}/weighted_tau.csv"
     output:
-        f"{GENE_SPEC}/figures/weighted_tau_pairplot.png"
+        f"{GENE_SPEC_GTEX}/figures/weighted_tau_pairplot.png"
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
 
@@ -515,27 +516,27 @@ rule compute_weighted_tau_squared:
     input:
         GCT
     output:
-        tau=f"{GENE_SPEC}/weighted_tau_squared.csv",
-        weights=f"{GENE_SPEC}/weighted_tau_squared_weights.csv"
+        tau=f"{GENE_SPEC_GTEX}/weighted_tau_squared.csv",
+        weights=f"{GENE_SPEC_GTEX}/weighted_tau_squared_weights.csv"
     shell:
         "python3 scripts/compute_weighted_tau_squared.py {input} {output.tau} {output.weights}"
 
 rule plot_weighted_tau_pairplot_squared:
     input:
-        f"{GENE_SPEC}/weighted_tau_squared.csv"
+        f"{GENE_SPEC_GTEX}/weighted_tau_squared.csv"
     output:
-        f"{GENE_SPEC}/figures/weighted_tau_pairplot_squared.png"
+        f"{GENE_SPEC_GTEX}/figures/weighted_tau_pairplot_squared.png"
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
 
-GENE_SPEC_ONEBRAIN = f"{GENE_SPEC}/onebrain"
+GENE_SPEC_ONEBRAIN = f"{GENE_SPEC_GTEX}/onebrain"
 ONEBRAIN_GCT = f"{GENE_SPEC_ONEBRAIN}/gene_median_tpm_onebrain.gct.gz"
 
 rule build_gct_onetissue:
     input:
         GCT
     output:
-        f"{GENE_SPEC}/one{{tissue}}/gene_median_tpm_one{{tissue}}.gct.gz"
+        f"{GENE_SPEC_GTEX}/one{{tissue}}/gene_median_tpm_one{{tissue}}.gct.gz"
     params:
         prefix=lambda wildcards: wildcards.tissue.capitalize()
     shell:
@@ -559,13 +560,13 @@ rule compute_weighted_tau_onebrain:
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
-GENE_SPEC_CLUSTER_WEIGHTS = f"{GENE_SPEC}/cluster_weights"
+GENE_SPEC_CLUSTER_WEIGHTS = f"{GENE_SPEC_GTEX}/cluster_weights"
 
 rule compute_tau_cluster_weighted_default:
     input:
         gct=GCT,
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
-        corr=f"{GENE_SPEC}/tissue_correlation.csv"
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation.csv"
     output:
         clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/tissue_clusters.csv",
         tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/weighted_tau.csv"
@@ -613,7 +614,7 @@ rule plot_tissue_clusters_pca:
 
 rule plot_tissue_clusters_dendrogram_default:
     input:
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv",
         clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default/tissue_clusters.csv"
     output:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_default.png"
@@ -632,8 +633,8 @@ rule plot_tissue_clusters_dendrogram_onebrain:
 rule optimize_cluster_weight_params:
     input:
         default_gct=GCT,
-        default_linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
-        default_corr=f"{GENE_SPEC}/tissue_correlation.csv",
+        default_linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv",
+        default_corr=f"{GENE_SPEC_GTEX}/tissue_correlation.csv",
         onebrain_gct=ONEBRAIN_GCT,
         onebrain_linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv",
         onebrain_corr=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation.csv"
@@ -653,8 +654,8 @@ WEIGHT_CAP_OPT = "0.100032"
 rule compute_tau_cluster_weighted_default_optimized:
     input:
         gct=GCT,
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv",
-        corr=f"{GENE_SPEC}/tissue_correlation.csv"
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation.csv"
     output:
         clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default_optimized/tissue_clusters.csv",
         tau=f"{GENE_SPEC_CLUSTER_WEIGHTS}/default_optimized/weighted_tau.csv"
@@ -694,7 +695,7 @@ rule plot_tau_cluster_vs_default_optimized:
         "python3 scripts/plot_tau_cluster_vs_default.py {input.default_tau} {input.onebrain_tau} {output} "
         "'onebrain (t=0.013, c=0.10)'"
 
-GENE_SPEC_CLUSTER_SIMPLIFIED = f"{GENE_SPEC}/simplified_0.1"
+GENE_SPEC_CLUSTER_SIMPLIFIED = f"{GENE_SPEC_GTEX}/simplified_0.1"
 CLUSTER_SIMPLIFIED_GCT = f"{GENE_SPEC_CLUSTER_SIMPLIFIED}/gene_median_tpm_simplified_0.1.gct.gz"
 
 rule build_gct_cluster_simplified:
@@ -719,7 +720,7 @@ rule compute_weighted_tau_cluster_simplified:
 # independently-optimized 68-dim weight vector (see optimize_free_weights.py) fit
 # against that scenario's own reduced-resolution reference tau. Figures for both legs
 # live side by side in free_weights/figures/.
-GENE_SPEC_FREE_WEIGHTS = f"{GENE_SPEC}/free_weights"
+GENE_SPEC_FREE_WEIGHTS = f"{GENE_SPEC_GTEX}/free_weights"
 N_FREE_WEIGHTS_CHAINS = 60
 
 FREE_WEIGHTS_REF_TAU = {
@@ -837,17 +838,17 @@ rule make_top_delta_delta_tau_table:
 
 rule plot_tissue_weights_squared:
     input:
-        f"{GENE_SPEC}/weighted_tau_squared_weights.csv"
+        f"{GENE_SPEC_GTEX}/weighted_tau_squared_weights.csv"
     output:
-        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge_squared.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared.png"
     shell:
         "python3 scripts/plot_tissue_weights.py {input} {output}"
 
 rule plot_tissue_weights:
     input:
-        f"{GENE_SPEC}/weighted_tau_weights.csv"
+        f"{GENE_SPEC_GTEX}/weighted_tau_weights.csv"
     output:
-        f"{GENE_SPEC}/figures/tissue_weight_gls_ridge.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge.png"
     shell:
         "python3 scripts/plot_tissue_weights.py {input} {output}"
 
@@ -855,45 +856,45 @@ rule compute_tissue_correlation:
     input:
         GCT
     output:
-        corr=f"{GENE_SPEC}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv"
     shell:
         "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage}"
 
 rule plot_tissue_correlation:
     input:
-        corr=f"{GENE_SPEC}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv"
     output:
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_clustermap.png"
     shell:
         "python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output}"
 
 rule plot_tissue_correlation_heatmap_only:
     input:
-        corr=f"{GENE_SPEC}/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv"
     output:
-        f"{GENE_SPEC}/figures/tissue_correlation_heatmap_only.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_heatmap_only.png"
     shell:
         """python3 scripts/plot_tissue_correlation_heatmap_only.py {input.corr} {input.linkage} {output} \
             "Correlation matrix of log10 TPM values in GTEx tissues" """
 
 rule compute_tissue_correlation_squared:
     input:
-        f"{GENE_SPEC}/tissue_correlation.csv"
+        f"{GENE_SPEC_GTEX}/tissue_correlation.csv"
     output:
-        corr=f"{GENE_SPEC}/tissue_correlation_squared.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_squared_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_squared_linkage.csv"
     shell:
         "python3 scripts/compute_tissue_correlation_squared.py {input} {output.corr} {output.linkage}"
 
 rule plot_tissue_correlation_squared:
     input:
-        corr=f"{GENE_SPEC}/tissue_correlation_squared.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_squared_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation_squared.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_squared_linkage.csv"
     output:
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_squared.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_clustermap_squared.png"
     shell:
         """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
             "log10 TPM, TPM<1->0, R elementwise squared" """
@@ -902,17 +903,17 @@ rule compute_tissue_correlation_rawtpm:
     input:
         GCT
     output:
-        corr=f"{GENE_SPEC}/tissue_correlation_rawtpm.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_rawtpm_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation_rawtpm.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_rawtpm_linkage.csv"
     shell:
         "python3 scripts/compute_tissue_correlation_rawtpm.py {input} {output.corr} {output.linkage}"
 
 rule plot_tissue_correlation_rawtpm:
     input:
-        corr=f"{GENE_SPEC}/tissue_correlation_rawtpm.csv",
-        linkage=f"{GENE_SPEC}/tissue_correlation_rawtpm_linkage.csv"
+        corr=f"{GENE_SPEC_GTEX}/tissue_correlation_rawtpm.csv",
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_rawtpm_linkage.csv"
     output:
-        f"{GENE_SPEC}/figures/tissue_correlation_clustermap_rawtpm.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_correlation_clustermap_rawtpm.png"
     shell:
         """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} \
             "log10 TPM, no floor (raw TPM)" """
@@ -921,16 +922,16 @@ rule compute_tau_neural_downsample:
     input:
         gct=GCT
     output:
-        f"{GENE_SPEC}/tau_neural_downsample.csv"
+        f"{GENE_SPEC_GTEX}/tau_neural_downsample.csv"
     shell:
         "python3 scripts/compute_tau_neural_downsample.py {input.gct} {output}"
 
 rule plot_tau_neural_downsample:
     input:
-        tau=f"{GENE_SPEC}/weighted_tau.csv",
-        downsample=f"{GENE_SPEC}/tau_neural_downsample.csv"
+        tau=f"{GENE_SPEC_GTEX}/weighted_tau.csv",
+        downsample=f"{GENE_SPEC_GTEX}/tau_neural_downsample.csv"
     output:
-        f"{GENE_SPEC}/figures/tau_neural_downsample.png"
+        f"{GENE_SPEC_GTEX}/figures/tau_neural_downsample.png"
     shell:
         "python3 scripts/plot_tau_neural_downsample.py {input.tau} {input.downsample} {output}"
 
@@ -939,7 +940,7 @@ rule compute_exp_beta_ratio:
         gct=GCT,
         fits=f"{MODEL_FITS}/exp_beta_fits.csv"
     output:
-        f"{GENE_SPEC}/exp_beta_ratio.csv"
+        f"{GENE_SPEC_GTEX}/exp_beta_ratio.csv"
     shell:
         "python3 scripts/compute_exp_beta_ratio.py {input.gct} {input.fits} {output}"
 
@@ -948,16 +949,16 @@ rule compute_beta_posterior:
         gct=GCT,
         fits=f"{MODEL_FITS}/exp_beta_fits.csv"
     output:
-        f"{GENE_SPEC}/beta_posterior.csv"
+        f"{GENE_SPEC_GTEX}/beta_posterior.csv"
     shell:
         "python3 scripts/compute_beta_posterior.py {input.gct} {input.fits} {output}"
 
 rule plot_tau_exp_beta:
     input:
-        tau=f"{GENE_SPEC}/tau.csv",
-        posterior=f"{GENE_SPEC}/beta_posterior.csv"
+        tau=f"{GENE_SPEC_GTEX}/tau.csv",
+        posterior=f"{GENE_SPEC_GTEX}/beta_posterior.csv"
     output:
-        f"{GENE_SPEC}/figures/tau_expbeta_scatter.png"
+        f"{GENE_SPEC_GTEX}/figures/tau_expbeta_scatter.png"
     shell:
         "python3 scripts/plot_tau_exp_beta.py {input.tau} {input.posterior} {output}"
 
