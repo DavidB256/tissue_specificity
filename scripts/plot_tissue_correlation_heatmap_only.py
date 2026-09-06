@@ -21,6 +21,7 @@ OUT_PNG = sys.argv[3]
 TITLE = sys.argv[4] if len(sys.argv) > 4 else None
 
 CMAP_LOW_CLIP = 0.15  # skip the near-white bottom slice of "Blues"
+CMAP_HIGH_CLIP = 0.88  # skip the near-black top slice of "Blues"
 
 corr_df = pd.read_csv(IN_CORR_CSV, index_col=0)
 Z = pd.read_csv(IN_LINKAGE_CSV)[["cluster1", "cluster2", "distance", "n_obs"]].values
@@ -32,7 +33,7 @@ vmin, vmax = off_diag.min(), off_diag.max()
 
 blues = colormaps["Blues"]
 cmap = colors.LinearSegmentedColormap.from_list(
-    "blues_broad", blues(np.linspace(CMAP_LOW_CLIP, 1.0, 256)))
+    "blues_broad", blues(np.linspace(CMAP_LOW_CLIP, CMAP_HIGH_CLIP, 256)))
 
 fig, ax = plt.subplots(figsize=(12, 12))
 im = ax.imshow(mat, cmap=cmap, vmin=vmin, vmax=vmax)
