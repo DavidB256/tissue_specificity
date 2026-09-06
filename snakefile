@@ -528,15 +528,6 @@ rule plot_weighted_tau_pairplot_squared:
     shell:
         "python3 scripts/plot_weighted_tau_pairplot.py {input} {output}"
 
-rule compute_weighted_tau_fourth:
-    input:
-        GCT
-    output:
-        tau=f"{GENE_SPEC}/weighted_tau_fourth.csv",
-        weights=f"{GENE_SPEC}/weighted_tau_fourth_weights.csv"
-    shell:
-        "python3 scripts/compute_weighted_tau_fourth.py {input} {output.tau} {output.weights}"
-
 GENE_SPEC_ONEBRAIN = f"{GENE_SPEC}/onebrain"
 ONEBRAIN_GCT = f"{GENE_SPEC_ONEBRAIN}/gene_median_tpm_onebrain.gct.gz"
 
