@@ -1094,22 +1094,12 @@ rule plot_baron_free_weights_by_cluster:
     shell:
         "python3 scripts/plot_free_weights_by_cluster.py {input.weights} {input.clusters} {output}"
 
-rule collapse_baron_free_weighted_tau:
-    input:
-        gct=BARON_SIMPLIFIED_GCT,
-        weights=f"{GENE_SPEC_BARON_FREE}/weights.csv",
-        clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
-    output:
-        f"{GENE_SPEC_BARON_FREE}/weighted_tau_collapsed.csv"
-    shell:
-        "python3 scripts/collapse_free_weighted_tau.py {input.gct} {input.weights} {input.clusters} {output}"
-
 rule plot_baron_tau_scenarios_scatter:
     input:
-        default_tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau.csv",
-        simplified_tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau_collapsed.csv"
+        free_tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau.csv",
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
     output:
         f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png"
     shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.default_tau} {input.simplified_tau} {output} simplified_0.1"
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
 
