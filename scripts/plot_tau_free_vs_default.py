@@ -4,10 +4,11 @@ default (68 tissues) vs a reduced-resolution reference (LABEL, e.g. "onebrain" o
 optimization target, see optimize_free_weights.py). Row 1: (1) tau_unweighted vs
 tau_unweighted, (2) tau_free_weighted (default) vs tau_unweighted (reference). Row 2:
 (3) tau vs tau_weighted on default tissues, (4) tau vs tau_weighted on the reference's
-collapsed tissues (tau_weighted_gls_ridge). Points colored by gene category:
-Brain/Kidney/Liver (by max-expressing tissue, default 68-tissue GCT) vs "other", to show
-how the free_weights correction differs across degrees of tissue redundancy
-(Brain/Kidney/Liver hold many highly correlated subtissues)."""
+collapsed tissues (tau_weighted_gls_ridge). Points colored by gene category (by
+max-expressing tissue, default 68-tissue GCT) vs "other", to show how the free_weights
+correction differs across degrees of tissue redundancy (these tissue groups hold many
+highly correlated subtissues). Category set depends on LABEL: onebrain uses Brain vs
+other only; all other labels (e.g. simplified_0.1) use Brain/Kidney/Liver vs other."""
 import sys
 import numpy as np
 import pandas as pd
@@ -23,7 +24,10 @@ IN_REF_TAU = sys.argv[3]
 OUT_PNG = sys.argv[4]
 LABEL = sys.argv[5] if len(sys.argv) > 5 else "reference"
 
-CATEGORIES = {"Brain": "tab:red", "Kidney": "tab:green", "Liver": "tab:orange", "other": "tab:blue"}
+if LABEL == "onebrain":
+    CATEGORIES = {"Brain": "tab:red", "other": "tab:blue"}
+else:
+    CATEGORIES = {"Brain": "tab:red", "Kidney": "tab:green", "Liver": "tab:orange", "other": "tab:blue"}
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(gct.columns[2:])
@@ -31,7 +35,7 @@ mat = floor_tpm(gct[tissues].values.astype(float))
 argmax_tissue = np.array(tissues)[mat.argmax(axis=1)]
 
 category = np.full(len(argmax_tissue), "other", dtype=object)
-for cat in ["Brain", "Kidney", "Liver"]:
+for cat in [c for c in CATEGORIES if c != "other"]:
     category[np.char.find(argmax_tissue.astype(str), cat) >= 0] = cat
 cat_df = pd.DataFrame({"gene": gct["Name"].values, "category": category})
 
