@@ -14,6 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_1samp
 from gls_tau import floor_tpm
+from plot_utils import display_label
 
 IN_GCT = sys.argv[1]
 IN_CLUSTERS = sys.argv[2]
@@ -72,7 +73,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     ax.axhline(0, color="gray", lw=1, ls="--")
     ax.set_xlabel("tissue cluster (labeled by shortest tissue name, simplified_0.1)")
     ax.set_ylabel(r"$\Delta\Delta\tau = |\Delta\tau_w| - |\Delta\tau|$")
-    ax.set_title(f"default vs {label}, n={len(dd)} genes", fontsize=10, pad=14)
+    ax.set_title(f"default vs {display_label(label)}, n={len(dd)} genes", fontsize=10, pad=14)
     ax.tick_params(axis="x", rotation=30, labelsize=7)
     for tick in ax.get_xticklabels():
         tick.set_ha("right")

@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from plot_utils import annotate_diag_stats
+from plot_utils import annotate_diag_stats, display_label
 from gls_tau import floor_tpm
 
 IN_GCT = sys.argv[1]
@@ -36,11 +36,11 @@ df = d.merge(c, on="gene").merge(cat_df, on="gene").dropna()
 df = df[df["category"].notna()]
 
 PANELS = [
-    ("tau_unweighted", "tau_unweighted_simp", f"tau_unweighted: default vs {LABEL} tissues"),
+    ("tau_unweighted", "tau_unweighted_simp", f"tau_unweighted: default vs {display_label(LABEL)} tissues"),
     ("tau_weighted_cluster", "tau_weighted_cluster_simp",
-     f"tau_weighted_cluster (1/cluster_size): default vs {LABEL} tissues"),
+     f"tau_weighted_cluster (1/cluster_size): default vs {display_label(LABEL)} tissues"),
     ("tau_weighted_cluster_diameter", "tau_weighted_cluster_diameter_simp",
-     f"tau_weighted_cluster_diameter ((1-d)/k+d): default vs {LABEL} tissues"),
+     f"tau_weighted_cluster_diameter ((1-d)/k+d): default vs {display_label(LABEL)} tissues"),
 ]
 
 AXIS_LO, AXIS_HI = 0.2, 1.0
@@ -54,7 +54,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
     ax.set_xlabel(f"{xcol} (default, 68 tissues)")
-    ax.set_ylabel(f"{ycol} ({LABEL} tissues)")
+    ax.set_ylabel(f"{ycol} ({display_label(LABEL)} tissues)")
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
 
@@ -66,7 +66,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"cluster-weighted tau: default vs {LABEL} tissues, max-expr in Brain/Kidney/Liver, n={len(df)} genes")
+fig.suptitle(f"cluster-weighted tau: default vs {display_label(LABEL)} tissues, max-expr in Brain/Kidney/Liver, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

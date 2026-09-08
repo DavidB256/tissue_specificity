@@ -9,7 +9,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-from plot_utils import annotate_diag_stats
+from plot_utils import annotate_diag_stats, display_label
 
 IN_ONEBRAIN_FREE_TAU = sys.argv[1]
 IN_ONEBRAIN_REF_TAU = sys.argv[2]
@@ -43,7 +43,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     ax.set_ylim(0, lim)
     ax.set_xlabel(r"$|\Delta\tau|$")
     ax.set_ylabel(r"$|\Delta\tau_w|$")
-    ax.set_title(f"default vs {label}, n={len(delta_tau)} genes", fontsize=10)
+    ax.set_title(f"default vs {display_label(label)}, n={len(delta_tau)} genes", fontsize=10)
     annotate_diag_stats(ax, delta_tau, delta_tau_w)
 
     x25, x75 = np.percentile(delta_tau, [25, 75])

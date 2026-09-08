@@ -12,7 +12,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from plot_utils import annotate_diag_stats
+from plot_utils import annotate_diag_stats, display_label
 
 IN_FREE_TAU = sys.argv[1]
 IN_REF_TAU = sys.argv[2]
@@ -35,11 +35,11 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_xlabel(xlabel)
-    ax.set_ylabel(f"tau_unweighted ({LABEL})")
+    ax.set_ylabel(f"tau_unweighted ({display_label(LABEL)})")
     ax.set_title(title, fontsize=11)
     annotate_diag_stats(ax, df[xcol], df["tau_ref"])
 
-fig.suptitle(f"default vs {LABEL}: tau and tau_weighted, n={len(df)} genes")
+fig.suptitle(f"default vs {display_label(LABEL)}: tau and tau_weighted, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

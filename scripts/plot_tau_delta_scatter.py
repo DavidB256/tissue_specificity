@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from plot_utils import annotate_diag_stats
+from plot_utils import annotate_diag_stats, display_label
 
 IN_ONEBRAIN_FREE_TAU = sys.argv[1]
 IN_ONEBRAIN_REF_TAU = sys.argv[2]
@@ -47,7 +47,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     ax.set_ylim(-lim, lim)
     ax.set_xlabel(r"$\Delta\tau$")
     ax.set_ylabel(r"$\Delta\tau_w$")
-    ax.set_title(f"default vs {label}, n={len(delta_tau)} genes", fontsize=10)
+    ax.set_title(f"default vs {display_label(label)}, n={len(delta_tau)} genes", fontsize=10)
     annotate_diag_stats(ax, delta_tau, delta_tau_w)
 
 fig.suptitle(r"$\Delta\tau$ vs $\Delta\tau_w$: change in tau from collapsing tissue resolution, unweighted vs free-weighted")

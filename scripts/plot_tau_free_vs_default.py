@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from plot_utils import annotate_diag_stats
+from plot_utils import annotate_diag_stats, display_label
 from gls_tau import floor_tpm
 
 IN_GCT = sys.argv[1]
@@ -46,14 +46,14 @@ r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_gls_ridge"]
 df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
 
 ROW1_PANELS = [
-    ("tau_unweighted", "tau_ref", "tau_unweighted", "default (68 tissues)", LABEL),
-    ("tau_free_weighted", "tau_ref", "tau_free_weighted", "default (68 tissues)", LABEL),
+    ("tau_unweighted", "tau_ref", "tau_unweighted", "default (68 tissues)", display_label(LABEL)),
+    ("tau_free_weighted", "tau_ref", "tau_free_weighted", "default (68 tissues)", display_label(LABEL)),
 ]
 ROW2_PANELS = [
     ("tau_unweighted", "tau_free_weighted", "default: tau vs tau_weighted",
      "tau (default)", "tau_weighted (default)"),
-    ("tau_ref", "tau_weighted_alt", f"{LABEL}: tau vs tau_weighted",
-     f"tau ({LABEL})", f"tau_weighted ({LABEL})"),
+    ("tau_ref", "tau_weighted_alt", f"{display_label(LABEL)}: tau vs tau_weighted",
+     f"tau ({display_label(LABEL)})", f"tau_weighted ({display_label(LABEL)})"),
 ]
 
 AXIS_LO, AXIS_HI = 0.2, 1.0
@@ -81,7 +81,7 @@ for row_axes, panels in zip(axes, [ROW1_PANELS, ROW2_PANELS]):
                                        label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
                   loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"free_weights tau: default vs {LABEL}, n={len(df)} genes")
+fig.suptitle(f"free_weights tau: default vs {display_label(LABEL)}, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

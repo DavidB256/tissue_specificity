@@ -1,6 +1,14 @@
 """Shared plotting helpers."""
 from scipy.stats import pearsonr, spearmanr
 
+LABEL_DISPLAY_NAMES = {"onebrain": "brain tissues combined (56 tissues)"}
+
+
+def display_label(label):
+    """Human-readable text for a tissue-reduction scenario label (e.g. "onebrain") used
+    in figure titles/axis labels."""
+    return LABEL_DISPLAY_NAMES.get(label, label)
+
 
 def annotate_diag_stats(ax, x, y, loc=(0.03, 0.97), fontsize=9):
     """Annotate a y=x-diagonal comparison scatterplot (same-scale x/y, e.g. two tau

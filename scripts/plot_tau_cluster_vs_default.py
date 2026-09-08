@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from plot_utils import annotate_diag_stats
+from plot_utils import annotate_diag_stats, display_label
 
 IN_DEFAULT_TAU = sys.argv[1]
 IN_COLLAPSED_TAU = sys.argv[2]
@@ -37,7 +37,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
     ax.set_xlabel("default (68 tissues)")
-    ax.set_ylabel(LABEL)
+    ax.set_ylabel(display_label(LABEL))
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
 
@@ -46,7 +46,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"cluster-weighted tau: default vs {LABEL}, n={len(df)} genes")
+fig.suptitle(f"cluster-weighted tau: default vs {display_label(LABEL)}, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

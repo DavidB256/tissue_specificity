@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram
+from plot_utils import display_label
 
 IN_LINKAGE_CSV = sys.argv[1]
 IN_CLUSTERS_CSV = sys.argv[2]
@@ -43,7 +44,7 @@ ax.axhline(DIST_THRESHOLD, ls="--", color="black", lw=1, label=f"cut = {DIST_THR
 ax.plot([], [], color="red", lw=1.5, label="cluster diameter (max pairwise distance)")
 ax.set_ylabel("distance (1 - corr)")
 ax.legend(fontsize=8, loc="upper right")
-fig.suptitle(f"{LABEL}: hierarchical tissue clustering, cut={DIST_THRESHOLD}, "
+fig.suptitle(f"{display_label(LABEL)}: hierarchical tissue clustering, cut={DIST_THRESHOLD}, "
              f"{clusters['cluster_id'].nunique()} clusters", fontsize=12)
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
