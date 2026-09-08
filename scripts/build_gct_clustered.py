@@ -1,7 +1,7 @@
 """Collapse tissues into one column per hierarchical cluster (mean raw TPM, pre
 floor_tpm), using cluster assignments from compute_tau_cluster_weighted.py's
 tissue_clusters.csv (average-linkage clustering, distance=1-corr, cut at a fixed
-DIST_THRESHOLD -- e.g. cluster_weights/default/tissue_clusters.csv for threshold=0.1).
+DIST_THRESHOLD -- e.g. cluster_weights/full/tissue_clusters.csv for threshold=0.1).
 Singleton clusters (cluster_size==1) keep their original tissue name; multi-tissue
 clusters become "cluster{cluster_id}". Output is a standard 2-line-header GCT (matches
 the input format)."""

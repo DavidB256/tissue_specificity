@@ -1,5 +1,5 @@
-"""Cluster-weighted analog of plot_tau_simplified_vs_default.py: 3-panel comparison of
-tau on default (68) vs a collapsed-tissue variant (LABEL, e.g. "onebrain") tissues, using
+"""Cluster-weighted analog of plot_tau_simplified_vs_full.py: 3-panel comparison of
+tau on full (68) vs a collapsed-tissue variant (LABEL, e.g. "onebrain") tissues, using
 cluster-based weights instead of GLS (see compute_tau_cluster_weighted.py): (1)
 tau_unweighted, (2) tau_weighted_cluster (plain 1/cluster_size), (3)
 tau_weighted_cluster_diameter (diameter-scaled (1-d)/k+d)."""
@@ -11,13 +11,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from plot_utils import annotate_diag_stats, display_label
 
-IN_DEFAULT_TAU = sys.argv[1]
+IN_FULL_TAU = sys.argv[1]
 IN_COLLAPSED_TAU = sys.argv[2]
 OUT_PNG = sys.argv[3]
 LABEL = sys.argv[4] if len(sys.argv) > 4 else "onebrain"
 
 COLS = ["tau_unweighted", "tau_weighted_cluster", "tau_weighted_cluster_diameter"]
-d = pd.read_csv(IN_DEFAULT_TAU)[["gene"] + COLS]
+d = pd.read_csv(IN_FULL_TAU)[["gene"] + COLS]
 c = pd.read_csv(IN_COLLAPSED_TAU)[["gene"] + COLS].rename(columns={col: f"{col}_simp" for col in COLS})
 
 df = d.merge(c, on="gene").dropna()
@@ -36,7 +36,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
-    ax.set_xlabel("default (68 tissues)")
+    ax.set_xlabel("full (68 tissues)")
     ax.set_ylabel(display_label(LABEL))
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
@@ -46,7 +46,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"cluster-weighted tau: default vs {display_label(LABEL)}, n={len(df)} genes")
+fig.suptitle(f"cluster-weighted tau: full vs {display_label(LABEL)}, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

@@ -1,5 +1,5 @@
-"""plot_tau_cluster_vs_default.py restricted to genes whose max-expressing tissue
-(default, unsimplified, 68 tissues) is Brain_*, Kidney_*, or Liver* -- colored by which
+"""plot_tau_cluster_vs_full.py restricted to genes whose max-expressing tissue
+(full, unsimplified, 68 tissues) is Brain_*, Kidney_*, or Liver* -- colored by which
 of the three."""
 import sys
 import numpy as np
@@ -11,7 +11,7 @@ from plot_utils import annotate_diag_stats, display_label
 from gls_tau import floor_tpm
 
 IN_GCT = sys.argv[1]
-IN_DEFAULT_TAU = sys.argv[2]
+IN_FULL_TAU = sys.argv[2]
 IN_COLLAPSED_TAU = sys.argv[3]
 OUT_PNG = sys.argv[4]
 LABEL = sys.argv[5] if len(sys.argv) > 5 else "onebrain"
@@ -29,18 +29,18 @@ for cat in CATEGORIES:
 cat_df = pd.DataFrame({"gene": gct["Name"].values, "category": category})
 
 COLS = ["tau_unweighted", "tau_weighted_cluster", "tau_weighted_cluster_diameter"]
-d = pd.read_csv(IN_DEFAULT_TAU)[["gene"] + COLS]
+d = pd.read_csv(IN_FULL_TAU)[["gene"] + COLS]
 c = pd.read_csv(IN_COLLAPSED_TAU)[["gene"] + COLS].rename(columns={col: f"{col}_simp" for col in COLS})
 
 df = d.merge(c, on="gene").merge(cat_df, on="gene").dropna()
 df = df[df["category"].notna()]
 
 PANELS = [
-    ("tau_unweighted", "tau_unweighted_simp", f"tau_unweighted: default vs {display_label(LABEL)} tissues"),
+    ("tau_unweighted", "tau_unweighted_simp", f"tau_unweighted: full vs {display_label(LABEL)} tissues"),
     ("tau_weighted_cluster", "tau_weighted_cluster_simp",
-     f"tau_weighted_cluster (1/cluster_size): default vs {display_label(LABEL)} tissues"),
+     f"tau_weighted_cluster (1/cluster_size): full vs {display_label(LABEL)} tissues"),
     ("tau_weighted_cluster_diameter", "tau_weighted_cluster_diameter_simp",
-     f"tau_weighted_cluster_diameter ((1-d)/k+d): default vs {display_label(LABEL)} tissues"),
+     f"tau_weighted_cluster_diameter ((1-d)/k+d): full vs {display_label(LABEL)} tissues"),
 ]
 
 AXIS_LO, AXIS_HI = 0.2, 1.0
@@ -53,7 +53,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
-    ax.set_xlabel(f"{xcol} (default, 68 tissues)")
+    ax.set_xlabel(f"{xcol} (full, 68 tissues)")
     ax.set_ylabel(f"{ycol} ({display_label(LABEL)} tissues)")
     ax.set_title(title, fontsize=10)
     annotate_diag_stats(ax, df[xcol], df[ycol])
@@ -66,7 +66,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"cluster-weighted tau: default vs {display_label(LABEL)} tissues, max-expr in Brain/Kidney/Liver, n={len(df)} genes")
+fig.suptitle(f"cluster-weighted tau: full vs {display_label(LABEL)} tissues, max-expr in Brain/Kidney/Liver, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

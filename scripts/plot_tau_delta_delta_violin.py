@@ -2,7 +2,7 @@
 weighting shrank the tau shift from collapsing tissue resolution, positive = it grew),
 grouped by each gene's most-expressed tissue cluster in simplified_0.1 (dist_threshold=0.1
 hierarchical clustering, see identify tissue_clusters.csv). Two rows: onebrain leg,
-simplified_0.1 leg. Same cluster assignment (from the default 68-tissue GCT) is used for
+simplified_0.1 leg. Same cluster assignment (from the full 68-tissue GCT) is used for
 both rows. TPM ties for a gene's max-expressing tissue are broken randomly. Each violin is
 annotated with n and the p-value of a one-sample t-test that the mean is 0."""
 import sys
@@ -73,7 +73,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     ax.axhline(0, color="gray", lw=1, ls="--")
     ax.set_xlabel("tissue cluster (labeled by shortest tissue name, simplified_0.1)")
     ax.set_ylabel(r"$\Delta\Delta\tau = |\Delta\tau_w| - |\Delta\tau|$")
-    ax.set_title(f"default vs {display_label(label)}, n={len(dd)} genes", fontsize=10, pad=14)
+    ax.set_title(f"full vs {display_label(label)}, n={len(dd)} genes", fontsize=10, pad=14)
     ax.tick_params(axis="x", rotation=30, labelsize=7)
     for tick in ax.get_xticklabels():
         tick.set_ha("right")

@@ -18,7 +18,7 @@ from plot_utils import display_label
 IN_LINKAGE_CSV = sys.argv[1]
 IN_CLUSTERS_CSV = sys.argv[2]
 OUT_PNG = sys.argv[3]
-LABEL = sys.argv[4] if len(sys.argv) > 4 else "default"
+LABEL = sys.argv[4] if len(sys.argv) > 4 else "full"
 DIST_THRESHOLD = float(sys.argv[5]) if len(sys.argv) > 5 else 0.1
 
 clusters = pd.read_csv(IN_CLUSTERS_CSV)

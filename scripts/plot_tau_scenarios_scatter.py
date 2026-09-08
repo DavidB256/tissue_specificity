@@ -1,11 +1,11 @@
 """2-panel scatter comparing a free_weights fit (see optimize_free_weights.py) to its
 reduced-resolution reference, both against tau_unweighted computed directly from the
 reference's own (collapsed) TPM values -- no GLS anywhere: (1) tau in the two
-scenarios -- tau_unweighted on the default (full-resolution) tissue set vs
+scenarios -- tau_unweighted on the full (full-resolution) tissue set vs
 tau_unweighted on the reference; (2) tau_weighted in the two scenarios --
-tau_free_weighted (default, DE-optimized against the reference -- the same rank-corr
+tau_free_weighted (full, DE-optimized against the reference -- the same rank-corr
 objective optimize_free_weights.py maximizes) vs the same reference tau_unweighted.
-tau_weighted is only ever computed at the default (full) resolution; the reduced side
+tau_weighted is only ever computed at the full resolution; the reduced side
 has no separate "weighted" tau of its own."""
 import sys
 import pandas as pd
@@ -24,8 +24,8 @@ ref = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted"]].rename(columns={"tau_u
 df = free.merge(ref, on="gene").dropna()
 
 PANELS = [
-    ("tau_unweighted", "tau", "tau (default)"),
-    ("tau_free_weighted", "tau_weighted", "tau_weighted (default, free/DE-optimized)"),
+    ("tau_unweighted", "tau", "tau (full)"),
+    ("tau_free_weighted", "tau_weighted", "tau_weighted (full, free/DE-optimized)"),
 ]
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))
@@ -39,7 +39,7 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     ax.set_title(title, fontsize=11)
     annotate_diag_stats(ax, df[xcol], df["tau_ref"])
 
-fig.suptitle(f"default vs {display_label(LABEL)}: tau and tau_weighted, n={len(df)} genes")
+fig.suptitle(f"full vs {display_label(LABEL)}: tau and tau_weighted, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

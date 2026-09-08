@@ -1,6 +1,6 @@
 """"free_weights": optimize one weight per tissue (68-dim, bounded [0.01, 1]) directly --
 not derived from any GLS or clustering formula -- to maximize the Spearman rank
-correlation between weighted tau on the default (68-tissue) GCT and the fixed reference
+correlation between weighted tau on the full (68-tissue) GCT and the fixed reference
 tau_unweighted on the onebrain (56-tissue, brain collapsed) GCT (already computed, see
 compute_weighted_tau.py). L-BFGS is not viable here: tau_i(w) is a smooth ratio of two
 linear functions of w (argmax per gene depends only on raw TPM, never on w), but Spearman
@@ -19,7 +19,7 @@ from scipy.stats import rankdata
 from scipy.optimize import differential_evolution
 from gls_tau import weighted_tau, floor_tpm
 
-DEFAULT_GCT = sys.argv[1]
+FULL_GCT = sys.argv[1]
 ONEBRAIN_TAU_CSV = sys.argv[2]
 OUT_WEIGHTS_CSV = sys.argv[3]
 OUT_TAU_CSV = sys.argv[4]
@@ -30,7 +30,7 @@ SEED = int(sys.argv[7]) if len(sys.argv) > 7 else 0
 MAXITER = 300
 POPSIZE = 15
 
-df = pd.read_csv(DEFAULT_GCT, sep="\t", skiprows=2)
+df = pd.read_csv(FULL_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
 n_tissues = len(tissues)
 genes = df["Name"].values
@@ -40,7 +40,7 @@ ref = pd.read_csv(ONEBRAIN_TAU_CSV)[["gene", "tau_unweighted"]].rename(columns={
 ref = pd.DataFrame({"gene": genes}).merge(ref, on="gene", how="left")
 tau_ref = ref["tau_ref"].values
 
-# valid mask is fixed for all w: default-side NaN only comes from an all-zero
+# valid mask is fixed for all w: full-side NaN only comes from an all-zero
 # expression row (never from w), so precompute once and slice for speed.
 valid = np.isfinite(tau_ref) & (mat.max(axis=1) > 0)
 mat_valid = mat[valid]

@@ -1,7 +1,7 @@
 """For each tissue-reduction scenario (onebrain, simplified_0.1), scatter each gene's
 change in tau caused by collapsing tissue resolution, unweighted vs free-weighted:
-  delta_tau   = tau_unweighted(default, 68 tissues)      - tau_unweighted(reduced)
-  delta_tau_w = tau_free_weighted(default, 68 tissues)   - tau_unweighted(reduced)
+  delta_tau   = tau_unweighted(full, 68 tissues)      - tau_unweighted(reduced)
+  delta_tau_w = tau_free_weighted(full, 68 tissues)   - tau_unweighted(reduced)
 tau_free_weighted uses the free_weights fit optimized against that scenario's own
 reduced-resolution reference (see optimize_free_weights.py) -- if the weighting is
 working, |delta_tau_w| should shrink toward 0 relative to |delta_tau|."""
@@ -47,7 +47,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     ax.set_ylim(-lim, lim)
     ax.set_xlabel(r"$\Delta\tau$")
     ax.set_ylabel(r"$\Delta\tau_w$")
-    ax.set_title(f"default vs {display_label(label)}, n={len(delta_tau)} genes", fontsize=10)
+    ax.set_title(f"full vs {display_label(label)}, n={len(delta_tau)} genes", fontsize=10)
     annotate_diag_stats(ax, delta_tau, delta_tau_w)
 
 fig.suptitle(r"$\Delta\tau$ vs $\Delta\tau_w$: change in tau from collapsing tissue resolution, unweighted vs free-weighted")

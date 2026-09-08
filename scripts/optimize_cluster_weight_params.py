@@ -1,7 +1,7 @@
 """Optimize (DIST_THRESHOLD, WEIGHT_CAP) for the diameter-scaled cluster weight
 weight_diameter = (1-d)/cluster_size + WEIGHT_CAP*d (see compute_tau_cluster_weighted.py),
 maximizing the Spearman rank correlation of tau_weighted_cluster_diameter between the
-default (all 68 tissues) and onebrain (56 tissues, brain collapsed) tissue sets --
+full (all 68 tissues) and onebrain (56 tissues, brain collapsed) tissue sets --
 i.e. the params that make cluster-weighted tau most rank-consistent across tissue
 granularities (research goal: tau shouldn't depend on how finely tissues are split).
 Uses scipy.optimize.differential_evolution (derivative-free, global) since the objective
@@ -17,9 +17,9 @@ from scipy.stats import spearmanr
 from scipy.optimize import differential_evolution
 from gls_tau import weighted_tau, floor_tpm
 
-DEFAULT_GCT = sys.argv[1]
-DEFAULT_LINKAGE = sys.argv[2]
-DEFAULT_CORR = sys.argv[3]
+FULL_GCT = sys.argv[1]
+FULL_LINKAGE = sys.argv[2]
+FULL_CORR = sys.argv[3]
 ONEBRAIN_GCT = sys.argv[4]
 ONEBRAIN_LINKAGE = sys.argv[5]
 ONEBRAIN_CORR = sys.argv[6]
@@ -41,9 +41,9 @@ def load_leg(gct_path, linkage_path, corr_path):
     return genes, mat, Z, dist_mat
 
 
-genes_d, mat_d, Z_d, dist_d = load_leg(DEFAULT_GCT, DEFAULT_LINKAGE, DEFAULT_CORR)
+genes_f, mat_f, Z_f, dist_f = load_leg(FULL_GCT, FULL_LINKAGE, FULL_CORR)
 genes_o, mat_o, Z_o, dist_o = load_leg(ONEBRAIN_GCT, ONEBRAIN_LINKAGE, ONEBRAIN_CORR)
-assert (genes_d == genes_o).all(), "gene order mismatch between default and onebrain GCTs"
+assert (genes_f == genes_o).all(), "gene order mismatch between full and onebrain GCTs"
 
 
 def cluster_weights(Z, dist_mat, n_tissues, threshold, cap):
@@ -64,12 +64,12 @@ trajectory = []
 
 def neg_spearman(x):
     threshold, cap = x
-    w_d = cluster_weights(Z_d, dist_d, mat_d.shape[1], threshold, cap)
+    w_f = cluster_weights(Z_f, dist_f, mat_f.shape[1], threshold, cap)
     w_o = cluster_weights(Z_o, dist_o, mat_o.shape[1], threshold, cap)
-    tau_d = weighted_tau(mat_d, w_d)
+    tau_f = weighted_tau(mat_f, w_f)
     tau_o = weighted_tau(mat_o, w_o)
-    valid = np.isfinite(tau_d) & np.isfinite(tau_o)
-    rho, _ = spearmanr(tau_d[valid], tau_o[valid])
+    valid = np.isfinite(tau_f) & np.isfinite(tau_o)
+    rho, _ = spearmanr(tau_f[valid], tau_o[valid])
     trajectory.append({"dist_threshold": threshold, "weight_cap": cap, "spearman_rho": rho, "n_genes": int(valid.sum())})
     return -rho
 
