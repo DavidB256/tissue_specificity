@@ -15,35 +15,6 @@ PCA_FIGS = f"{DATA}/tissue_pca"
 GENE_SPEC = f"{DATA}/gene_specificity"
 GENE_SPEC_GTEX = f"{GENE_SPEC}/gtex"
 
-# dGTEx non-human-primate data: gene_tpm.gct.gz per species is per-SAMPLE, not
-# per-tissue-median like the human file. The bucket also publishes a pre-split
-# tpms-by-tissue/ directory (per-tissue files, samples as columns) -- used here to
-# compute the per-gene-per-tissue median directly, rather than reimplementing the
-# sample->tissue mapping ourselves.
-NHP_SPECIES = {
-    "macaque": {
-        "url_dir": "macaques",
-        "token": "macaque",
-        "combined_url": "https://storage.googleapis.com/nhp-dgtex/bulk-gex/v1/rna-seq/macaques/NHP-dGTEx_Macaque_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz",
-        "tissues": ["adipose_tissue", "adrenal_gland", "blood_vessel", "brain", "colon",
-                    "esophagus", "heart", "kidney", "liver", "lung", "lymph_node",
-                    "muscle", "nerve", "ovary", "pancreas", "pituitary", "skin",
-                    "small_intestine", "spleen", "stomach", "testis", "thymus",
-                    "thyroid", "trachea", "uterus", "vagina"],
-    },
-    "marmoset": {
-        "url_dir": "marmosets",
-        "token": "marmosets",
-        "combined_url": "https://storage.googleapis.com/nhp-dgtex/bulk-gex/v1/rna-seq/marmosets/NHP-dGTEx_Marmoset_Analysis_2025-08-08_v1_RNASeQCv2.4.3_gene_tpm.gct.gz",
-        "tissues": ["adipose_tissue", "adrenal_gland", "blood_vessel", "brain", "colon",
-                    "esophagus", "heart", "kidney", "liver", "lung", "lymph_node",
-                    "muscle", "nerve", "ovary", "pancreas", "pituitary", "skin",
-                    "small_intestine", "spleen", "stomach", "testis", "thymus",
-                    "thyroid", "trachea", "uterus"],  # no vagina file published
-    },
-}
-NHP_LIST = list(NHP_SPECIES.keys())
-
 # Salmon quantification-error simulation: does deviation from the exp_skewgauss2 fit
 # detect quantification errors? "control" (real reads, unmodified) vs "miscall_k"
 # (k% of read positions randomly changed to a different base), k in 1/5 (%).
@@ -91,7 +62,6 @@ GENE_SPEC_BARON_FREE = f"{GENE_SPEC_BARON}/free_weights/simplified_0.1"
 N_BARON_FREE_WEIGHTS_CHAINS = 10  # 14-dim DE converges fast/consistently (single chain: rho=0.989 in 50s) -- far fewer chains needed than the 68-dim GTEx free_weights leg
 
 wildcard_constraints:
-    species = "macaque|marmoset",
     k = r"1|5",
     tissue = r"[^/]+"
 
@@ -103,9 +73,6 @@ rule all:
         expand(f"{PCA_FIGS}/{{model}}_pca.png", model=MODEL_NAMES),
         f"{MODEL_FITS}/pca_compressibility_comparison.csv",
         f"{MODEL_FITS}/pca_compressibility_comparison_allgenes.csv",
-        expand(f"{DATA}/{{species}}/raw/gene_tpm_combined.gct.gz", species=NHP_LIST),
-        expand(f"{DATA}/{{species}}/model_fits/model_comparison.csv", species=NHP_LIST),
-        expand(f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png", species=NHP_LIST, model=MODEL_NAMES),
         f"{SALMON_SIM}/figures/exp_skewgauss2_conditions.png",
         f"{GENE_SPEC_GTEX}/figures/tau_expbeta_scatter.png",
         f"{GENE_SPEC_GTEX}/weighted_tau.csv",
@@ -186,79 +153,6 @@ rule plot_model_grid:
         fits=f"{MODEL_FITS}/{{model}}_fits.csv"
     output:
         f"{DIST_FIGS}/{{model}}_grid.png"
-    shell:
-        "python3 scripts/plot_model_grid.py {wildcards.model} {input.parquet} {input.fits} {output}"
-
-rule download_nhp_combined:
-    output:
-        f"{DATA}/{{species}}/raw/gene_tpm_combined.gct.gz"
-    params:
-        url=lambda wc: NHP_SPECIES[wc.species]["combined_url"]
-    shell:
-        "curl -sL -o {output} '{params.url}'"
-
-rule download_nhp_tissue:
-    output:
-        f"{DATA}/{{species}}/raw/tissue_{{tissue}}.gct.gz"
-    params:
-        url=lambda wc: (f"https://storage.googleapis.com/nhp-dgtex/bulk-gex/v1/rna-seq/"
-                         f"{NHP_SPECIES[wc.species]['url_dir']}/tpms-by-tissue/"
-                         f"gene_tpm_nhp-{NHP_SPECIES[wc.species]['token']}_v1_{wc.tissue}.gct.gz")
-    shell:
-        "curl -sL -o {output} '{params.url}'"
-
-rule build_nhp_median_gct:
-    input:
-        lambda wc: [f"{DATA}/{wc.species}/raw/tissue_{t}.gct.gz" for t in NHP_SPECIES[wc.species]["tissues"]]
-    output:
-        f"{DATA}/{{species}}/processed/gene_median_tpm.gct.gz"
-    params:
-        tissues=lambda wc: ",".join(NHP_SPECIES[wc.species]["tissues"])
-    shell:
-        "python3 scripts/build_median_gct.py {params.tissues} {input} {output}"
-
-rule nhp_preprocess:
-    input:
-        f"{DATA}/{{species}}/processed/gene_median_tpm.gct.gz"
-    output:
-        f"{DATA}/{{species}}/processed/log10_tpm_long.parquet"
-    shell:
-        "python3 scripts/preprocess.py {input} {output}"
-
-rule nhp_fit_one:
-    input:
-        f"{DATA}/{{species}}/processed/log10_tpm_long.parquet"
-    output:
-        f"{DATA}/{{species}}/model_fits/by_model_tissue/{{model}}/{{tissue}}.csv"
-    shell:
-        "python3 scripts/fit_one.py {wildcards.model} {wildcards.tissue} {input} {output}"
-
-rule nhp_combine_model:
-    input:
-        lambda wc: expand(f"{DATA}/{wc.species}/model_fits/by_model_tissue/{wc.model}/{{tissue}}.csv",
-                           tissue=NHP_SPECIES[wc.species]["tissues"])
-    output:
-        f"{DATA}/{{species}}/model_fits/{{model}}_fits.csv"
-    run:
-        dfs = [pd.read_csv(f) for f in input]
-        pd.concat(dfs, ignore_index=True).to_csv(output[0], index=False)
-
-rule nhp_combine_comparison:
-    input:
-        lambda wc: expand(f"{DATA}/{wc.species}/model_fits/{{model}}_fits.csv", model=MODEL_NAMES)
-    output:
-        f"{DATA}/{{species}}/model_fits/model_comparison.csv"
-    params:
-        fits_dir=lambda wc: f"{DATA}/{wc.species}/model_fits"
-    shell:
-        "python3 scripts/combine_comparison.py {params.fits_dir} {output}"
-
-rule nhp_plot_model_grid:
-    input:
-        parquet=f"{DATA}/{{species}}/processed/log10_tpm_long.parquet",
-        fits=f"{DATA}/{{species}}/model_fits/{{model}}_fits.csv"
-    output:
-        f"{DATA}/{{species}}/distribution_fits/{{model}}_grid.png"
     shell:
         "python3 scripts/plot_model_grid.py {wildcards.model} {input.parquet} {input.fits} {output}"
 
