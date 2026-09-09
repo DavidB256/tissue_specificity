@@ -89,6 +89,8 @@ rule all:
         f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_pca.png",
         f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_dendrogram_full.png",
         f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_dendrogram_onebrain.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_dendrogram_full_no_diameters.png",
+        f"{GENE_SPEC_GTEX}/cluster_weights/figures/tissue_clusters_dendrogram_onebrain_no_diameters.png",
         f"{GENE_SPEC_GTEX}/cluster_weights/param_search_best.csv",
         f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_full_naive.png",
         f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_full_optimized.png",
@@ -540,6 +542,24 @@ rule plot_tissue_clusters_dendrogram_onebrain:
         f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_onebrain.png"
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} onebrain"
+
+rule plot_tissue_clusters_dendrogram_full_no_diameters:
+    input:
+        linkage=f"{GENE_SPEC_GTEX}/tissue_correlation_linkage.csv",
+        clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/full/tissue_clusters.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_full_no_diameters.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} full 0.1 0"
+
+rule plot_tissue_clusters_dendrogram_onebrain_no_diameters:
+    input:
+        linkage=f"{GENE_SPEC_ONEBRAIN}/tissue_correlation_linkage.csv",
+        clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/onebrain/tissue_clusters.csv"
+    output:
+        f"{GENE_SPEC_CLUSTER_WEIGHTS}/figures/tissue_clusters_dendrogram_onebrain_no_diameters.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} onebrain 0.1 0"
 
 rule optimize_cluster_weight_params:
     input:
