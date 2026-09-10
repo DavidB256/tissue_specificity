@@ -63,6 +63,7 @@ BARON_SIMPLIFIED_GCT = f"{GENE_SPEC_BARON_SIMPLIFIED}/celltype_tpm_simplified_0.
 GENE_SPEC_BARON_FREE = f"{GENE_SPEC_BARON}/free_weights/simplified_0.1"
 N_BARON_FREE_WEIGHTS_CHAINS = 10  # 14-dim DE converges fast/consistently (single chain: rho=0.989 in 50s) -- far fewer chains needed than the 68-dim GTEx free_weights leg
 GENE_SPEC_BARON_FREE_CLUSTER = f"{GENE_SPEC_BARON}/free_cluster_weights/simplified_0.1"
+GENE_SPEC_BARON_PC = f"{GENE_SPEC}/baron_protein_coding"
 
 wildcard_constraints:
     k = r"1|5",
@@ -136,6 +137,11 @@ rule all:
         f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png",
         f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png",
         f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png",
+        f"{GENE_SPEC_BARON_PC}/figures/tissue_clusters_dendrogram_simplified_0.1.png",
+        f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free_simplified_0.1_by_cluster.png",
+        f"{GENE_SPEC_BARON_PC}/figures/tau_scenarios_scatter_simplified_0.1.png",
+        f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png",
+        f"{GENE_SPEC_BARON_PC}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png",
         f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png"
 
 rule preprocess:
@@ -1399,6 +1405,158 @@ rule plot_baron_tau_free_cluster_scenarios_scatter:
         ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
     output:
         f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
+
+BARON_GCT_PC = f"{GENE_SPEC_BARON_PC}/celltype_tpm_protein_coding.gct.gz"
+
+rule filter_protein_coding_baron:
+    input:
+        gct=f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz",
+        gencode=GENCODE_V47_GTF_LOCAL
+    output:
+        BARON_GCT_PC
+    shell:
+        "python3 scripts/filter_protein_coding_baron.py {input.gct} {input.gencode} {output}"
+
+rule compute_tissue_correlation_baron_pc:
+    input:
+        BARON_GCT_PC
+    output:
+        corr=f"{GENE_SPEC_BARON_PC}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC_BARON_PC}/tissue_correlation_linkage.csv"
+    shell:
+        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage}"
+
+rule compute_tau_cluster_weighted_baron_pc:
+    input:
+        gct=BARON_GCT_PC,
+        linkage=f"{GENE_SPEC_BARON_PC}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC_BARON_PC}/tissue_correlation.csv"
+    output:
+        clusters=f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv",
+        tau=f"{GENE_SPEC_BARON_PC}/cluster_weights/weighted_tau_simplified_0.1.csv"
+    shell:
+        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
+
+rule plot_tissue_clusters_dendrogram_baron_pc:
+    input:
+        linkage=f"{GENE_SPEC_BARON_PC}/tissue_correlation_linkage.csv",
+        clusters=f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        f"{GENE_SPEC_BARON_PC}/figures/tissue_clusters_dendrogram_simplified_0.1.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} 'Baron pancreas cell types (protein-coding)'"
+
+GENE_SPEC_BARON_SIMPLIFIED_PC = f"{GENE_SPEC_BARON_PC}/simplified_0.1"
+BARON_SIMPLIFIED_GCT_PC = f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/celltype_tpm_simplified_0.1.gct.gz"
+
+rule build_baron_gct_simplified_pc:
+    input:
+        gct=BARON_GCT_PC,
+        clusters=f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        BARON_SIMPLIFIED_GCT_PC
+    shell:
+        "python3 scripts/build_gct_clustered.py {input.gct} {input.clusters} {output}"
+
+rule compute_weighted_tau_baron_simplified_pc:
+    input:
+        BARON_SIMPLIFIED_GCT_PC
+    output:
+        tau=f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+GENE_SPEC_BARON_FREE_PC = f"{GENE_SPEC_BARON_PC}/free_weights/simplified_0.1"
+
+rule optimize_baron_free_weights_chain_pc:
+    input:
+        full_gct=BARON_GCT_PC,
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/weighted_tau.csv"
+    output:
+        weights=f"{GENE_SPEC_BARON_FREE_PC}/chains/chain_{{chain}}/weights.csv",
+        tau=f"{GENE_SPEC_BARON_FREE_PC}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_BARON_FREE_PC}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_BARON_FREE_PC}/chains/chain_{{chain}}/best.csv"
+    shell:
+        "python3 scripts/optimize_free_weights.py {input.full_gct} {input.ref_tau} "
+        "{output.weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
+
+rule combine_baron_free_weights_chains_pc:
+    input:
+        expand(f"{GENE_SPEC_BARON_FREE_PC}/chains/chain_{{chain}}/best.csv", chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
+    output:
+        weights=f"{GENE_SPEC_BARON_FREE_PC}/weights.csv",
+        tau=f"{GENE_SPEC_BARON_FREE_PC}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_BARON_FREE_PC}/chains_summary.csv"
+    shell:
+        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_BARON_FREE_PC}/chains "
+        "{N_BARON_FREE_WEIGHTS_CHAINS} {output.weights} {output.tau} {output.summary}"
+
+rule plot_baron_free_weights_by_cluster_pc:
+    input:
+        weights=f"{GENE_SPEC_BARON_FREE_PC}/weights.csv",
+        clusters=f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free_simplified_0.1_by_cluster.png"
+    shell:
+        "python3 scripts/plot_free_weights_by_cluster.py {input.weights} {input.clusters} {output}"
+
+rule plot_baron_tau_scenarios_scatter_pc:
+    input:
+        free_tau=f"{GENE_SPEC_BARON_FREE_PC}/weighted_tau.csv",
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_BARON_PC}/figures/tau_scenarios_scatter_simplified_0.1.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
+
+GENE_SPEC_BARON_FREE_CLUSTER_PC = f"{GENE_SPEC_BARON_PC}/free_cluster_weights/simplified_0.1"
+
+rule optimize_baron_free_cluster_weights_chain_pc:
+    input:
+        full_gct=BARON_GCT_PC,
+        clusters=f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv",
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/weighted_tau.csv"
+    output:
+        weights=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains/chain_{{chain}}/weights.csv",
+        cluster_weights=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains/chain_{{chain}}/cluster_weights.csv",
+        tau=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains/chain_{{chain}}/best.csv"
+    shell:
+        "python3 scripts/optimize_free_cluster_weights.py {input.full_gct} {input.clusters} {input.ref_tau} "
+        "{output.weights} {output.cluster_weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
+
+rule combine_baron_free_cluster_weights_chains_pc:
+    input:
+        expand(f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains/chain_{{chain}}/best.csv", chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
+    output:
+        weights=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/weights.csv",
+        cluster_weights=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/cluster_weights.csv",
+        tau=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains_summary.csv"
+    shell:
+        "python3 scripts/combine_free_cluster_weights_chains.py {GENE_SPEC_BARON_FREE_CLUSTER_PC}/chains "
+        "{N_BARON_FREE_WEIGHTS_CHAINS} {output.weights} {output.cluster_weights} {output.tau} {output.summary}"
+
+rule plot_baron_free_cluster_weights_by_cluster_pc:
+    input:
+        weights=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/weights.csv",
+        clusters=f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv"
+    output:
+        f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png"
+    shell:
+        "python3 scripts/plot_free_cluster_weights.py {input.weights} {input.clusters} {output}"
+
+rule plot_baron_tau_free_cluster_scenarios_scatter_pc:
+    input:
+        free_tau=f"{GENE_SPEC_BARON_FREE_CLUSTER_PC}/weighted_tau.csv",
+        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED_PC}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_BARON_PC}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
 
