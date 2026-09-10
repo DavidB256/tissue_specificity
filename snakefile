@@ -81,7 +81,6 @@ rule all:
         f"{GENE_SPEC_GTEX}/figures/weighted_tau_pairplot.png",
         f"{GENE_SPEC_GTEX}/figures/weighted_tau_pairplot_squared.png",
         f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared.png",
-        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared_vertical.png",
         f"{GENE_SPEC_GTEX}/cluster_weights/full/weighted_tau.csv",
         f"{GENE_SPEC_GTEX}/cluster_weights/onebrain/weighted_tau.csv",
         f"{GENE_SPEC_GTEX}/cluster_weights/figures/tau_cluster_onebrain_vs_full.png",
@@ -97,9 +96,7 @@ rule all:
         f"{GENE_SPEC_GTEX}/free_weights/onebrain/weighted_tau.csv",
         f"{GENE_SPEC_GTEX}/free_weights/simplified_0.1/weighted_tau.csv",
         f"{GENE_SPEC_GTEX}/free_weights/figures/tissue_weight_free_onebrain.png",
-        f"{GENE_SPEC_GTEX}/free_weights/figures/tissue_weight_free_onebrain_vertical.png",
         f"{GENE_SPEC_GTEX}/free_weights/figures/tissue_weight_free_simplified_0.1.png",
-        f"{GENE_SPEC_GTEX}/free_weights/figures/tissue_weight_free_simplified_0.1_vertical.png",
         f"{GENE_SPEC_GTEX}/free_weights/figures/tau_free_vs_full_onebrain.png",
         f"{GENE_SPEC_GTEX}/free_weights/figures/tau_free_vs_full_simplified_0.1.png",
         f"{GENE_SPEC_GTEX}/free_weights/figures/tau_delta_scatter.png",
@@ -107,13 +104,10 @@ rule all:
         f"{GENE_SPEC_GTEX}/free_weights/figures/tau_delta_delta_violin.png",
         f"{GENE_SPEC_GTEX}/free_weights/top_delta_delta_tau.csv",
         f"{GENE_SPEC_GTEX}/free_cluster_weights/figures/tissue_weight_free_cluster_onebrain.png",
-        f"{GENE_SPEC_GTEX}/free_cluster_weights/figures/tissue_weight_free_cluster_onebrain_vertical.png",
         f"{GENE_SPEC_GTEX}/free_cluster_weights/figures/tissue_weight_free_cluster_simplified_0.1.png",
-        f"{GENE_SPEC_GTEX}/free_cluster_weights/figures/tissue_weight_free_cluster_simplified_0.1_vertical.png",
         f"{GENE_SPEC_GTEX}/free_cluster_weights/figures/tau_free_cluster_vs_full_onebrain.png",
         f"{GENE_SPEC_GTEX}/free_cluster_weights/figures/tau_free_cluster_vs_full_simplified_0.1.png",
         f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge.png",
-        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_vertical.png",
         f"{GENE_SPEC_GTEX}/tau_stability_spearman.csv",
         f"{GENE_SPEC_GTEX}/tau_stability_loto.csv",
         f"{GENE_SPEC_GTEX}/figures/neural_tau_impact.png",
@@ -126,10 +120,8 @@ rule all:
         f"{GENE_SPEC_BARON}/figures/tissue_correlation_clustermap.png",
         f"{GENE_SPEC_BARON}/figures/tissue_clusters_dendrogram_simplified_0.1.png",
         f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster.png",
-        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster_vertical.png",
         f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png",
         f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png",
-        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster_vertical.png",
         f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png",
         f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png"
 
@@ -696,12 +688,11 @@ rule plot_free_weights:
     input:
         f"{GENE_SPEC_FREE_WEIGHTS}/{{leg}}/weights.csv"
     output:
-        h=f"{GENE_SPEC_FREE_WEIGHTS}/figures/tissue_weight_free_{{leg}}.png",
-        v=f"{GENE_SPEC_FREE_WEIGHTS}/figures/tissue_weight_free_{{leg}}_vertical.png"
+        f"{GENE_SPEC_FREE_WEIGHTS}/figures/tissue_weight_free_{{leg}}.png"
     wildcard_constraints:
         leg=r"onebrain|simplified_0\.1"
     shell:
-        "python3 scripts/plot_free_weights.py {input} {output.h} {output.v}"
+        "python3 scripts/plot_free_weights.py {input} {output}"
 
 rule plot_tau_free_vs_full:
     input:
@@ -815,12 +806,11 @@ rule plot_free_cluster_weights:
         weights=f"{GENE_SPEC_FREE_CLUSTER_WEIGHTS}/{{leg}}/weights.csv",
         clusters=f"{GENE_SPEC_CLUSTER_WEIGHTS}/full/tissue_clusters.csv"
     output:
-        h=f"{GENE_SPEC_FREE_CLUSTER_WEIGHTS}/figures/tissue_weight_free_cluster_{{leg}}.png",
-        v=f"{GENE_SPEC_FREE_CLUSTER_WEIGHTS}/figures/tissue_weight_free_cluster_{{leg}}_vertical.png"
+        f"{GENE_SPEC_FREE_CLUSTER_WEIGHTS}/figures/tissue_weight_free_cluster_{{leg}}.png"
     wildcard_constraints:
         leg=r"onebrain|simplified_0\.1"
     shell:
-        "python3 scripts/plot_free_cluster_weights.py {input.weights} {input.clusters} {output.h} {output.v}"
+        "python3 scripts/plot_free_cluster_weights.py {input.weights} {input.clusters} {output}"
 
 rule plot_tau_free_cluster_vs_full:
     input:
@@ -838,19 +828,17 @@ rule plot_tissue_weights_squared:
     input:
         f"{GENE_SPEC_GTEX}/weighted_tau_squared_weights.csv"
     output:
-        h=f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared.png",
-        v=f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared_vertical.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_squared.png"
     shell:
-        "python3 scripts/plot_tissue_weights.py {input} {output.h} {output.v}"
+        "python3 scripts/plot_tissue_weights.py {input} {output}"
 
 rule plot_tissue_weights:
     input:
         f"{GENE_SPEC_GTEX}/weighted_tau_weights.csv"
     output:
-        h=f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge.png",
-        v=f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge_vertical.png"
+        f"{GENE_SPEC_GTEX}/figures/tissue_weight_gls_ridge.png"
     shell:
-        "python3 scripts/plot_tissue_weights.py {input} {output.h} {output.v}"
+        "python3 scripts/plot_tissue_weights.py {input} {output}"
 
 rule compute_tissue_correlation:
     input:
@@ -1082,10 +1070,9 @@ rule plot_baron_free_weights_by_cluster:
         weights=f"{GENE_SPEC_BARON_FREE}/weights.csv",
         clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
     output:
-        h=f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster.png",
-        v=f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster_vertical.png"
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster.png"
     shell:
-        "python3 scripts/plot_free_weights_by_cluster.py {input.weights} {input.clusters} {output.h} {output.v}"
+        "python3 scripts/plot_free_weights_by_cluster.py {input.weights} {input.clusters} {output}"
 
 rule plot_baron_tau_scenarios_scatter:
     input:
@@ -1128,10 +1115,9 @@ rule plot_baron_free_cluster_weights_by_cluster:
         weights=f"{GENE_SPEC_BARON_FREE_CLUSTER}/weights.csv",
         clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
     output:
-        h=f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png",
-        v=f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster_vertical.png"
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png"
     shell:
-        "python3 scripts/plot_free_cluster_weights.py {input.weights} {input.clusters} {output.h} {output.v}"
+        "python3 scripts/plot_free_cluster_weights.py {input.weights} {input.clusters} {output}"
 
 rule plot_baron_tau_free_cluster_scenarios_scatter:
     input:

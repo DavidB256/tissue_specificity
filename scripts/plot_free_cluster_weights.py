@@ -1,9 +1,8 @@
-"""Bar chart of free_cluster_weights per-tissue weight (broadcast from the winning
-per-cluster DE fit, see optimize_free_cluster_weights.py), colored by
-hierarchical-clustering cluster_id (IN_CLUSTERS, DIST_THRESHOLD=0.1) so tissues
-sharing one cluster share one color. Generic across datasets (GTEx, Baron). Weight
-axis is strictly bounded to [0, 1]. Writes both a horizontal (tissues on y-axis,
-sorted ascending) and a vertical (tissues on x-axis, sorted descending) version."""
+"""Vertical bar chart of free_cluster_weights per-tissue weight (broadcast from the
+winning per-cluster DE fit, see optimize_free_cluster_weights.py), sorted descending,
+colored by hierarchical-clustering cluster_id (IN_CLUSTERS, DIST_THRESHOLD=0.1) so
+tissues sharing one cluster share one color. Generic across datasets (GTEx, Baron).
+Weight axis is strictly bounded to [0, 1]."""
 import sys
 import pandas as pd
 import matplotlib
@@ -12,12 +11,11 @@ import matplotlib.pyplot as plt
 
 IN_WEIGHTS = sys.argv[1]
 IN_CLUSTERS = sys.argv[2]
-OUT_PNG_H = sys.argv[3]
-OUT_PNG_V = sys.argv[4]
+OUT_PNG = sys.argv[3]
 
 weights = pd.read_csv(IN_WEIGHTS)
 clusters = pd.read_csv(IN_CLUSTERS)[["tissue", "cluster_id"]]
-df = weights.merge(clusters, on="tissue", how="left")
+df = weights.merge(clusters, on="tissue", how="left").sort_values("weight", ascending=False)
 
 cluster_ids = sorted(df["cluster_id"].unique())
 cmap = plt.get_cmap("tab20", max(len(cluster_ids), 1))
@@ -34,22 +32,8 @@ legend_ncol = max(1, len(cluster_ids) // 10)
 title = (f"free_cluster_weights: optimized per-cluster weight, broadcast to tissue "
          f"(n={len(df)} tissues, {len(cluster_ids)} clusters, winner chain)")
 
-df_h = df.sort_values("weight", ascending=True)
-fig, ax = plt.subplots(figsize=(8, max(6, 0.3 * len(df))))
-ax.barh(df_h["tissue"], df_h["weight"], color=colors_of(df_h))
-ax.set_xlim(0, 1)
-ax.set_xlabel("free_cluster weight")
-ax.set_ylabel("tissue")
-ax.tick_params(axis="y", labelsize=7)
-ax.legend(handles=legend_handles, loc="lower right", fontsize=6, ncol=legend_ncol)
-ax.set_title(title)
-fig.tight_layout()
-fig.savefig(OUT_PNG_H, dpi=300)
-plt.close(fig)
-
-df_v = df.sort_values("weight", ascending=False)
 fig, ax = plt.subplots(figsize=(max(8, 0.3 * len(df)), 8))
-ax.bar(df_v["tissue"], df_v["weight"], color=colors_of(df_v))
+ax.bar(df["tissue"], df["weight"], color=colors_of(df))
 ax.set_ylim(0, 1)
 ax.set_ylabel("free_cluster weight")
 ax.set_xlabel("tissue")
@@ -57,7 +41,7 @@ ax.tick_params(axis="x", labelsize=7, rotation=90)
 ax.legend(handles=legend_handles, loc="upper right", fontsize=6, ncol=legend_ncol)
 ax.set_title(title)
 fig.tight_layout()
-fig.savefig(OUT_PNG_V, dpi=300)
+fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
 
 print(f"tissues={len(df)} clusters={len(cluster_ids)}", file=sys.stderr)
