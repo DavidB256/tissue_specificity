@@ -1,7 +1,10 @@
 """Shared plotting helpers."""
 from scipy.stats import pearsonr, spearmanr
 
-LABEL_DISPLAY_NAMES = {"onebrain": "brain tissues combined (56 tissues)"}
+LABEL_DISPLAY_NAMES = {
+    "onebrain": "brain tissues combined (56 tissues)",
+    "oneislets": "islet cell types combined (alpha, beta, gamma, delta)",
+}
 
 
 def display_label(label):

@@ -60,6 +60,9 @@ MANE_GTF_SRC = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/MANE.v1.
 GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/gencode.v47.annotation.gtf"
 GENE_SPEC_BARON_SIMPLIFIED = f"{GENE_SPEC_BARON}/simplified_0.1"
 BARON_SIMPLIFIED_GCT = f"{GENE_SPEC_BARON_SIMPLIFIED}/celltype_tpm_simplified_0.1.gct.gz"
+GENE_SPEC_BARON_ONEISLETS = f"{GENE_SPEC_BARON}/oneislets"
+BARON_ONEISLETS_GCT = f"{GENE_SPEC_BARON_ONEISLETS}/celltype_tpm_oneislets.gct.gz"
+BARON_ONEISLETS_MEMBERS = ["alpha", "beta", "gamma", "delta"]
 GENE_SPEC_BARON_FREE = f"{GENE_SPEC_BARON}/free_weights/simplified_0.1"
 N_BARON_FREE_WEIGHTS_CHAINS = 10  # 14-dim DE converges fast/consistently (single chain: rho=0.989 in 50s) -- far fewer chains needed than the 68-dim GTEx free_weights leg
 GENE_SPEC_BARON_FREE_CLUSTER = f"{GENE_SPEC_BARON}/free_cluster_weights/simplified_0.1"
@@ -149,6 +152,10 @@ rule all:
         f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png",
         f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png",
         f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png",
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_oneislets_by_cluster.png",
+        f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_oneislets.png",
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_oneislets_by_cluster.png",
+        f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_oneislets.png",
         f"{GENE_SPEC_BARON_PC}/figures/tissue_clusters_dendrogram_simplified_0.1.png",
         f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free_simplified_0.1_by_cluster.png",
         f"{GENE_SPEC_BARON_PC}/figures/tau_scenarios_scatter_simplified_0.1.png",
@@ -1568,92 +1575,142 @@ rule compute_weighted_tau_baron_simplified:
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
+rule build_baron_gct_oneislets:
+    input:
+        f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"
+    output:
+        BARON_ONEISLETS_GCT
+    shell:
+        "python3 scripts/build_gct_onegroup.py {input} {output} islets mean " + " ".join(BARON_ONEISLETS_MEMBERS)
+
+rule compute_weighted_tau_baron_oneislets:
+    input:
+        BARON_ONEISLETS_GCT
+    output:
+        tau=f"{GENE_SPEC_BARON_ONEISLETS}/weighted_tau.csv",
+        weights=f"{GENE_SPEC_BARON_ONEISLETS}/weighted_tau_weights.csv"
+    shell:
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+# free_weights/free_cluster_weights below are wildcarded on {leg} (simplified_0.1 |
+# oneislets) -- both legs share the same full-resolution celltype_tpm.gct.gz and the same
+# cluster_weights/tissue_clusters_simplified_0.1.csv clustering for the free_cluster_weights
+# DE dimensionality reduction; only the reference tau target differs by leg (mirrors GTEx's
+# onebrain/simplified_0.1 leg wildcard above).
+BARON_FREE_WEIGHTS_REF_TAU = {
+    "simplified_0.1": f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv",
+    "oneislets": f"{GENE_SPEC_BARON_ONEISLETS}/weighted_tau.csv",
+}
+
+def baron_free_weights_ref_tau(wildcards):
+    return BARON_FREE_WEIGHTS_REF_TAU[wildcards.leg]
+
 rule optimize_baron_free_weights_chain:
     input:
         full_gct=f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz",
-        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
+        ref_tau=baron_free_weights_ref_tau
     output:
-        weights=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/weights.csv",
-        tau=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/weighted_tau.csv",
-        log=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/optimization_log.csv",
-        best=f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/best.csv"
+        weights=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/chains/chain_{{chain}}/weights.csv",
+        tau=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/chains/chain_{{chain}}/best.csv"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
         "python3 scripts/optimize_free_weights.py {input.full_gct} {input.ref_tau} "
         "{output.weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
 
 rule combine_baron_free_weights_chains:
     input:
-        expand(f"{GENE_SPEC_BARON_FREE}/chains/chain_{{chain}}/best.csv", chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
+        lambda wildcards: expand(
+            f"{GENE_SPEC_BARON}/free_weights/{wildcards.leg}/chains/chain_{{chain}}/best.csv",
+            chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
     output:
-        weights=f"{GENE_SPEC_BARON_FREE}/weights.csv",
-        tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau.csv",
-        summary=f"{GENE_SPEC_BARON_FREE}/chains_summary.csv"
+        weights=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/weights.csv",
+        tau=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/chains_summary.csv"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
-        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_BARON_FREE}/chains "
+        "python3 scripts/combine_free_weights_chains.py {GENE_SPEC_BARON}/free_weights/{wildcards.leg}/chains "
         "{N_BARON_FREE_WEIGHTS_CHAINS} {output.weights} {output.tau} {output.summary}"
 
 rule plot_baron_free_weights_by_cluster:
     input:
-        weights=f"{GENE_SPEC_BARON_FREE}/weights.csv",
+        weights=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/weights.csv",
         clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
     output:
-        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_simplified_0.1_by_cluster.png"
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_{{leg}}_by_cluster.png"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
         "python3 scripts/plot_free_weights_by_cluster.py {input.weights} {input.clusters} {output}"
 
 rule plot_baron_tau_scenarios_scatter:
     input:
-        free_tau=f"{GENE_SPEC_BARON_FREE}/weighted_tau.csv",
-        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
+        free_tau=f"{GENE_SPEC_BARON}/free_weights/{{leg}}/weighted_tau.csv",
+        ref_tau=baron_free_weights_ref_tau
     output:
-        f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_simplified_0.1.png"
+        f"{GENE_SPEC_BARON}/figures/tau_scenarios_scatter_{{leg}}.png"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
 rule optimize_baron_free_cluster_weights_chain:
     input:
         full_gct=f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz",
         clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv",
-        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
+        ref_tau=baron_free_weights_ref_tau
     output:
-        weights=f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains/chain_{{chain}}/weights.csv",
-        cluster_weights=f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains/chain_{{chain}}/cluster_weights.csv",
-        tau=f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains/chain_{{chain}}/weighted_tau.csv",
-        log=f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains/chain_{{chain}}/optimization_log.csv",
-        best=f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains/chain_{{chain}}/best.csv"
+        weights=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/chains/chain_{{chain}}/weights.csv",
+        cluster_weights=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/chains/chain_{{chain}}/cluster_weights.csv",
+        tau=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/chains/chain_{{chain}}/best.csv"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
         "python3 scripts/optimize_free_cluster_weights.py {input.full_gct} {input.clusters} {input.ref_tau} "
         "{output.weights} {output.cluster_weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
 
 rule combine_baron_free_cluster_weights_chains:
     input:
-        expand(f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains/chain_{{chain}}/best.csv", chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
+        lambda wildcards: expand(
+            f"{GENE_SPEC_BARON}/free_cluster_weights/{wildcards.leg}/chains/chain_{{chain}}/best.csv",
+            chain=range(N_BARON_FREE_WEIGHTS_CHAINS))
     output:
-        weights=f"{GENE_SPEC_BARON_FREE_CLUSTER}/weights.csv",
-        cluster_weights=f"{GENE_SPEC_BARON_FREE_CLUSTER}/cluster_weights.csv",
-        tau=f"{GENE_SPEC_BARON_FREE_CLUSTER}/weighted_tau.csv",
-        summary=f"{GENE_SPEC_BARON_FREE_CLUSTER}/chains_summary.csv"
+        weights=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/weights.csv",
+        cluster_weights=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/cluster_weights.csv",
+        tau=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/weighted_tau.csv",
+        summary=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/chains_summary.csv"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
-        "python3 scripts/combine_free_cluster_weights_chains.py {GENE_SPEC_BARON_FREE_CLUSTER}/chains "
+        "python3 scripts/combine_free_cluster_weights_chains.py {GENE_SPEC_BARON}/free_cluster_weights/{wildcards.leg}/chains "
         "{N_BARON_FREE_WEIGHTS_CHAINS} {output.weights} {output.cluster_weights} {output.tau} {output.summary}"
 
 rule plot_baron_free_cluster_weights_by_cluster:
     input:
-        weights=f"{GENE_SPEC_BARON_FREE_CLUSTER}/weights.csv",
+        weights=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/weights.csv",
         clusters=f"{GENE_SPEC_BARON}/cluster_weights/tissue_clusters_simplified_0.1.csv"
     output:
-        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_simplified_0.1_by_cluster.png"
+        f"{GENE_SPEC_BARON}/figures/tissue_weight_free_cluster_{{leg}}_by_cluster.png"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
         "python3 scripts/plot_free_cluster_weights.py {input.weights} {input.clusters} {output}"
 
 rule plot_baron_tau_free_cluster_scenarios_scatter:
     input:
-        free_tau=f"{GENE_SPEC_BARON_FREE_CLUSTER}/weighted_tau.csv",
-        ref_tau=f"{GENE_SPEC_BARON_SIMPLIFIED}/weighted_tau.csv"
+        free_tau=f"{GENE_SPEC_BARON}/free_cluster_weights/{{leg}}/weighted_tau.csv",
+        ref_tau=baron_free_weights_ref_tau
     output:
-        f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_simplified_0.1.png"
+        f"{GENE_SPEC_BARON}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
+    wildcard_constraints:
+        leg=r"simplified_0\.1|oneislets"
     shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} simplified_0.1"
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
 BARON_GCT_PC = f"{GENE_SPEC_BARON_PC}/celltype_tpm_protein_coding.gct.gz"
 
