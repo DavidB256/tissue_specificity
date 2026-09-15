@@ -7,8 +7,29 @@ floored: values $<1$ set to $0$), let $\hat{x}_{g,i} = x_{g,i} / \max_j x_{g,j}$
 Unweighted tau (Yanai et al. 2005):
 
 $$
-\tau_g = \frac{\sum_{i=1}^{n} \left(1 - \hat{x}_{g,i}\right)}{n - 1}
+\tau_{uw} = \frac{\sum_{i=1}^{n} \left(1 - \hat{x}_{i}\right)}{n - 1}
 $$
+
+$$
+\tau_{w} = \frac{\sum_{i=1}^{n} w_i \left(1 - \hat{x}_{i}\right)}{\sum_{i=1}^{n} w_i - w_{i^*}}
+$$
+
+$$
+\vec w \in (0, 1]^{N_\text{tissues}}
+$$
+
+$$
+w = \Sigma^{-1}\mathbf{1}
+$$
+
+$$
+\argmax_{\vec w\, \in\, (0, 1]^{N_\text{clusters}}} \rho\big(\tau_w(\text{full}),\ \tau_{uw}(\text{reduced})\big)
+$$
+
+$$
+\argmax_{\vec w\, \in\, (0, 1]^{N_\text{tissues}}} \rho\big(\vec\tau_w(\text{full}),\ \vec\tau_{uw}(\text{reduced})\big)
+$$
+
 
 $\tau_g \in [0, 1]$: $0$ = uniform expression across all tissues, $1$ = expression
 confined to a single tissue.
@@ -52,7 +73,11 @@ not clipped, as $\tau_{w,\text{gls}}$; left-censored at $-1$ to drop unbounded
 outliers). To guarantee non-negative, interpretable weights, ridge-shrink $R$:
 
 $$
-R_\lambda = (1-\lambda) R + \lambda I, \qquad w_\lambda = R_\lambda^{-1}\mathbf{1}
+\Sigma \vec w = \mathbf1 \implies \vec w = \Sigma^{-1} \mathbf1
+$$
+
+$$
+\Sigma_\lambda = (1-\lambda) \Sigma + \lambda I, \qquad w_\lambda = R_\lambda^{-1}\mathbf{1}
 $$
 
 and take the smallest $\lambda^\* \in [0,1]$ (found by binary search) such that
