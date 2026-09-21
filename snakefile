@@ -30,7 +30,7 @@ BARON_HUMAN_SAMPLES = [
     f"{BARON_DIR}/GSM2230760_human4_umifm_counts.csv.gz",
 ]
 GENE_SPEC_BARON = f"{GENE_SPEC}/baron"
-BARON_ONEISLETS_MEMBERS = ["alpha", "beta", "gamma", "delta"]
+BARON_ONEISLETS_MEMBERS = ["alpha", "beta", "gamma", "delta", "epsilon"]
 
 wildcard_constraints:
     tissue = r"[^/]+"

@@ -21,7 +21,7 @@ AGG = sys.argv[3] if len(sys.argv) > 3 else "mean"
 assert AGG in ("mean", "max"), AGG
 BARON_DIR = "/ccb/salz4-4/dbass13/expr_data/gene_specificity/baron_protein_coding"
 OUT_PNG = sys.argv[4] if len(sys.argv) > 4 else f"{BARON_DIR}/figures/gene_example_{GENE}_{WEIGHT_MODE}_{AGG}.png"
-ISLET_MEMBERS = ["alpha", "beta", "gamma", "delta"]
+ISLET_MEMBERS = ["alpha", "beta", "gamma", "delta", "epsilon"]
 COLLAPSED_NAME = "oneislets"
 AGG_SUFFIX = "" if AGG == "mean" else "_max"
 
