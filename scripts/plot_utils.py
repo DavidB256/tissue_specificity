@@ -3,7 +3,13 @@ from scipy.stats import pearsonr, spearmanr
 
 LABEL_DISPLAY_NAMES = {
     "onebrain": "brain tissues combined (56 tissues)",
-    "oneislets": "islet cell types combined (alpha, beta, gamma, delta)",
+    "oneislets": "islet cell types combined (α, β, γ, δ, ε)",
+}
+
+# Baron pancreas islet subtypes: greek symbol for axis/title brevity. No-op for
+# any other tissue/cell-type name (e.g. all GTEx tissues, other Baron types).
+CELLTYPE_GREEK = {
+    "alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε",
 }
 
 
@@ -11,6 +17,15 @@ def display_label(label):
     """Human-readable text for a tissue-reduction scenario label (e.g. "onebrain") used
     in figure titles/axis labels."""
     return LABEL_DISPLAY_NAMES.get(label, label)
+
+
+def greek_label(name):
+    """Greek symbol for a Baron islet subtype name, unchanged otherwise."""
+    return CELLTYPE_GREEK.get(name, name)
+
+
+def greek_labels(names):
+    return [greek_label(n) for n in names]
 
 
 def annotate_diag_stats(ax, x, y, loc=(0.03, 0.97), fontsize=9):

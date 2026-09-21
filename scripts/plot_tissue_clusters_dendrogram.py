@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram
-from plot_utils import display_label
+from plot_utils import display_label, greek_label
 
 IN_LINKAGE_CSV = sys.argv[1]
 IN_CLUSTERS_CSV = sys.argv[2]
@@ -43,6 +43,7 @@ if SHOW_DIAMETERS:
                 va="bottom", color="red", zorder=5)
     ax.plot([], [], color="red", lw=1.5, label="cluster diameter (max pairwise distance)")
 
+ax.set_xticklabels([greek_label(t.get_text()) for t in ax.get_xticklabels()])
 ax.axhline(DIST_THRESHOLD, ls="--", color="black", lw=1, label=f"cut = {DIST_THRESHOLD}")
 ax.set_ylabel("distance (1 - corr)")
 ax.legend(fontsize=8, loc="upper right")

@@ -1,7 +1,7 @@
 """4-panel figure using one gene (default INS) as a representative example of
 tissue(cell-type)-specificity in the Baron pancreas data, and of how well
 free_weights/free_cluster_weights (optimize_free_weights.py, MODE=tissue/cluster)
-fit to a collapsed "oneislets" reference (mean- or max-collapse of the 4 islet
+fit to a collapsed "oneislets" reference (mean- or max-collapse of the 5 islet
 subtypes) recovers full-resolution tau relative to the naive collapsed tau.
 Panels: (A) per-cell-type TPM at full resolution, (B) genome-wide scatter of
 tau_unweighted vs tau_free_weighted (full res, weights fit to the oneislets
@@ -13,6 +13,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from plot_utils import greek_labels
 
 GENE = sys.argv[1] if len(sys.argv) > 1 else "INS"
 WEIGHT_MODE = sys.argv[2] if len(sys.argv) > 2 else "free_weights"
@@ -44,7 +45,7 @@ fig, axes = plt.subplots(2, 2, figsize=(13, 10))
 # A: per-cell-type TPM, full resolution
 ax = axes[0, 0]
 colors_a = ["tab:red" if ct in ISLET_MEMBERS else "tab:gray" for ct in tpm.index]
-ax.bar(tpm.index, tpm.values, color=colors_a)
+ax.bar(greek_labels(tpm.index), tpm.values, color=colors_a)
 ax.set_yscale("log")
 ax.set_ylabel(f"{GENE} TPM (log scale)")
 ax.tick_params(axis="x", labelsize=8, rotation=90)
@@ -84,7 +85,7 @@ ax.set_title(f"C: genome-wide, {GENE} highlighted (n={len(merged)} genes)")
 ax = axes[1, 1]
 fw = free_weights.set_index("tissue").loc[celltypes].reset_index()
 colors_d = ["tab:red" if ct in ISLET_MEMBERS else "tab:gray" for ct in fw["tissue"]]
-ax.bar(fw["tissue"], fw["weight"], color=colors_d)
+ax.bar(greek_labels(fw["tissue"]), fw["weight"], color=colors_d)
 ax.set_ylim(0, 1)
 ax.set_ylabel("free weight")
 ax.tick_params(axis="x", labelsize=8, rotation=90)

@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from plot_utils import greek_labels
 
 IN_WEIGHTS = sys.argv[1]
 IN_CLUSTERS = sys.argv[2]
@@ -30,7 +31,7 @@ legend_handles = [
 title = f"free_weights: optimized per-tissue weight (n={len(df)} tissues, winner chain)"
 
 fig, ax = plt.subplots(figsize=(max(8, 0.3 * len(df)), 6))
-ax.bar(df["tissue"], df["weight"], color=colors_of(df))
+ax.bar(greek_labels(df["tissue"]), df["weight"], color=colors_of(df))
 ax.set_ylim(0, 1)
 ax.set_ylabel("free weight")
 ax.set_xlabel("tissue")
