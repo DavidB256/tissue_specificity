@@ -88,6 +88,9 @@ TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
     "baron_protein_coding": "log10 TPM, TPM<1->0, Baron pancreas cell types (protein-coding)",
 }
+# headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
+CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
+CROSSING_CATEGORIES = ["above0.5_to_below", "below0.5_to_above", "above0.8_to_below", "below0.8_to_above"]
 
 
 def base_gct(source):
@@ -175,7 +178,10 @@ rule all:
          (f"/tau_scenarios_scatter_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_scenarios_scatter_{leg}.png")
          for method in ("free_weights", "free_cluster_weights")
          for leg in SOURCES["baron_protein_coding"]["legs"] for agg_suffix in ("", "_max")],
-        f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png"
+        f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png",
+        # genes crossing tau 0.5/0.8 thresholds, headline free_cluster_weights_max leg per source
+        [f"{GENE_SPEC}/{source}/free_cluster_weights_max/crossing_thresholds/{leg}_{cat}.txt"
+         for source, leg in CROSSING_THRESHOLD_LEG.items() for cat in CROSSING_CATEGORIES]
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -552,6 +558,20 @@ rule plot_tau_free_cluster_scenarios_baron:
         f"{GENE_SPEC_BARON_PC}/free_cluster_weights_max/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
+
+rule list_crossing_threshold_genes:
+    input:
+        f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/{{leg}}/weighted_tau.csv"
+    output:
+        [f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/crossing_thresholds/{{leg}}_{cat}.txt"
+         for cat in CROSSING_CATEGORIES]
+    params:
+        out_dir=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/crossing_thresholds"
+    wildcard_constraints:
+        source=r"gtex_protein_coding|baron_protein_coding",
+        leg=r"onebrain|oneislets"
+    shell:
+        "python3 scripts/list_crossing_threshold_genes.py {input} {params.out_dir} {wildcards.leg}"
 
 rule plot_tau_free_cluster_scenarios_baron_mean:
     input:
