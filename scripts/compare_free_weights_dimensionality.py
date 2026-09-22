@@ -3,8 +3,10 @@ to free_cluster_weights (optimize_free_cluster_weights.py, one DE param per
 hierarchical-clustering cluster at DIST_THRESHOLD=0.1) cost much of the achieved
 Spearman rho between weighted_tau(full tissues) and tau(reduced tissues)? For each
 scenario, compares the two methods' best-of-N-chains rho (from their chains_summary.csv)
-against their optimization dimensionality (n_tissues vs n_clusters).
-Args: repeating groups of (label, n_tissues, n_clusters, full_weights_summary_csv,
+against their optimization dimensionality (n_tissues vs n_clusters). n_tissues/n_clusters
+read dynamically from clusters_csv (one row per tissue, cluster_id column) so this never
+silently drifts if clustering is rerun.
+Args: repeating groups of (label, clusters_csv, full_weights_summary_csv,
 cluster_weights_summary_csv), then OUT_CSV, OUT_PNG."""
 import sys
 import pandas as pd
@@ -15,12 +17,14 @@ import matplotlib.pyplot as plt
 OUT_CSV = sys.argv[-2]
 OUT_PNG = sys.argv[-1]
 GROUPS = sys.argv[1:-2]
-assert len(GROUPS) % 5 == 0, "expected repeating groups of 5 args"
-SCENARIOS = [GROUPS[i:i + 5] for i in range(0, len(GROUPS), 5)]
+assert len(GROUPS) % 4 == 0, "expected repeating groups of 4 args"
+SCENARIOS = [GROUPS[i:i + 4] for i in range(0, len(GROUPS), 4)]
 
 rows = []
-for label, n_tissues, n_clusters, full_summary_csv, cluster_summary_csv in SCENARIOS:
-    n_tissues, n_clusters = int(n_tissues), int(n_clusters)
+for label, clusters_csv, full_summary_csv, cluster_summary_csv in SCENARIOS:
+    clusters = pd.read_csv(clusters_csv)
+    n_tissues = clusters.shape[0]
+    n_clusters = clusters["cluster_id"].nunique()
     full_rho = pd.read_csv(full_summary_csv)["best_rho"].max()
     cluster_rho = pd.read_csv(cluster_summary_csv)["best_rho"].max()
     rows.append({"scenario": label, "method": "free_weights", "n_dims": n_tissues, "best_rho": full_rho})

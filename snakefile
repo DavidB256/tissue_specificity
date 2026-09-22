@@ -201,9 +201,8 @@ rule combine_model:
         lambda wc: expand(f"{MODEL_FITS}/by_model_tissue/{wc.model}/{{tissue}}.csv", tissue=TISSUES)
     output:
         f"{MODEL_FITS}/{{model}}_fits.csv"
-    run:
-        dfs = [pd.read_csv(f) for f in input]
-        pd.concat(dfs, ignore_index=True).to_csv(output[0], index=False)
+    shell:
+        "python3 scripts/combine_model_fits.py {output} {input}"
 
 rule combine_comparison:
     input:
@@ -582,16 +581,10 @@ rule compare_free_weights_dimensionality:
     output:
         csv=f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.csv",
         png=f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png"
-    run:
-        n_tissues_gtex = len(TISSUES)
-        baron_clusters = pd.read_csv(input.baron_clusters)
-        n_tissues_baron = baron_clusters.shape[0]
-        n_clusters_gtex = pd.read_csv(input.gtex_clusters)["cluster_id"].nunique()
-        n_clusters_baron = baron_clusters["cluster_id"].nunique()
-        args = (
-            f"'GTEx PC: full vs onebrain' {n_tissues_gtex} {n_clusters_gtex} {input.gtex_onebrain_full} {input.gtex_onebrain_cluster} "
-            f"'GTEx PC: full vs simplified_0.1' {n_tissues_gtex} {n_clusters_gtex} {input.gtex_simplified_full} {input.gtex_simplified_cluster} "
-            f"'Baron PC: full vs simplified_0.1' {n_tissues_baron} {n_clusters_baron} {input.baron_simplified_full} {input.baron_simplified_cluster} "
-            f"'Baron PC: full vs oneislets' {n_tissues_baron} {n_clusters_baron} {input.baron_oneislets_full} {input.baron_oneislets_cluster}"
-        )
-        shell(f"python3 scripts/compare_free_weights_dimensionality.py {args} {output.csv} {output.png}")
+    shell:
+        "python3 scripts/compare_free_weights_dimensionality.py "
+        "'GTEx PC: full vs onebrain' {input.gtex_clusters} {input.gtex_onebrain_full} {input.gtex_onebrain_cluster} "
+        "'GTEx PC: full vs simplified_0.1' {input.gtex_clusters} {input.gtex_simplified_full} {input.gtex_simplified_cluster} "
+        "'Baron PC: full vs simplified_0.1' {input.baron_clusters} {input.baron_simplified_full} {input.baron_simplified_cluster} "
+        "'Baron PC: full vs oneislets' {input.baron_clusters} {input.baron_oneislets_full} {input.baron_oneislets_cluster} "
+        "{output.csv} {output.png}"
