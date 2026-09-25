@@ -17,6 +17,7 @@ IN_REF_TAU = sys.argv[2]
 IN_JACKKNIFE_SUMMARY = sys.argv[3]
 OUT_PNG = sys.argv[4]
 LABEL = sys.argv[5] if len(sys.argv) > 5 else "reference"
+UNIT = sys.argv[6] if len(sys.argv) > 6 else "cluster"
 
 free = pd.read_csv(IN_FREE_TAU)[["gene", "tau_unweighted", "tau_free_weighted"]]
 ref = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted"]].rename(columns={"tau_unweighted": "tau_ref"})
@@ -50,7 +51,7 @@ for ax, (xcol, title, xlabel, varcol) in zip(axes, PANELS):
     ax.set_title(title, fontsize=11)
     annotate_diag_stats(ax, df[xcol], df["tau_ref"])
 
-fig.suptitle(f"full vs {display_label(LABEL)}: tau and tau_weighted, colored by delete-one-cluster "
+fig.suptitle(f"full vs {display_label(LABEL)}: tau and tau_weighted, colored by delete-one-{UNIT} "
              f"jackknife variance, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
