@@ -67,6 +67,53 @@ def ridge_lambda_search(R, n_iter=60):
     return hi, gls_weights(R, hi)
 
 
+def svd_weights(R, s_floor=0.0):
+    """SVD/eigendecomposition weights: w = U @ (phi / max(s, s_floor)), phi = U.T @ 1,
+    R = U diag(s) U.T. Equivalent to gls_weights(R, 0) when s_floor=0 (both solve R w =
+    1 via the eigenbasis vs. a linear solve) but lets small eigenvalues (tight/redundant
+    tissue clusters) be floored independently rather than uniformly shrinking all of R
+    toward I like ridge does. s_floor=s.max() collapses to uniform weights (every
+    eigenvalue floored to the same value, and U @ U.T @ 1 = 1 since U is a complete
+    orthonormal basis)."""
+    n = R.shape[0]
+    U, s, _ = np.linalg.svd(R)
+    phi = U.T @ np.ones(n)
+    w = U @ (phi / np.maximum(s, s_floor))
+    return w / w.sum()
+
+
+def svd_floor_search(R, n_iter=60):
+    """Smallest s_floor in [0, s.max()] s.t. svd_weights(R, s_floor) is all positive.
+    s_floor=s.max() is always all-positive (uniform weights), so the search is
+    well-posed -- same bisection structure as ridge_lambda_search."""
+    n = R.shape[0]
+    U, s, _ = np.linalg.svd(R)
+    smax = s.max()
+
+    def weights_for(floor):
+        w = U @ (phi_for(floor))
+        return w / w.sum()
+
+    phi = U.T @ np.ones(n)
+
+    def phi_for(floor):
+        return phi / np.maximum(s, floor)
+
+    def all_positive(floor):
+        return np.all(weights_for(floor) > 0)
+
+    if all_positive(0.0):
+        return 0.0, weights_for(0.0)
+    lo, hi = 0.0, smax
+    for _ in range(n_iter):
+        mid = (lo + hi) / 2
+        if all_positive(mid):
+            hi = mid
+        else:
+            lo = mid
+    return hi, weights_for(hi)
+
+
 def weighted_tau(mat, w):
     """mat: genes x tissues linear TPM. w: tissue weight vector. Ties for a gene's
     max-expressing tissue go to the first occurrence (np.argmax default)."""
