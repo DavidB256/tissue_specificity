@@ -154,6 +154,7 @@ rule all:
         f"{MODEL_FITS}/pca_compressibility_comparison_allgenes.csv",
         # per-source: correlation heatmap, dendrogram, full-resolution cluster weights
         expand(f"{GENE_SPEC}/{{source}}/figures/tissue_correlation_clustermap.png", source=SOURCES),
+        expand(f"{GENE_SPEC}/{{source}}/figures/corr_and_inverse.png", source=SOURCES),
         expand(f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_simplified_0.1.png", source=SOURCES),
         # per-source, per-leg, per-agg: leg weighted_tau (reference tau for free_weights)
         [leg_tau_path(source, leg, agg_suffix)
@@ -347,6 +348,17 @@ rule plot_tissue_correlation:
         title=lambda wc: TAU_PLOT_TITLE[wc.source]
     shell:
         """python3 scripts/plot_tissue_correlation.py {input.corr} {input.linkage} {output} "{params.title}" """
+
+rule plot_corr_and_inverse:
+    input:
+        corr=f"{GENE_SPEC}/{{source}}/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage.csv"
+    output:
+        f"{GENE_SPEC}/{{source}}/figures/corr_and_inverse.png"
+    params:
+        title=lambda wc: TAU_PLOT_TITLE[wc.source]
+    shell:
+        """python3 scripts/plot_corr_and_inverse.py {input.corr} {input.linkage} {output} "{params.title}" """
 
 rule compute_tau_cluster_weighted_full_gtex:
     input:
