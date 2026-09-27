@@ -1,12 +1,12 @@
-"""2-panel scatter comparing a free_weights fit (see optimize_free_weights.py) to its
-reduced-resolution reference, both against tau_unweighted computed directly from the
-reference's own (collapsed) TPM values -- no GLS anywhere: (1) tau in the two
-scenarios -- tau_unweighted on the full (full-resolution) tissue set vs
-tau_unweighted on the reference; (2) tau_weighted in the two scenarios --
-tau_free_weighted (full, DE-optimized against the reference -- the same rank-corr
-objective optimize_free_weights.py maximizes) vs the same reference tau_unweighted.
-tau_weighted is only ever computed at the full resolution; the reduced side
-has no separate "weighted" tau of its own."""
+"""2-panel scatter comparing a weighted-tau fit (default: free_weights, see
+optimize_free_weights.py; also reused for gls_ridge, see compute_weighted_tau.py) to
+its reduced-resolution reference, both against tau_unweighted computed directly from
+the reference's own (collapsed) TPM values -- no GLS anywhere in the reference: (1)
+tau in the two scenarios -- tau_unweighted on the full (full-resolution) tissue set vs
+tau_unweighted on the reference; (2) tau_weighted in the two scenarios -- the weighted
+tau column (full) vs the same reference tau_unweighted. tau_weighted is only ever
+computed at the full resolution; the reduced side has no separate "weighted" tau of
+its own."""
 import sys
 import pandas as pd
 import matplotlib
@@ -18,14 +18,16 @@ IN_FREE_TAU = sys.argv[1]
 IN_REF_TAU = sys.argv[2]
 OUT_PNG = sys.argv[3]
 LABEL = sys.argv[4] if len(sys.argv) > 4 else "reference"
+WEIGHTED_COL = sys.argv[5] if len(sys.argv) > 5 else "tau_free_weighted"
+METHOD_LABEL = sys.argv[6] if len(sys.argv) > 6 else "free/DE-optimized"
 
-free = pd.read_csv(IN_FREE_TAU)[["gene", "tau_unweighted", "tau_free_weighted"]]
+free = pd.read_csv(IN_FREE_TAU)[["gene", "tau_unweighted", WEIGHTED_COL]]
 ref = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted"]].rename(columns={"tau_unweighted": "tau_ref"})
 df = free.merge(ref, on="gene").dropna()
 
 PANELS = [
     ("tau_unweighted", "tau", "tau (full)"),
-    ("tau_free_weighted", "tau_weighted", "tau_weighted (full, free/DE-optimized)"),
+    (WEIGHTED_COL, "tau_weighted", f"tau_weighted (full, {METHOD_LABEL})"),
 ]
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))

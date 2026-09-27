@@ -13,7 +13,6 @@ MODEL_FITS = f"{DATA}/model_fits"
 DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
 GENE_SPEC = f"{DATA}/gene_specificity"
-GENE_SPEC_COMPARISONS = f"{GENE_SPEC}/comparisons"
 
 MANE_GTF_SRC = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/MANE.v1.5.gtf"
 GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/gencode.v47.annotation.gtf"
@@ -48,14 +47,15 @@ wildcard_constraints:
 #   source (gtex_protein_coding | baron_protein_coding) -- SOURCES registry
 #   resolution/"leg" (onebrain|oneislets | simplified_0.1) -- per-source, see
 #       SOURCES[source]["legs"]
-#   combination method (mean | max) -- {agg_suffix} wildcard, "" for mean,
-#       "_max" for max (mean stays unsuffixed to match already-computed paths)
+#   combination method (mean | max) -- {agg_suffix} wildcard, "_mean" or
+#       "_max", always explicit (no bare/unsuffixed default -- mean and max
+#       are on equal footing)
 #   gene filter -- fixed to protein_coding (the whole point of this section)
-#   weighting method (free_weights | free_cluster_weights | gls) -- gls is the
-#       unweighted/GLS-ridge tau always computed alongside tau_unweighted by
-#       compute_weighted_tau.py at every resolution (no separate branch
-#       needed); free_weights/free_cluster_weights share one optimize/combine
-#       script (scripts/optimize_free_weights.py, MODE=tissue|cluster).
+#   weighting method (free_weights | free_cluster_weights | gls_ridge) --
+#       free_weights/free_cluster_weights share one optimize/combine script
+#       (scripts/optimize_free_weights.py, MODE=tissue|cluster); gls_ridge is
+#       closed-form (compute_weighted_tau.py) on the full base_gct, agg-
+#       independent (no leg/agg-specific weight fit needed).
 # ============================================================================
 
 GENE_SPEC_GTEX_PC = f"{GENE_SPEC}/gtex_protein_coding"
@@ -113,7 +113,8 @@ def leg_members(source, leg):
 
 
 LEGS_RE = r"onebrain|oneislets|simplified_0\.1"
-AGG_SUFFIX_RE = r"|_max"
+AGGS = ["mean", "max"]
+AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
     source = r"gtex_protein_coding|baron_protein_coding",
@@ -121,27 +122,24 @@ wildcard_constraints:
     agg_suffix = AGG_SUFFIX_RE,
     method = r"free_weights|free_cluster_weights"
 
-# figure-path conventions differ slightly by source (Baron's mean/agg=="" figures
-# predate the {method}{agg_suffix} nesting convention and were never migrated --
-# see plot_free_weights_baron_legacy below); centralized here rather than repeated
-# per plotting rule.
+# figure-path convention is uniform across source/method/agg (no more legacy
+# flat-dir special case -- mean and max nest under {method}{agg_suffix}/figures/
+# identically, see plot_free_weights_baron_legacy removal in git history).
 
 
 def figures_dir(source, method, agg_suffix):
-    if source == "gtex_protein_coding" or agg_suffix == "_max":
-        return f"{GENE_SPEC}/{source}/{method}{agg_suffix}/figures"
-    return f"{GENE_SPEC}/{source}/figures"
+    return f"{GENE_SPEC}/{source}/{method}{agg_suffix}/figures"
 
 
 def all_free_weights_targets(kind):
     """kind: 'weights' | 'chains_summary' -- combine_*_chains outputs, for every
     (source, method, leg, agg) combo (backfilled to full coverage, see
     streamline-snakefile.md plan's 'backfill' decision)."""
-    return [f"{GENE_SPEC}/{source}/{method}{agg_suffix}/{leg}/{kind}.csv"
+    return [f"{GENE_SPEC}/{source}/{method}_{agg}/{leg}/{kind}.csv"
             for source, cfg in SOURCES.items()
             for method in ("free_weights", "free_cluster_weights")
             for leg in cfg["legs"]
-            for agg_suffix in ("", "_max")]
+            for agg in AGGS]
 
 
 rule all:
@@ -157,32 +155,32 @@ rule all:
         expand(f"{GENE_SPEC}/{{source}}/figures/corr_and_inverse.png", source=SOURCES),
         expand(f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_simplified_0.1.png", source=SOURCES),
         # per-source, per-leg, per-agg: leg weighted_tau (reference tau for free_weights)
-        [leg_tau_path(source, leg, agg_suffix)
-         for source, cfg in SOURCES.items() for leg in cfg["legs"] for agg_suffix in ("", "_max")],
+        [leg_tau_path(source, leg, f"_{agg}")
+         for source, cfg in SOURCES.items() for leg in cfg["legs"] for agg in AGGS],
         # free_weights / free_cluster_weights: chains_summary + weights + tau, all combos
         all_free_weights_targets("weights"),
         all_free_weights_targets("chains_summary"),
-        # weights bar plots (clean convention: gtex all combos, baron agg=max only --
-        # baron mean uses the legacy flat-dir convention, requested separately below)
-        [figures_dir(source, method, agg_suffix) + f"/tissue_weight_free{'_cluster' if method == 'free_cluster_weights' else ''}_{leg}.png"
+        # weights bar plots, all combos (mean and max on equal footing)
+        [figures_dir(source, method, f"_{agg}") + f"/tissue_weight_free{'_cluster' if method == 'free_cluster_weights' else ''}_{leg}.png"
          for source, cfg in SOURCES.items() for method in ("free_weights", "free_cluster_weights")
-         for leg in cfg["legs"] for agg_suffix in (("", "_max") if source == "gtex_protein_coding" else ("_max",))],
-        # weights bar plots (baron legacy mean convention)
-        [f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free{'_cluster' if method == 'free_cluster_weights' else ''}_{leg}_by_cluster.png"
-         for method in ("free_weights", "free_cluster_weights") for leg in SOURCES["baron_protein_coding"]["legs"]],
+         for leg in cfg["legs"] for agg in AGGS],
         # tau-vs-reference comparison plots, all combos
-        [figures_dir("gtex_protein_coding", method, agg_suffix) +
+        [figures_dir("gtex_protein_coding", method, f"_{agg}") +
          (f"/tau_free_vs_full_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_vs_full_{leg}.png")
          for method in ("free_weights", "free_cluster_weights")
-         for leg in SOURCES["gtex_protein_coding"]["legs"] for agg_suffix in ("", "_max")],
-        [figures_dir("baron_protein_coding", method, agg_suffix) +
+         for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in AGGS],
+        [figures_dir("baron_protein_coding", method, f"_{agg}") +
          (f"/tau_scenarios_scatter_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_scenarios_scatter_{leg}.png")
          for method in ("free_weights", "free_cluster_weights")
-         for leg in SOURCES["baron_protein_coding"]["legs"] for agg_suffix in ("", "_max")],
-        f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png",
+         for leg in SOURCES["baron_protein_coding"]["legs"] for agg in AGGS],
         # genes crossing tau 0.5/0.8 thresholds, headline free_cluster_weights_max leg per source
         [f"{GENE_SPEC}/{source}/free_cluster_weights_max/crossing_thresholds/{leg}_{cat}.txt"
-         for source, leg in CROSSING_THRESHOLD_LEG.items() for cat in CROSSING_CATEGORIES]
+         for source, leg in CROSSING_THRESHOLD_LEG.items() for cat in CROSSING_CATEGORIES],
+        # gls_ridge: closed-form weighting on the full panel, parallel to free/free_cluster
+        # at max-agg only (see compute_gls_ridge_weighted_tau)
+        expand(f"{GENE_SPEC}/{{source}}/gls_ridge_weights/figures/tissue_weight_gls_ridge.png", source=SOURCES),
+        [f"{GENE_SPEC}/{source}/gls_ridge_weights/figures/tau_gls_ridge_scenarios_scatter_{leg}.png"
+         for source, cfg in SOURCES.items() for leg in cfg["legs"]]
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -403,7 +401,7 @@ rule build_leg_gct:
     wildcard_constraints:
         leg=r"onebrain|oneislets"
     params:
-        agg=lambda wc: "max" if wc.agg_suffix == "_max" else "mean",
+        agg=lambda wc: wc.agg_suffix.lstrip("_"),
         members=lambda wc: " ".join(leg_members(wc.source, wc.leg))
     shell:
         "python3 scripts/build_gct_onegroup.py {input.gct} {output} {wildcards.leg} {params.agg} {params.members}"
@@ -415,7 +413,7 @@ rule build_cluster_leg_gct:
     output:
         f"{GENE_SPEC}/{{source}}/simplified_0.1{{agg_suffix}}/{{stub}}_simplified_0.1.gct.gz"
     params:
-        agg=lambda wc: "max" if wc.agg_suffix == "_max" else "mean"
+        agg=lambda wc: wc.agg_suffix.lstrip("_")
     shell:
         "python3 scripts/build_gct_clustered.py {input.gct} {input.clusters} {output} {params.agg}"
 
@@ -492,10 +490,8 @@ rule combine_free_cluster_weights_chains:
         "python3 scripts/combine_free_weights_chains.py cluster {params.chains_dir} {params.n} "
         "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
 
-# ---- plotting: weights bar chart (source-generic script, 2 rules -- "clean"
-# {method}{agg_suffix}/figures/ nesting used by gtex always + baron's agg=max
-# backfill, and baron's pre-existing flat "figures/..._by_cluster.png" mean-agg
-# layout, kept as literal legacy paths per streamline-snakefile.md) ----
+# ---- plotting: weights bar chart (source-generic script, one rule -- mean and
+# max nest identically under {method}{agg_suffix}/figures/) ----
 
 rule plot_free_weights_clean:
     input:
@@ -503,17 +499,6 @@ rule plot_free_weights_clean:
         clusters=lambda wc: CLUSTERS_CSV[wc.source]
     output:
         f"{GENE_SPEC}/{{source}}/free{{cluster_tag}}_weights{{agg_suffix}}/figures/tissue_weight_free{{cluster_tag}}_{{leg}}.png"
-    wildcard_constraints:
-        cluster_tag=r"|_cluster"
-    shell:
-        "python3 scripts/plot_free_weights.py {input.weights} {input.clusters} {output}"
-
-rule plot_free_weights_baron_legacy:
-    input:
-        weights=lambda wc: f"{GENE_SPEC_BARON_PC}/free{wc.cluster_tag}_weights/{wc.leg}/weights.csv",
-        clusters=CLUSTERS_CSV["baron_protein_coding"]
-    output:
-        f"{GENE_SPEC_BARON_PC}/figures/tissue_weight_free{{cluster_tag}}_{{leg}}_by_cluster.png"
     wildcard_constraints:
         cluster_tag=r"|_cluster"
     shell:
@@ -544,30 +529,21 @@ rule plot_tau_free_cluster_vs_full_gtex:
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
-rule plot_tau_scenarios_baron_max:
+rule plot_tau_scenarios_baron:
     input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/free_weights_max/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, "_max")
+        free_tau=f"{GENE_SPEC_BARON_PC}/free_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, wc.agg_suffix)
     output:
-        f"{GENE_SPEC_BARON_PC}/free_weights_max/figures/tau_scenarios_scatter_{{leg}}.png"
-    shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
-
-rule plot_tau_scenarios_baron_mean:
-    input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/free_weights/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, "")
-    output:
-        f"{GENE_SPEC_BARON_PC}/figures/tau_scenarios_scatter_{{leg}}.png"
+        f"{GENE_SPEC_BARON_PC}/free_weights{{agg_suffix}}/figures/tau_scenarios_scatter_{{leg}}.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
 rule plot_tau_free_cluster_scenarios_baron:
     input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/free_cluster_weights_max/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, "_max")
+        free_tau=f"{GENE_SPEC_BARON_PC}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, wc.agg_suffix)
     output:
-        f"{GENE_SPEC_BARON_PC}/free_cluster_weights_max/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
+        f"{GENE_SPEC_BARON_PC}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
@@ -585,38 +561,36 @@ rule list_crossing_threshold_genes:
     shell:
         "python3 scripts/list_crossing_threshold_genes.py {input} {params.out_dir} {wildcards.leg}"
 
-rule plot_tau_free_cluster_scenarios_baron_mean:
-    input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/free_cluster_weights/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, "")
-    output:
-        f"{GENE_SPEC_BARON_PC}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
-    shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
+# ---- gls_ridge: closed-form weighting (compute_weighted_tau.py, already used
+# elsewhere for leg-local reference tau) applied to the full base_gct, parallel
+# to free_weights/free_cluster_weights but agg/leg-independent -- one weight
+# vector per source, reused across every leg's reference in the scenario plot.
+# Max-agg only for now (see plot_tau_gls_ridge_scenarios). ----
 
-# ---- free_weights vs free_cluster_weights: does dimensionality reduction cost
-# rho? n_tissues/n_clusters read dynamically from the actual data (not
-# hardcoded) so this never silently drifts if clustering is rerun. ----
-
-rule compare_free_weights_dimensionality:
+rule compute_gls_ridge_weighted_tau:
     input:
-        gtex_onebrain_full=f"{GENE_SPEC_GTEX_PC}/free_weights/onebrain/chains_summary.csv",
-        gtex_onebrain_cluster=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights/onebrain/chains_summary.csv",
-        gtex_simplified_full=f"{GENE_SPEC_GTEX_PC}/free_weights/simplified_0.1/chains_summary.csv",
-        gtex_simplified_cluster=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights/simplified_0.1/chains_summary.csv",
-        baron_simplified_full=f"{GENE_SPEC_BARON_PC}/free_weights/simplified_0.1/chains_summary.csv",
-        baron_simplified_cluster=f"{GENE_SPEC_BARON_PC}/free_cluster_weights/simplified_0.1/chains_summary.csv",
-        baron_oneislets_full=f"{GENE_SPEC_BARON_PC}/free_weights_max/oneislets/chains_summary.csv",
-        baron_oneislets_cluster=f"{GENE_SPEC_BARON_PC}/free_cluster_weights_max/oneislets/chains_summary.csv",
-        gtex_clusters=CLUSTERS_CSV["gtex_protein_coding"],
-        baron_clusters=CLUSTERS_CSV["baron_protein_coding"]
+        lambda wc: base_gct(wc.source)
     output:
-        csv=f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.csv",
-        png=f"{GENE_SPEC_COMPARISONS}/free_weights_dimensionality.png"
+        tau=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weights.csv"
     shell:
-        "python3 scripts/compare_free_weights_dimensionality.py "
-        "'GTEx PC: full vs onebrain' {input.gtex_clusters} {input.gtex_onebrain_full} {input.gtex_onebrain_cluster} "
-        "'GTEx PC: full vs simplified_0.1' {input.gtex_clusters} {input.gtex_simplified_full} {input.gtex_simplified_cluster} "
-        "'Baron PC: full vs simplified_0.1' {input.baron_clusters} {input.baron_simplified_full} {input.baron_simplified_cluster} "
-        "'Baron PC: full vs oneislets' {input.baron_clusters} {input.baron_oneislets_full} {input.baron_oneislets_cluster} "
-        "{output.csv} {output.png}"
+        "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule plot_gls_ridge_weights:
+    input:
+        weights=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weights.csv",
+        clusters=lambda wc: CLUSTERS_CSV[wc.source]
+    output:
+        f"{GENE_SPEC}/{{source}}/gls_ridge_weights/figures/tissue_weight_gls_ridge.png"
+    shell:
+        "python3 scripts/plot_gls_ridge_weights.py {input.weights} {input.clusters} {output}"
+
+rule plot_tau_gls_ridge_scenarios:
+    input:
+        gls_tau=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, "_max")
+    output:
+        f"{GENE_SPEC}/{{source}}/gls_ridge_weights/figures/tau_gls_ridge_scenarios_scatter_{{leg}}.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.gls_tau} {input.ref_tau} {output} {wildcards.leg} "
+        "tau_weighted_gls_ridge gls/ridge-regularized"
