@@ -14,7 +14,7 @@ def tissue_corr_pairwise_masked(mat):
     TPM+1) is restricted to genes with TPM>=1 (post floor_tpm) in at least one of the
     two tissues, rather than one fixed gene set for the whole matrix. Violates the
     single-consistent-sample-matrix assumption behind PSD -- R here is NOT guaranteed
-    PSD; downstream gls_weights/ridge_lambda_search still work (ridge_lambda_search
+    PSD; downstream gls_weights/diag_reg_lambda_search still work (diag_reg_lambda_search
     pushes lambda up until R_lam is invertible with all-positive weights), but the
     unregularized (lambda=0) weights lose their usual GLS interpretation."""
     n = mat.shape[1]
@@ -44,11 +44,13 @@ def gls_weights(R, lam=0.0):
     return np.linalg.solve(R_lam, np.ones(n))
 
 
-def ridge_lambda_search(R, n_iter=60):
-    """Smallest lambda in [0,1] s.t. gls_weights(R, lambda) is all positive.
-    lambda=1 (R_lambda=I) is always all-positive, so the search is well-posed.
-    Singular R_lam (e.g. from duplicate tissues under resampling) is treated as
-    "not all positive" so the search pushes lambda up until it's invertible."""
+def diag_reg_lambda_search(R, n_iter=60):
+    """Smallest lambda in [0,1] s.t. gls_weights(R, lambda) is all positive -- the
+    diagonal-regularization strength for diag_reg_inv_corr weighting (R_lambda =
+    (1-lambda)*R + lambda*I, see gls_weights). lambda=1 (R_lambda=I) is always
+    all-positive, so the search is well-posed. Singular R_lam (e.g. from duplicate
+    tissues under resampling) is treated as "not all positive" so the search pushes
+    lambda up until it's invertible."""
     def all_positive(lam):
         try:
             return np.all(gls_weights(R, lam) > 0)
@@ -72,7 +74,7 @@ def svd_weights(R, s_floor=0.0):
     R = U diag(s) U.T. Equivalent to gls_weights(R, 0) when s_floor=0 (both solve R w =
     1 via the eigenbasis vs. a linear solve) but lets small eigenvalues (tight/redundant
     tissue clusters) be floored independently rather than uniformly shrinking all of R
-    toward I like ridge does. s_floor=s.max() collapses to uniform weights (every
+    toward I like diagonal regularization does. s_floor=s.max() collapses to uniform weights (every
     eigenvalue floored to the same value, and U @ U.T @ 1 = 1 since U is a complete
     orthonormal basis)."""
     n = R.shape[0]
@@ -85,7 +87,7 @@ def svd_weights(R, s_floor=0.0):
 def svd_floor_search(R, n_iter=60):
     """Smallest s_floor in [0, s.max()] s.t. svd_weights(R, s_floor) is all positive.
     s_floor=s.max() is always all-positive (uniform weights), so the search is
-    well-posed -- same bisection structure as ridge_lambda_search."""
+    well-posed -- same bisection structure as diag_reg_lambda_search."""
     n = R.shape[0]
     U, s, _ = np.linalg.svd(R)
     smax = s.max()

@@ -3,10 +3,10 @@ x tissue Pearson correlation of log10(TPM+1)) as R = U diag(s) U.T, project phi 
 ones(n), solve w = U @ (phi / max(s, s_floor)), normalize w /= w.sum(). s_floor=0
 recovers the unregularized GLS solution R^-1 1 exactly (see gls_tau.gls_weights);
 flooring small eigenvalues suppresses the blow-up they'd otherwise cause without
-uniformly shrinking all of R toward I the way ridge does (see gls_tau.svd_weights).
-Regularized weights use the smallest s_floor that makes every weight positive
-(gls_tau.svd_floor_search, same bisection idea as compute_weighted_tau.py's
-ridge_lambda_search). Contrasted with the free/free_cluster methods
+uniformly shrinking all of R toward I the way diagonal regularization does (see
+gls_tau.svd_weights). Regularized weights use the smallest s_floor that makes every
+weight positive (gls_tau.svd_floor_search, same bisection idea as
+compute_weighted_tau.py's diag_reg_lambda_search). Contrasted with the free/free_cluster methods
 (optimize_free_weights.py): svd weights are closed-form from R alone -- no numerical
 optimization, no reference tau needed. TPM<1 floored to 0 before any computation. R is
 restricted to genes with TPM>=1 in at least one tissue (see

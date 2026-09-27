@@ -1,5 +1,6 @@
 """2-panel scatter comparing a weighted-tau fit (default: free_weights, see
-optimize_free_weights.py; also reused for gls_ridge, see compute_weighted_tau.py) to
+optimize_free_weights.py; also reused for diag_reg_inv_corr, see
+compute_weighted_tau.py) to
 its reduced-resolution reference, both against tau_unweighted computed directly from
 the reference's own (collapsed) TPM values -- no GLS anywhere in the reference: (1)
 tau in the two scenarios -- tau_unweighted on the full (full-resolution) tissue set vs

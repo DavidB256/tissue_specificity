@@ -22,12 +22,12 @@ n_expr = pd.DataFrame({"gene": gct["Name"].values, "n_tissues_expressed": (mat >
 
 u = pd.read_csv(IN_UNWEIGHTED)[["gene", "tau_range"]].rename(columns={"tau_range": "tau_range_unweighted"})
 r = pd.read_csv(IN_RIDGE)[["gene", "tau_range"]].rename(columns={"tau_range": "tau_range_ridge"})
-tau = pd.read_csv(IN_TAU)[["gene", "tau_unweighted", "tau_weighted_gls_ridge"]]
+tau = pd.read_csv(IN_TAU)[["gene", "tau_unweighted", "tau_weighted_diag_reg_inv_corr"]]
 df = u.merge(r, on="gene").merge(tau, on="gene").merge(n_expr, on="gene").dropna()
 df = df[df["n_tissues_expressed"] <= MAX_TISSUES]
-df = df[(df["tau_unweighted"] != 0) & (df["tau_weighted_gls_ridge"] != 0)]
+df = df[(df["tau_unweighted"] != 0) & (df["tau_weighted_diag_reg_inv_corr"] != 0)]
 df["tau_range_unweighted_norm"] = df["tau_range_unweighted"] / df["tau_unweighted"]
-df["tau_range_ridge_norm"] = df["tau_range_ridge"] / df["tau_weighted_gls_ridge"]
+df["tau_range_ridge_norm"] = df["tau_range_ridge"] / df["tau_weighted_diag_reg_inv_corr"]
 
 fig, ax = plt.subplots(figsize=(6, 6))
 sc = ax.scatter(df["tau_range_unweighted_norm"], df["tau_range_ridge_norm"], c=df["tau_unweighted"],
@@ -36,7 +36,7 @@ fig.colorbar(sc, ax=ax, label="tau_unweighted (all-tissue)")
 hi = max(df["tau_range_unweighted_norm"].max(), df["tau_range_ridge_norm"].max())
 ax.plot([0, hi], [0, hi], "--", color="gray", lw=1)
 ax.set_xlabel("tau_range (unweighted, jackknife) / tau_unweighted (all-tissue)")
-ax.set_ylabel("tau_range (gls_ridge, jackknife) / tau_weighted_gls_ridge (all-tissue)")
+ax.set_ylabel("tau_range (gls_ridge, jackknife) / tau_weighted_diag_reg_inv_corr (all-tissue)")
 ax.set_title(f"jackknife normalized tau_range: unweighted vs ridge, expressed in <={MAX_TISSUES} tissues, n={len(df)} genes")
 annotate_diag_stats(ax, df["tau_range_unweighted_norm"], df["tau_range_ridge_norm"])
 fig.tight_layout()

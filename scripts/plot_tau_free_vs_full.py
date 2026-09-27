@@ -4,7 +4,7 @@ full (68 tissues) vs a reduced-resolution reference (LABEL, e.g. "onebrain" or
 optimization target, see optimize_free_weights.py). Row 1: (1) tau_unweighted vs
 tau_unweighted, (2) tau_free_weighted (full) vs tau_unweighted (reference). Row 2:
 (3) tau vs tau_weighted on full tissues, (4) tau vs tau_weighted on the reference's
-collapsed tissues (tau_weighted_gls_ridge). Points colored by gene category (by
+collapsed tissues (tau_weighted_diag_reg_inv_corr). Points colored by gene category (by
 max-expressing tissue, full 68-tissue GCT) vs "other", to show how the free_weights
 correction differs across degrees of tissue redundancy (these tissue groups hold many
 highly correlated subtissues). Category set depends on LABEL: onebrain uses Brain vs
@@ -40,8 +40,8 @@ for cat in [c for c in CATEGORIES if c != "other"]:
 cat_df = pd.DataFrame({"gene": gct["Name"].values, "category": category})
 
 d = pd.read_csv(IN_FREE_TAU)[["gene", "tau_unweighted", "tau_free_weighted"]]
-r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_gls_ridge"]] \
-    .rename(columns={"tau_unweighted": "tau_ref", "tau_weighted_gls_ridge": "tau_weighted_alt"})
+r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_diag_reg_inv_corr"]] \
+    .rename(columns={"tau_unweighted": "tau_ref", "tau_weighted_diag_reg_inv_corr": "tau_weighted_alt"})
 
 df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
 

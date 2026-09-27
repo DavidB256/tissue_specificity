@@ -36,8 +36,8 @@ tables = []
 for scenario, free_tau_csv, ref_tau_csv in SCENARIOS:
     d = pd.read_csv(free_tau_csv)[["gene", "tau_unweighted", "tau_free_weighted"]] \
         .rename(columns={"tau_unweighted": "tau_full", "tau_free_weighted": "tau_weighted_full"})
-    r = pd.read_csv(ref_tau_csv)[["gene", "tau_unweighted", "tau_weighted_gls_ridge"]] \
-        .rename(columns={"tau_unweighted": "tau_alt", "tau_weighted_gls_ridge": "tau_weighted_alt"})
+    r = pd.read_csv(ref_tau_csv)[["gene", "tau_unweighted", "tau_weighted_diag_reg_inv_corr"]] \
+        .rename(columns={"tau_unweighted": "tau_alt", "tau_weighted_diag_reg_inv_corr": "tau_weighted_alt"})
 
     df = d.merge(r, on="gene").merge(top_tissues, on="gene").dropna(
         subset=["tau_full", "tau_weighted_full", "tau_alt"])

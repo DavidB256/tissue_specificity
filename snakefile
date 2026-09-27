@@ -51,11 +51,12 @@ wildcard_constraints:
 #       "_max", always explicit (no bare/unsuffixed default -- mean and max
 #       are on equal footing)
 #   gene filter -- fixed to protein_coding (the whole point of this section)
-#   weighting method (free_weights | free_cluster_weights | gls_ridge) --
+#   weighting method (free_weights | free_cluster_weights | diag_reg_inv_corr) --
 #       free_weights/free_cluster_weights share one optimize/combine script
-#       (scripts/optimize_free_weights.py, MODE=tissue|cluster); gls_ridge is
-#       closed-form (compute_weighted_tau.py) on the full base_gct, agg-
-#       independent (no leg/agg-specific weight fit needed).
+#       (scripts/optimize_free_weights.py, MODE=tissue|cluster); diag_reg_inv_corr
+#       ("diagonal-regularized inverse correlation") is closed-form
+#       (compute_weighted_tau.py) on the full base_gct, agg-independent (no
+#       leg/agg-specific weight fit needed).
 # ============================================================================
 
 GENE_SPEC_GTEX_PC = f"{GENE_SPEC}/gtex_protein_coding"
@@ -176,10 +177,10 @@ rule all:
         # genes crossing tau 0.5/0.8 thresholds, headline free_cluster_weights_max leg per source
         [f"{GENE_SPEC}/{source}/free_cluster_weights_max/crossing_thresholds/{leg}_{cat}.txt"
          for source, leg in CROSSING_THRESHOLD_LEG.items() for cat in CROSSING_CATEGORIES],
-        # gls_ridge: closed-form weighting on the full panel, parallel to free/free_cluster
-        # at max-agg only (see compute_gls_ridge_weighted_tau)
-        expand(f"{GENE_SPEC}/{{source}}/gls_ridge_weights/figures/tissue_weight_gls_ridge.png", source=SOURCES),
-        [f"{GENE_SPEC}/{source}/gls_ridge_weights/figures/tau_gls_ridge_scenarios_scatter_{leg}.png"
+        # diag_reg_inv_corr: closed-form weighting on the full panel, parallel to
+        # free/free_cluster at max-agg only (see compute_diag_reg_inv_corr_weighted_tau)
+        expand(f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/figures/tissue_weight_diag_reg_inv_corr.png", source=SOURCES),
+        [f"{GENE_SPEC}/{source}/diag_reg_inv_corr_weights/figures/tau_diag_reg_inv_corr_scenarios_scatter_{leg}.png"
          for source, cfg in SOURCES.items() for leg in cfg["legs"]]
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
@@ -561,36 +562,37 @@ rule list_crossing_threshold_genes:
     shell:
         "python3 scripts/list_crossing_threshold_genes.py {input} {params.out_dir} {wildcards.leg}"
 
-# ---- gls_ridge: closed-form weighting (compute_weighted_tau.py, already used
-# elsewhere for leg-local reference tau) applied to the full base_gct, parallel
-# to free_weights/free_cluster_weights but agg/leg-independent -- one weight
-# vector per source, reused across every leg's reference in the scenario plot.
-# Max-agg only for now (see plot_tau_gls_ridge_scenarios). ----
+# ---- diag_reg_inv_corr ("diagonal-regularized inverse correlation"): closed-form
+# weighting (compute_weighted_tau.py, already used elsewhere for leg-local reference
+# tau) applied to the full base_gct, parallel to free_weights/free_cluster_weights but
+# agg/leg-independent -- one weight vector per source, reused across every leg's
+# reference in the scenario plot. Max-agg only for now (see
+# plot_tau_diag_reg_inv_corr_scenarios). ----
 
-rule compute_gls_ridge_weighted_tau:
+rule compute_diag_reg_inv_corr_weighted_tau:
     input:
         lambda wc: base_gct(wc.source)
     output:
-        tau=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weighted_tau.csv",
-        weights=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weights.csv"
+        tau=f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/weights.csv"
     shell:
         "python3 scripts/compute_weighted_tau.py {input} {output.tau} {output.weights}"
 
-rule plot_gls_ridge_weights:
+rule plot_diag_reg_inv_corr_weights:
     input:
-        weights=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weights.csv",
+        weights=f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/weights.csv",
         clusters=lambda wc: CLUSTERS_CSV[wc.source]
     output:
-        f"{GENE_SPEC}/{{source}}/gls_ridge_weights/figures/tissue_weight_gls_ridge.png"
+        f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/figures/tissue_weight_diag_reg_inv_corr.png"
     shell:
-        "python3 scripts/plot_gls_ridge_weights.py {input.weights} {input.clusters} {output}"
+        "python3 scripts/plot_diag_reg_inv_corr_weights.py {input.weights} {input.clusters} {output}"
 
-rule plot_tau_gls_ridge_scenarios:
+rule plot_tau_diag_reg_inv_corr_scenarios:
     input:
-        gls_tau=f"{GENE_SPEC}/{{source}}/gls_ridge_weights/weighted_tau.csv",
+        diag_reg_tau=f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/weighted_tau.csv",
         ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, "_max")
     output:
-        f"{GENE_SPEC}/{{source}}/gls_ridge_weights/figures/tau_gls_ridge_scenarios_scatter_{{leg}}.png"
+        f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/figures/tau_diag_reg_inv_corr_scenarios_scatter_{{leg}}.png"
     shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.gls_tau} {input.ref_tau} {output} {wildcards.leg} "
-        "tau_weighted_gls_ridge gls/ridge-regularized"
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.diag_reg_tau} {input.ref_tau} {output} {wildcards.leg} "
+        "tau_weighted_diag_reg_inv_corr diagonal-regularized-inverse-corr"

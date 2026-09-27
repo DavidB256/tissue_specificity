@@ -4,9 +4,10 @@ don't each pull full independent weight in the specificity average. R = tissue x
 tissue Pearson correlation of log10(TPM+1), computed across genes. GLS weights w
 solve R w = 1 (proportional to R^-1 1); w=1 for every tissue recovers unweighted tau
 exactly when R=I, so no extra rescaling is needed. Negative entries in w are possible
-under multicollinearity and are reported, not clipped. Ridge-shrunk weights use
-R_lambda = (1-lambda)*R + lambda*I with the smallest lambda that makes every weight
-positive (see gls_tau.ridge_lambda_search). Ties for a gene's max-expressing tissue
+under multicollinearity and are reported, not clipped. diag_reg_inv_corr ("diagonal-
+regularized inverse correlation") weights use R_lambda = (1-lambda)*R + lambda*I with
+the smallest lambda that makes every weight positive (see gls_tau.diag_reg_lambda_search).
+Ties for a gene's max-expressing tissue
 go to the first occurrence (np.argmax default). TPM<1 floored to 0 before any
 computation. R is restricted to genes with TPM>=1 in at least one tissue (see
 gls_tau.tissue_corr_expressed_only). tau_weighted_gls (unregularized, unbounded below)
@@ -14,7 +15,7 @@ is left-censored at -1 to drop runaway outliers we don't care about."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr_expressed_only, gls_weights, ridge_lambda_search, weighted_tau, floor_tpm, censor_floor
+from gls_tau import tissue_corr_expressed_only, gls_weights, diag_reg_lambda_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]
@@ -34,14 +35,14 @@ if n_negative:
     print(f"negative unregularized GLS weights ({n_negative}/{len(tissues)}): "
           f"{[t for t, m in zip(tissues, neg_mask) if m]}", file=sys.stderr)
 
-lam_star, w_reg = ridge_lambda_search(R)
-print(f"ridge lambda*={lam_star:.6g}", file=sys.stderr)
+lam_star, w_reg = diag_reg_lambda_search(R)
+print(f"diag_reg lambda*={lam_star:.6g}", file=sys.stderr)
 
 out = pd.DataFrame({
     "gene": genes,
     "tau_unweighted": weighted_tau(mat, np.ones(len(tissues))),
     "tau_weighted_gls": censor_floor(weighted_tau(mat, w_unreg)),
-    "tau_weighted_gls_ridge": weighted_tau(mat, w_reg),
+    "tau_weighted_diag_reg_inv_corr": weighted_tau(mat, w_reg),
     "n_negative_weights_unregularized": n_negative,
 })
 out.to_csv(OUT_TAU_CSV, index=False)
@@ -49,11 +50,11 @@ out.to_csv(OUT_TAU_CSV, index=False)
 weights_out = pd.DataFrame({
     "tissue": tissues,
     "weight_gls": w_unreg,
-    "weight_gls_ridge": w_reg,
+    "weight_diag_reg_inv_corr": w_reg,
     "is_negative_gls": neg_mask,
-    "ridge_lambda": lam_star,
+    "diag_reg_lambda": lam_star,
 })
 weights_out.to_csv(OUT_WEIGHTS_CSV, index=False)
 
-print(f"genes={len(out)} tissues={len(tissues)} ridge_lambda={lam_star:.6g} "
+print(f"genes={len(out)} tissues={len(tissues)} diag_reg_lambda={lam_star:.6g} "
       f"n_negative_unregularized={n_negative}", file=sys.stderr)
