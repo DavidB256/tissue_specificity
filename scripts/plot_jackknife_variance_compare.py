@@ -1,7 +1,10 @@
-"""Compares the distributions of delete-one-cluster jackknife variance (see
-jackknife_cluster_variance.py) between tau_unweighted and tau_free_cluster_weighted,
-paired per gene. Wilcoxon signed-rank test (paired, non-parametric -- variances are
-strongly right-skewed) on the per-gene variance difference."""
+"""Compares the distributions of a per-gene paired variance (default: delete-one-
+cluster jackknife variance, see jackknife_cluster_variance.py; also reused for Monte
+Carlo noise-perturbation variance, see compute_noise_variance.py) between
+tau_unweighted and a weighted variant, paired per gene. Wilcoxon signed-rank test
+(paired, non-parametric -- variances are strongly right-skewed) on the per-gene
+variance difference -- this is the null-hypothesis test that both estimators undergo
+equal variation under the same perturbation."""
 import sys
 import numpy as np
 import pandas as pd
@@ -12,13 +15,17 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from plot_utils import display_label
 
-IN_JACKKNIFE_SUMMARY = sys.argv[1]
+IN_SUMMARY = sys.argv[1]
 OUT_PNG = sys.argv[2]
 LABEL = sys.argv[3] if len(sys.argv) > 3 else "reference"
+UNWEIGHTED_COL = sys.argv[4] if len(sys.argv) > 4 else "tau_unweighted_jk_var"
+WEIGHTED_COL = sys.argv[5] if len(sys.argv) > 5 else "tau_free_cluster_weighted_jk_var"
+VAR_KIND = sys.argv[6] if len(sys.argv) > 6 else "jackknife"
+WEIGHTED_NAME = sys.argv[7] if len(sys.argv) > 7 else "free_cluster_weighted"
 
-df = pd.read_csv(IN_JACKKNIFE_SUMMARY)[["gene", "tau_unweighted_jk_var", "tau_free_cluster_weighted_jk_var"]].dropna()
-u = df["tau_unweighted_jk_var"].values
-w = df["tau_free_cluster_weighted_jk_var"].values
+df = pd.read_csv(IN_SUMMARY)[["gene", UNWEIGHTED_COL, WEIGHTED_COL]].dropna()
+u = df[UNWEIGHTED_COL].values
+w = df[WEIGHTED_COL].values
 
 stat, pval = wilcoxon(u, w)
 median_u, median_w = float(np.median(u)), float(np.median(w))
@@ -50,11 +57,11 @@ for key in ("cmins", "cmaxes", "cbars", "cmedians"):
     parts[key].set_zorder(2)
 
 ax.set_xticks([1, 2])
-ax.set_xticklabels(["tau_unweighted", "tau_free_cluster_weighted"])
+ax.set_xticklabels(["tau_unweighted", f"tau_{WEIGHTED_NAME}"])
 ax.set_xlim(0.5, 2.5)
 ax.set_ylim(-7, max(np.log10(max(u.max(), w.max())), 0) + 0.5)
-ax.set_ylabel(f"log10(jackknife variance) [floored at {eps:g}]")
-ax.set_title(f"{display_label(LABEL)}: jackknife variance, unweighted vs free_cluster_weighted "
+ax.set_ylabel(f"log10({VAR_KIND} variance) [floored at {eps:g}]")
+ax.set_title(f"{display_label(LABEL)}: {VAR_KIND} variance, unweighted vs {WEIGHTED_NAME} "
              f"(n={len(df)} genes)\nWilcoxon signed-rank p={pval:.3g}, "
              f"median {median_u:.2e} -> {median_w:.2e}\n"
              f"per-gene: {n_up} increase (red), {n_down} decrease (blue)", fontsize=10)
@@ -62,7 +69,7 @@ fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
 
-print(f"genes={len(df)} median_var_unweighted={median_u:.6g} median_var_free_cluster_weighted={median_w:.6g} "
-      f"mean_var_unweighted={mean_u:.6g} mean_var_free_cluster_weighted={mean_w:.6g} "
+print(f"genes={len(df)} median_var_unweighted={median_u:.6g} median_var_{WEIGHTED_NAME}={median_w:.6g} "
+      f"mean_var_unweighted={mean_u:.6g} mean_var_{WEIGHTED_NAME}={mean_w:.6g} "
       f"wilcoxon_stat={stat:.6g} pval={pval:.6g}", file=sys.stderr)
 print(f"wrote {OUT_PNG}", file=sys.stderr)

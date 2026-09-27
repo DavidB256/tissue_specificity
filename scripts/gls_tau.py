@@ -121,6 +121,19 @@ def svd_floor_search(R, n_iter=60):
     return hi, weights_for(hi)
 
 
+def apply_nonzero_log_noise(mat, sigma, rng):
+    """Add iid N(0, sigma) noise to log10(TPM+1) for every currently-nonzero
+    (TPM>=1, post floor_tpm) entry; exactly-zero entries (TPM<1, already rounded down)
+    are left untouched -- no noise applied to values already floored out. Noisy values
+    that drop below the TPM>=1 threshold are NOT re-floored; the floor is a rounding
+    convention for the clean panel, not something re-derived per noisy replicate."""
+    nonzero = mat > 0
+    log_mat = np.log10(mat + 1.0)
+    noise = rng.normal(0.0, sigma, size=mat.shape)
+    log_noisy = np.where(nonzero, log_mat + noise, log_mat)
+    return 10.0 ** log_noisy - 1.0
+
+
 def weighted_tau(mat, w):
     """mat: genes x tissues linear TPM. w: tissue weight vector. Ties for a gene's
     max-expressing tissue go to the first occurrence (np.argmax default)."""
