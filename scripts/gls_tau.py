@@ -122,17 +122,26 @@ def svd_floor_search(R, n_iter=60):
 
 
 def corr_sum_weights(R, power=1):
-    """Row-sum redundancy weighting: w_t = 1 / (1 + sum_{t'!=t} r_tt'^power). A tissue
-    correlated with many others accumulates a large off-diagonal sum and is
-    downweighted; a distinctive tissue (low correlation with everything else) stays
-    near its unweighted share. power=1 ("corr_sum") uses raw (signed) correlation;
-    power=2 ("corr_sq_sum") uses r^2, so strong negative and positive correlations are
-    penalized equally and the denominator can never go non-positive regardless of sign
-    structure. Unlike diag_reg_inv_corr_weights, this only needs the row sums of R --
-    no matrix inversion, no regularization search. Normalized to sum to 1."""
+    """Row-sum redundancy weighting: w_t = 1 / (1 + z_t), z_t = (row_sum_t - mean) / std
+    of row_sum_t = sum_{t'!=t} r_tt'^power across tissues. Raw row_sum (tried first) sits
+    on a large, narrow baseline for whole-transcriptome correlation (e.g. GTEx: all 68
+    tissues in [40,56]) so 1/(1+row_sum) barely varies tissue to tissue; z-scoring
+    widens that back out to O(1) spread. power=1 ("corr_sum") uses raw (signed)
+    correlation; power=2 ("corr_sq_sum") uses r^2. CAVEAT: z-scoring reopens the
+    negative/blow-up failure mode this method was meant to avoid -- any tissue with
+    z_t < -1 (more than 1 std below the mean row_sum, i.e. unusually distinctive) gives
+    a negative or diverging weight (on GTEx onebrain: 10/68 tissues, z as low as -3.5).
+    Not clipped here; downstream code must check for this. Normalized by dividing by
+    |sum| rather than sum -- with several large-magnitude entries near the z_t=-1 pole,
+    the raw sum can itself be negative, and dividing by a negative sum would flip the
+    sign of every weight (including the majority that were positive and fine),
+    corrupting the reported per-tissue weights even though weighted_tau's output is
+    unaffected either way (numerator and denominator are both homogeneous degree-1 in
+    w, so any nonzero rescaling -- positive or negative -- cancels out of the ratio)."""
     row_sum = (R ** power).sum(axis=1) - 1.0  # exclude the diagonal (R_tt=1, 1**power=1)
-    w = 1.0 / (1.0 + row_sum)
-    return w / w.sum()
+    z = (row_sum - row_sum.mean()) / row_sum.std()
+    w = 1.0 / (1.0 + z)
+    return w / np.abs(w.sum())
 
 
 def weighted_tau(mat, w):

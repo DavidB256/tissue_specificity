@@ -1,11 +1,11 @@
 """Weighted tau using row-sum redundancy weights (see gls_tau.corr_sum_weights):
-w_t = 1/(1 + sum_{t'!=t} r_tt'^POWER), from R = tissue x tissue Pearson correlation of
-log10(TPM+1). POWER=1 ("corr_sum") uses raw correlation; POWER=2 ("corr_sq_sum") uses
-r^2, so strong negative and positive correlations are penalized equally. Contrasted
-with diag_reg_inv_corr (matrix inversion, needs diagonal regularization to avoid
-negative weights) and margin (skips the correlation matrix entirely): this only needs
-the row sums of R, no inversion, no regularization search. TPM<1 floored to 0 before
-any computation. R is restricted to genes with TPM>=1 in at least one tissue (see
+w_t = 1/(1 + z_t), z_t = the z-scored row sum of r_tt'^POWER (across all t'!=t), from
+R = tissue x tissue Pearson correlation of log10(TPM+1). POWER=1 ("corr_sum") uses raw
+correlation; POWER=2 ("corr_sq_sum") uses r^2. Z-scoring reintroduces a negative/blow-
+up failure mode (any z_t < -1 -> negative or diverging weight) that this method was
+otherwise built to avoid -- negative weights are reported, not clipped, same policy as
+the old unregularized GLS diagnostic. TPM<1 floored to 0 before any computation. R is
+restricted to genes with TPM>=1 in at least one tissue (see
 gls_tau.tissue_corr_expressed_only)."""
 import sys
 import numpy as np
@@ -27,6 +27,11 @@ mat = floor_tpm(mat)  # TPM<1 -> 0
 
 R = tissue_corr_expressed_only(mat)
 w = corr_sum_weights(R, power=POWER)
+neg_mask = w < 0
+n_negative = int(neg_mask.sum())
+if n_negative:
+    print(f"negative {METHOD_NAME} weights ({n_negative}/{len(tissues)}): "
+          f"{[t for t, m in zip(tissues, neg_mask) if m]}", file=sys.stderr)
 
 out = pd.DataFrame({
     "gene": genes,
@@ -41,4 +46,4 @@ weights_out = pd.DataFrame({
 })
 weights_out.to_csv(OUT_WEIGHTS_CSV, index=False)
 
-print(f"genes={len(out)} tissues={len(tissues)} method={METHOD_NAME}", file=sys.stderr)
+print(f"genes={len(out)} tissues={len(tissues)} method={METHOD_NAME} n_negative={n_negative}", file=sys.stderr)
