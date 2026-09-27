@@ -121,6 +121,20 @@ def svd_floor_search(R, n_iter=60):
     return hi, weights_for(hi)
 
 
+def corr_sum_weights(R, power=1):
+    """Row-sum redundancy weighting: w_t = 1 / (1 + sum_{t'!=t} r_tt'^power). A tissue
+    correlated with many others accumulates a large off-diagonal sum and is
+    downweighted; a distinctive tissue (low correlation with everything else) stays
+    near its unweighted share. power=1 ("corr_sum") uses raw (signed) correlation;
+    power=2 ("corr_sq_sum") uses r^2, so strong negative and positive correlations are
+    penalized equally and the denominator can never go non-positive regardless of sign
+    structure. Unlike diag_reg_inv_corr_weights, this only needs the row sums of R --
+    no matrix inversion, no regularization search. Normalized to sum to 1."""
+    row_sum = (R ** power).sum(axis=1) - 1.0  # exclude the diagonal (R_tt=1, 1**power=1)
+    w = 1.0 / (1.0 + row_sum)
+    return w / w.sum()
+
+
 def weighted_tau(mat, w):
     """mat: genes x tissues linear TPM. w: tissue weight vector. Ties for a gene's
     max-expressing tissue go to the first occurrence (np.argmax default)."""

@@ -94,6 +94,7 @@ TAU_PLOT_TITLE = {
 }
 # headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
 CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
+CORR_SUM_POWER = {"corr_sum": 1, "corr_sq_sum": 2}
 CROSSING_CATEGORIES = ["above0.5_to_below", "below0.5_to_above", "above0.8_to_below", "below0.8_to_above"]
 
 
@@ -632,3 +633,47 @@ rule plot_tau_margin_scenarios:
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.margin_tau} {input.ref_tau} {output} {wildcards.leg} "
         "tau_weighted_margin margin-weighted"
+
+# ---- corr_sum / corr_sq_sum: closed-form weighting from row sums of the tissue x
+# tissue correlation matrix (see gls_tau.corr_sum_weights) -- no matrix inversion, no
+# regularization search, unlike diag_reg_inv_corr. corr_sum uses raw r, corr_sq_sum
+# uses r^2 (CORR_SUM_POWER); {corr_method} wildcard picks between them rather than a
+# separate rule pair, since the two only differ by the power passed to the shared
+# compute/plot scripts. Agg/leg-independent, max-agg reference only for now, same as
+# diag_reg_inv_corr/margin. ----
+
+rule compute_corr_sum_weighted_tau:
+    input:
+        lambda wc: base_gct(wc.source)
+    output:
+        tau=f"{GENE_SPEC}/{{source}}/{{corr_method}}_weights/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/{{source}}/{{corr_method}}_weights/weights.csv"
+    wildcard_constraints:
+        corr_method=r"corr_sum|corr_sq_sum"
+    params:
+        power=lambda wc: CORR_SUM_POWER[wc.corr_method]
+    shell:
+        "python3 scripts/compute_corr_sum_weighted_tau.py {input} {params.power} {output.tau} {output.weights}"
+
+rule plot_corr_sum_weights:
+    input:
+        weights=f"{GENE_SPEC}/{{source}}/{{corr_method}}_weights/weights.csv",
+        clusters=lambda wc: CLUSTERS_CSV[wc.source]
+    output:
+        f"{GENE_SPEC}/{{source}}/{{corr_method}}_weights/figures/tissue_weight_{{corr_method}}.png"
+    wildcard_constraints:
+        corr_method=r"corr_sum|corr_sq_sum"
+    shell:
+        "python3 scripts/plot_corr_sum_weights.py {input.weights} {input.clusters} {output} {wildcards.corr_method}"
+
+rule plot_tau_corr_sum_scenarios:
+    input:
+        corr_sum_tau=f"{GENE_SPEC}/{{source}}/{{corr_method}}_weights/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, "_max")
+    output:
+        f"{GENE_SPEC}/{{source}}/{{corr_method}}_weights/figures/tau_{{corr_method}}_scenarios_scatter_{{leg}}.png"
+    wildcard_constraints:
+        corr_method=r"corr_sum|corr_sq_sum"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.corr_sum_tau} {input.ref_tau} {output} {wildcards.leg} "
+        "tau_weighted_{wildcards.corr_method} {wildcards.corr_method}-weighted"
