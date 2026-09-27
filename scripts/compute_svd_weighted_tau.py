@@ -1,7 +1,8 @@
 """Weighted tau using SVD/eigendecomposition tissue weights: eigendecompose R (tissue
 x tissue Pearson correlation of log10(TPM+1)) as R = U diag(s) U.T, project phi = U.T @
 ones(n), solve w = U @ (phi / max(s, s_floor)), normalize w /= w.sum(). s_floor=0
-recovers the unregularized GLS solution R^-1 1 exactly (see gls_tau.gls_weights);
+recovers the unregularized inverse-correlation solution R^-1 1 exactly (see
+gls_tau.diag_reg_inv_corr_weights);
 flooring small eigenvalues suppresses the blow-up they'd otherwise cause without
 uniformly shrinking all of R toward I the way diagonal regularization does (see
 gls_tau.svd_weights). Regularized weights use the smallest s_floor that makes every
