@@ -133,6 +133,32 @@ def weighted_tau(mat, w):
     return np.where(max_i > 0, numer / denom, np.nan)
 
 
+def margin_weights(mat):
+    """Margin-weighted exclusivity: per gene, margin = (max - second_max) / max,
+    credited entirely to that gene's max-expressing tissue (same argmax convention as
+    weighted_tau -- ties go to the first occurrence). w_t = sum over genes with
+    argmax==t of margin(g), normalized to sum to 1. A tissue redundant with others
+    (e.g. one of several correlated brain subregions) rarely wins a gene by a wide
+    margin -- a correlated partner is usually close behind -- so it accumulates little
+    weight; a distinctive tissue (e.g. testis) wins its genes decisively and
+    accumulates more. Unlike diag_reg_inv_corr_weights, this never touches the tissue
+    x tissue correlation matrix at all -- it's a summary of the expression matrix
+    itself -- so there is no matrix inversion, no regularization search, and no
+    negative-weight failure mode to guard against: margin(g) in [0,1] by construction,
+    so w is elementwise >= 0 for free. Genes with max<=0 (unexpressed everywhere)
+    contribute 0 to every tissue."""
+    n_genes, n_tissues = mat.shape
+    top2 = -np.sort(-mat, axis=1)[:, :2]
+    max1 = top2[:, 0]
+    max2 = top2[:, 1] if n_tissues > 1 else np.zeros(n_genes)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        margin = np.where(max1 > 0, (max1 - max2) / max1, 0.0)
+    argmax_idx = mat.argmax(axis=1)
+    w = np.zeros(n_tissues)
+    np.add.at(w, argmax_idx, margin)
+    return w / w.sum()
+
+
 def floor_tpm(mat, floor=1.0):
     """TPM<floor -> 0 (treated as unexpressed noise), matches TPM>=1 convention used
     elsewhere in the pipeline (e.g. build_expr_matrix_allgenes.py)."""

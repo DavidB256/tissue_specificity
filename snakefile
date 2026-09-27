@@ -51,12 +51,15 @@ wildcard_constraints:
 #       "_max", always explicit (no bare/unsuffixed default -- mean and max
 #       are on equal footing)
 #   gene filter -- fixed to protein_coding (the whole point of this section)
-#   weighting method (free_weights | free_cluster_weights | diag_reg_inv_corr) --
-#       free_weights/free_cluster_weights share one optimize/combine script
-#       (scripts/optimize_free_weights.py, MODE=tissue|cluster); diag_reg_inv_corr
-#       ("diagonal-regularized inverse correlation") is closed-form
-#       (compute_weighted_tau.py) on the full base_gct, agg-independent (no
-#       leg/agg-specific weight fit needed).
+#   weighting method (free_weights | free_cluster_weights | diag_reg_inv_corr |
+#       margin) -- free_weights/free_cluster_weights share one optimize/combine
+#       script (scripts/optimize_free_weights.py, MODE=tissue|cluster);
+#       diag_reg_inv_corr ("diagonal-regularized inverse correlation") is
+#       closed-form (compute_weighted_tau.py) from the tissue x tissue
+#       correlation matrix; margin (compute_margin_weighted_tau.py) is
+#       closed-form directly from the expression matrix, no correlation matrix
+#       at all (gls_tau.margin_weights). Both diag_reg_inv_corr and margin are
+#       agg/leg-independent (no leg/agg-specific weight fit needed).
 # ============================================================================
 
 GENE_SPEC_GTEX_PC = f"{GENE_SPEC}/gtex_protein_coding"
@@ -596,3 +599,36 @@ rule plot_tau_diag_reg_inv_corr_scenarios:
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.diag_reg_tau} {input.ref_tau} {output} {wildcards.leg} "
         "tau_weighted_diag_reg_inv_corr diagonal-regularized-inverse-corr"
+
+# ---- margin: closed-form weighting directly from the expression matrix (no
+# correlation matrix at all, see gls_tau.margin_weights) applied to the full
+# base_gct, parallel to diag_reg_inv_corr/free/free_cluster but agg/leg-independent
+# and reference-free. Max-agg only for now, same as diag_reg_inv_corr. ----
+
+rule compute_margin_weighted_tau:
+    input:
+        lambda wc: base_gct(wc.source)
+    output:
+        tau=f"{GENE_SPEC}/{{source}}/margin_weights/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/{{source}}/margin_weights/weights.csv"
+    shell:
+        "python3 scripts/compute_margin_weighted_tau.py {input} {output.tau} {output.weights}"
+
+rule plot_margin_weights:
+    input:
+        weights=f"{GENE_SPEC}/{{source}}/margin_weights/weights.csv",
+        clusters=lambda wc: CLUSTERS_CSV[wc.source]
+    output:
+        f"{GENE_SPEC}/{{source}}/margin_weights/figures/tissue_weight_margin.png"
+    shell:
+        "python3 scripts/plot_margin_weights.py {input.weights} {input.clusters} {output}"
+
+rule plot_tau_margin_scenarios:
+    input:
+        margin_tau=f"{GENE_SPEC}/{{source}}/margin_weights/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, "_max")
+    output:
+        f"{GENE_SPEC}/{{source}}/margin_weights/figures/tau_margin_scenarios_scatter_{{leg}}.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter.py {input.margin_tau} {input.ref_tau} {output} {wildcards.leg} "
+        "tau_weighted_margin margin-weighted"
