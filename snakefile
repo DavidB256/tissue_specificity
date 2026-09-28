@@ -194,7 +194,8 @@ rule all:
         # neural genes crossing tau=0.85, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv",
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png"
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -704,3 +705,12 @@ rule plot_tau_vs_frac_brain_hist2d:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png"
     shell:
         "python3 scripts/plot_tau_vs_frac_brain_hist2d.py {input.gct} {input.tau} {output}"
+
+rule plot_tau_vs_frac_brain_hist2d_minfrac:
+    input:
+        gct=lambda wc: base_gct("gtex_protein_coding"),
+        tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge{{min_frac}}.png"
+    shell:
+        "python3 scripts/plot_tau_vs_frac_brain_hist2d.py {input.gct} {input.tau} {output} {wildcards.min_frac}"
