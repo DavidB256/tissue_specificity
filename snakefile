@@ -192,7 +192,9 @@ rule all:
         # noise robustness: unweighted vs free_cluster_weighted, headline leg/max-agg per source
         expand(f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_noise_variance_compare.png", source=SOURCES),
         # neural genes crossing tau=0.85, GTEx onebrain-max free_cluster
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv"
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv",
+        # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -693,3 +695,12 @@ rule list_neural_threshold_crossing_genes:
     shell:
         "python3 scripts/list_neural_threshold_crossing_genes.py {input.gct} {input.tau} {input.name_map} "
         f"{NEURAL_CROSSING_THRESHOLD} " "{output}"
+
+rule plot_tau_vs_frac_brain_hist2d:
+    input:
+        gct=lambda wc: base_gct("gtex_protein_coding"),
+        tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png"
+    shell:
+        "python3 scripts/plot_tau_vs_frac_brain_hist2d.py {input.gct} {input.tau} {output}"
