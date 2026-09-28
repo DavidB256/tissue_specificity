@@ -98,6 +98,7 @@ NOISE_SIGMA = 0.1
 NOISE_N_REPLICATES = 200
 NOISE_SEED = 0
 CROSSING_CATEGORIES = ["above0.5_to_below", "below0.5_to_above", "above0.8_to_below", "below0.8_to_above"]
+NEURAL_CROSSING_THRESHOLD = 0.85
 
 
 def base_gct(source):
@@ -189,7 +190,9 @@ rule all:
         [f"{GENE_SPEC}/{source}/diag_reg_inv_corr_weights/figures/tau_diag_reg_inv_corr_scenarios_scatter_{leg}.png"
          for source, cfg in SOURCES.items() for leg in cfg["legs"]],
         # noise robustness: unweighted vs free_cluster_weighted, headline leg/max-agg per source
-        expand(f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_noise_variance_compare.png", source=SOURCES)
+        expand(f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_noise_variance_compare.png", source=SOURCES),
+        # neural genes crossing tau=0.85, GTEx onebrain-max free_cluster
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -668,3 +671,25 @@ rule plot_noise_variance_compare_free_cluster:
     shell:
         "python3 scripts/plot_jackknife_variance_compare.py {input} {output} '{params.label}' "
         "tau_unweighted_noise_var tau_free_cluster_weighted_noise_var noise free_cluster_weighted"
+
+# ---- GENCODE gene_id -> gene_name reference map + neural genes crossing tau=0.85
+# under free_cluster weighting (GTEx onebrain-max headline leg). ----
+
+rule build_gencode_gene_id_name_map:
+    input:
+        GENCODE_V47_GTF_LOCAL
+    output:
+        f"{GENE_SPEC}/gencode_v47_gene_id_name_map.csv"
+    shell:
+        "python3 scripts/build_gencode_gene_id_name_map.py {input} {output}"
+
+rule list_neural_threshold_crossing_genes:
+    input:
+        gct=lambda wc: base_gct("gtex_protein_coding"),
+        tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        name_map=f"{GENE_SPEC}/gencode_v47_gene_id_name_map.csv"
+    output:
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv"
+    shell:
+        "python3 scripts/list_neural_threshold_crossing_genes.py {input.gct} {input.tau} {input.name_map} "
+        f"{NEURAL_CROSSING_THRESHOLD} " "{output}"
