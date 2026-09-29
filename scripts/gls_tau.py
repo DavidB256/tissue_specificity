@@ -126,11 +126,16 @@ def apply_nonzero_log_noise(mat, sigma, rng):
     (TPM>=1, post floor_tpm) entry; exactly-zero entries (TPM<1, already rounded down)
     are left untouched -- no noise applied to values already floored out. Noisy values
     that drop below the TPM>=1 threshold are NOT re-floored; the floor is a rounding
-    convention for the clean panel, not something re-derived per noisy replicate."""
+    convention for the clean panel, not something re-derived per noisy replicate. The
+    noisy log10(TPM+1) is clipped at 0 (i.e. resulting TPM clipped at 0, never
+    negative) -- TPM<1 isn't re-imposed, but TPM<0 is nonphysical regardless of sigma
+    and must be, especially once sigma is large enough that a negative draw can push a
+    small nonzero entry's log-space value below 0."""
     nonzero = mat > 0
     log_mat = np.log10(mat + 1.0)
     noise = rng.normal(0.0, sigma, size=mat.shape)
     log_noisy = np.where(nonzero, log_mat + noise, log_mat)
+    log_noisy = np.maximum(log_noisy, 0.0)
     return 10.0 ** log_noisy - 1.0
 
 
