@@ -9,15 +9,16 @@ never goes negative (`gls_tau.apply_nonzero_log_noise`) -- negligible at low sig
 a real effect once sigma is large enough for a negative draw to push a small nonzero
 entry below 0 in log-space. 200 replicates, one fixed seed. The weight vector
 (free_cluster_weights, GTEx onebrain-max) is frozen at its already-fitted value, not
-refit per replicate -- it's an aggregate statistic over the whole gene set (~19k
+refit per replicate -- it's an aggregate statistic over the whole gene set (10-20k
 genes) and effectively insensitive to per-cell noise at this scale, so refitting per
 replicate would be expensive (differential_evolution) for no real benefit.
 tau_unweighted and tau_weighted are recomputed per replicate; the per-gene variance
 across the 200 replicates is compared (paired, Wilcoxon signed-rank -- null
 hypothesis: both estimators have equal variance under the same perturbation).
 
-Scope: GTEx onebrain-max free_cluster only. (An earlier pass at sigma=0.1, run for
-both GTEx and Baron, was retired in favor of this single higher-sigma GTEx-only run.)
+Scope: free_cluster_weights_max at each source's headline leg (GTEx onebrain, Baron
+oneislets). (An earlier pass at sigma=0.1 was retired in favor of this higher-sigma
+run.)
 
 Code: `gls_tau.apply_nonzero_log_noise`, `scripts/compute_noise_variance.py`,
 `scripts/plot_jackknife_variance_compare.py` (generic column names + a variance-kind
@@ -26,13 +27,15 @@ label, reused for both jackknife and noise variance). Snakefile rules
 wired into `rule all`.
 
 ## Result
-Null hypothesis rejected (p≈0): tau_weighted (free_cluster) has **higher** per-gene
-noise variance than tau_unweighted, not lower.
+Null hypothesis rejected in both scenarios (p≈0): tau_weighted (free_cluster) has
+**higher** per-gene noise variance than tau_unweighted, not lower.
 - GTEx onebrain-max, sigma=0.5: median var 0.00147 (unweighted) -> 0.00162 (weighted);
-  frac_above=0.713, frac_below=0.236 (per-gene, weighted vs unweighted variance).
+  frac_above=0.713, frac_below=0.236.
+- Baron oneislets-max, sigma=0.5: median var 0.00474 (unweighted) -> 0.00516
+  (weighted); frac_above=0.649, frac_below=0.262.
 
-Same direction as the earlier sigma=0.1 pass (frac_above=0.692), slightly stronger at
-the higher noise level.
+Same direction as the earlier sigma=0.1 pass (GTEx frac_above was 0.692), slightly
+stronger at the higher noise level.
 
 Plausible mechanism: free_cluster weighting concentrates weight onto fewer
 "representative" tissues per redundant cluster. That's exactly the right thing to do
@@ -62,5 +65,3 @@ noise are not the same objective, and can trade off.
    every time.
 5. **Extend to diag_reg_inv_corr and margin** (frozen weights, same script already
    supports arbitrary WEIGHT_COL/WEIGHTS_CSV) -- not run yet.
-6. **Extend to Baron** -- retired when this test moved to sigma=0.5 GTEx-only; could
-   be re-added in parallel if wanted.
