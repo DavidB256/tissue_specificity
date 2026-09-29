@@ -94,8 +94,7 @@ TAU_PLOT_TITLE = {
 }
 # headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
 CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
-NOISE_SIGMA = 0.1
-NOISE_SIGMA_HIGH = 0.5
+NOISE_SIGMA = 0.5
 NOISE_N_REPLICATES = 200
 NOISE_SEED = 0
 CROSSING_CATEGORIES = ["above0.5_to_below", "below0.5_to_above", "above0.8_to_below", "below0.8_to_above"]
@@ -190,15 +189,13 @@ rule all:
         expand(f"{GENE_SPEC}/{{source}}/diag_reg_inv_corr_weights/figures/tissue_weight_diag_reg_inv_corr.png", source=SOURCES),
         [f"{GENE_SPEC}/{source}/diag_reg_inv_corr_weights/figures/tau_diag_reg_inv_corr_scenarios_scatter_{leg}.png"
          for source, cfg in SOURCES.items() for leg in cfg["legs"]],
-        # noise robustness: unweighted vs free_cluster_weighted, headline leg/max-agg per source
-        expand(f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_noise_variance_compare.png", source=SOURCES),
+        # noise robustness (sigma=0.5): unweighted vs free_cluster_weighted, GTEx onebrain-max only
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_noise_variance_compare.png",
         # neural genes crossing tau=0.85, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv",
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
-        # noise robustness at higher sigma (0.5), GTEx onebrain-max free_cluster only
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_noise_variance_compare_sigma{NOISE_SIGMA_HIGH}.png"
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -648,17 +645,18 @@ rule plot_tau_margin_scenarios:
         "tau_weighted_margin margin-weighted"
 
 # ---- noise robustness: Monte Carlo perturbation of log10(TPM+1) (see
-# gls_tau.apply_nonzero_log_noise), weights frozen at their already-fitted value (not
-# refit per replicate -- see applying_noise.md). free_cluster_weights_max at each
-# source's headline leg (CROSSING_THRESHOLD_LEG) for now. ----
+# gls_tau.apply_nonzero_log_noise, which clips noisy TPM at 0), weights frozen at
+# their already-fitted value (not refit per replicate -- see applying_noise.md).
+# GTEx onebrain-max free_cluster only. sigma=0.5 (an earlier sigma=0.1 pass, run for
+# both sources, was retired in favor of this single higher-sigma GTEx-only run). ----
 
 rule compute_noise_variance_free_cluster:
     input:
-        gct=lambda wc: base_gct(wc.source),
-        weights=lambda wc: f"{GENE_SPEC}/{wc.source}/free_cluster_weights_max/{CROSSING_THRESHOLD_LEG[wc.source]}/weights.csv"
+        gct=lambda wc: base_gct("gtex_protein_coding"),
+        weights=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weights.csv"
     output:
-        summary=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/noise_variance/summary.csv",
-        long=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/noise_variance/pergene_long.csv"
+        summary=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/noise_variance/summary.csv",
+        long=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/noise_variance/pergene_long.csv"
     params:
         n=NOISE_N_REPLICATES,
         sigma=NOISE_SIGMA,
@@ -669,39 +667,9 @@ rule compute_noise_variance_free_cluster:
 
 rule plot_noise_variance_compare_free_cluster:
     input:
-        f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/noise_variance/summary.csv"
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/noise_variance/summary.csv"
     output:
-        f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_noise_variance_compare.png"
-    params:
-        label=lambda wc: SOURCES[wc.source]["display"]
-    shell:
-        "python3 scripts/plot_jackknife_variance_compare.py {input} {output} '{params.label}' "
-        "tau_unweighted_noise_var tau_free_cluster_weighted_noise_var noise free_cluster_weighted"
-
-# ---- parallel noise_variance run at higher sigma (0.5 vs the 0.1 above), GTEx
-# onebrain-max free_cluster only. apply_nonzero_log_noise clips noisy TPM at 0 (see
-# gls_tau.py) -- negligible at sigma=0.1 but a real effect at sigma=0.5. ----
-
-rule compute_noise_variance_free_cluster_sigma_high:
-    input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
-        weights=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weights.csv"
-    output:
-        summary=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/noise_variance_sigma{NOISE_SIGMA_HIGH}/summary.csv",
-        long=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/noise_variance_sigma{NOISE_SIGMA_HIGH}/pergene_long.csv"
-    params:
-        n=NOISE_N_REPLICATES,
-        sigma=NOISE_SIGMA_HIGH,
-        seed=NOISE_SEED
-    shell:
-        "python3 scripts/compute_noise_variance.py {input.gct} {input.weights} weight free_cluster "
-        "{params.n} {params.sigma} {params.seed} {output.summary} {output.long}"
-
-rule plot_noise_variance_compare_free_cluster_sigma_high:
-    input:
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/noise_variance_sigma{NOISE_SIGMA_HIGH}/summary.csv"
-    output:
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_noise_variance_compare_sigma{NOISE_SIGMA_HIGH}.png"
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_noise_variance_compare.png"
     params:
         label=SOURCES["gtex_protein_coding"]["display"]
     shell:
