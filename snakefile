@@ -212,7 +212,8 @@ rule all:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
         # gtex_txs: CHESS transcript-level tau (9 tissues) + multi-transcript-gene variance
-        f"{GENE_SPEC_GTEX_TXS}/figures/multitranscript_variance.png"
+        f"{GENE_SPEC_GTEX_TXS}/figures/multitranscript_variance.png",
+        f"{GENE_SPEC_GTEX_TXS}/figures/gene_vs_transcript_tau_variance.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -809,3 +810,20 @@ rule plot_multitranscript_variance:
         f"{GENE_SPEC_GTEX_TXS}/figures/multitranscript_variance.png"
     shell:
         "python3 scripts/plot_multitranscript_variance.py {input} {output}"
+
+rule compute_gene_tau_gtex_txs:
+    input:
+        GTEX_TXS_BASE_GCT
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/gene_tau.csv"
+    shell:
+        "python3 scripts/compute_gene_tau_gtex_txs.py {input} {output}"
+
+rule plot_gene_vs_transcript_tau_variance:
+    input:
+        gene_tau=f"{GENE_SPEC_GTEX_TXS}/gene_tau.csv",
+        multitx=f"{GENE_SPEC_GTEX_TXS}/multitranscript_variance.csv"
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/figures/gene_vs_transcript_tau_variance.png"
+    shell:
+        "python3 scripts/plot_gene_vs_transcript_tau_variance.py {input.gene_tau} {input.multitx} {output}"
