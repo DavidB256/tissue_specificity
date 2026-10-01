@@ -105,6 +105,21 @@ def base_gct(source):
     return f"{GENE_SPEC}/{source}/{STUB[source]}_protein_coding.gct.gz"
 
 
+# ---- gtex_txs: CHESS transcript-level tau on 9 GTEx tissues (Bone_Marrow, Uterus,
+# Vagina, Blood, Lung, Heart, Colon, Fallopian_Tube, Brain). Parallel to gtex/baron in
+# name only -- no legs/agg/method wildcard axes apply (no redundant-tissue group to
+# collapse into a free_weights reference, see gtex-txs-pipeline plan), so kept as its
+# own small non-wildcarded block rather than folded into SOURCES. ----
+
+GENE_SPEC_GTEX_TXS = f"{GENE_SPEC}/gtex_txs"
+GTEX_TXS_RAW_DIR = f"{DATA}/gtex_txs_raw"
+GTEX_SALMON_SRC = "/ccb/salz8-1/avaraby/GTEx_salmon"
+TX_TISSUES = ["Bone_Marrow", "Uterus", "Vagina", "Blood", "Lung", "Heart", "Colon", "Fallopian_Tube", "Brain"]
+CHESS_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/chess3.1.3.annotation.gtf"
+CHESS_GTF_LOCAL = f"{DATA}/chess3.1.3.annotation.gtf"
+GTEX_TXS_BASE_GCT = f"{GENE_SPEC_GTEX_TXS}/transcript_median_tpm_protein_coding.gct.gz"
+
+
 def leg_gct_path(source, leg, agg_suffix=""):
     return f"{GENE_SPEC}/{source}/{leg}{agg_suffix}/{STUB[source]}_{leg}.gct.gz"
 
@@ -195,7 +210,9 @@ rule all:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/crossing_thresholds/onebrain_neural_{NEURAL_CROSSING_THRESHOLD}.csv",
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png"
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
+        # gtex_txs: CHESS transcript-level tau (9 tissues) + multi-transcript-gene variance
+        f"{GENE_SPEC_GTEX_TXS}/figures/multitranscript_variance.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -716,3 +733,79 @@ rule plot_tau_vs_frac_brain_hist2d_minfrac:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge{{min_frac}}.png"
     shell:
         "python3 scripts/plot_tau_vs_frac_brain_hist2d.py {input.gct} {input.tau} {output} {wildcards.min_frac}"
+
+# ---- gtex_txs pipeline (see GENE_SPEC_GTEX_TXS block above) ----
+
+rule link_chess_gtf:
+    output:
+        CHESS_GTF_LOCAL
+    shell:
+        "ln -s {CHESS_GTF} {output}"
+
+rule link_gtex_txs_counts:
+    output:
+        f"{GTEX_TXS_RAW_DIR}/{{tissue}}/tx_counts.txt"
+    wildcard_constraints:
+        tissue = "|".join(TX_TISSUES)
+    shell:
+        "mkdir -p $(dirname {output}) && ln -s {GTEX_SALMON_SRC}/{wildcards.tissue}/tx_counts.txt {output}"
+
+rule build_chess_transcript_meta:
+    input:
+        CHESS_GTF_LOCAL
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
+    shell:
+        "python3 scripts/build_chess_transcript_meta.py {input} {output}"
+
+rule build_gtex_txs_median_tpm:
+    input:
+        counts=expand(f"{GTEX_TXS_RAW_DIR}/{{tissue}}/tx_counts.txt", tissue=TX_TISSUES),
+        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/tissue_median_tpm.csv"
+    shell:
+        "python3 scripts/build_gtex_txs_median_tpm.py {input.meta} {output} {input.counts}"
+
+rule build_gtex_txs_gct:
+    input:
+        tpm=f"{GENE_SPEC_GTEX_TXS}/tissue_median_tpm.csv",
+        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/transcript_median_tpm.gct.gz"
+    shell:
+        "python3 scripts/build_gtex_txs_gct.py {input.tpm} {input.meta} {output}"
+
+rule filter_protein_coding_transcripts_gtex_txs:
+    input:
+        gct=f"{GENE_SPEC_GTEX_TXS}/transcript_median_tpm.gct.gz",
+        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
+    output:
+        GTEX_TXS_BASE_GCT
+    shell:
+        "python3 scripts/filter_protein_coding_transcripts.py {input.gct} {input.meta} {output}"
+
+rule compute_tau_unweighted_gtex_txs:
+    input:
+        GTEX_TXS_BASE_GCT
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/weighted_tau.csv"
+    shell:
+        "python3 scripts/compute_tau_unweighted.py {input} {output}"
+
+rule compute_multitranscript_variance:
+    input:
+        gct=GTEX_TXS_BASE_GCT,
+        tau=f"{GENE_SPEC_GTEX_TXS}/weighted_tau.csv"
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/multitranscript_variance.csv"
+    shell:
+        "python3 scripts/compute_multitranscript_variance.py {input.gct} {input.tau} {output}"
+
+rule plot_multitranscript_variance:
+    input:
+        f"{GENE_SPEC_GTEX_TXS}/multitranscript_variance.csv"
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/figures/multitranscript_variance.png"
+    shell:
+        "python3 scripts/plot_multitranscript_variance.py {input} {output}"
