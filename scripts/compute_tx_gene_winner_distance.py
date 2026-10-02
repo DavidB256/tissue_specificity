@@ -1,14 +1,18 @@
 """Tissue x tissue Pearson correlation matrix of a txs_source's protein-coding
-transcript x tissue TPM matrix, plus per-transcript winner-tissue analysis: the
-tissue where each transcript is most highly expressed ("wins" it) vs. the tissue
-where its gene (transcript TPMs summed per gene_id) wins, and the distance
-(1 - Pearson r, from the corr matrix) between those two tissues. Ties broken to
-the alphabetically-first tissue -- tissue columns are already sorted
-alphabetically upstream (build_gtex_v11_tx_gct.py / build_gtex_txs_gct.py), so
-plain argmax (numpy returns the first max on ties) suffices."""
+transcript x tissue TPM matrix (log10(TPM+1), TPM<1 floored to 0 first -- matches
+compute_tissue_correlation.py's convention), plus per-transcript winner-tissue
+analysis: the tissue where each transcript is most highly expressed ("wins" it,
+by raw TPM -- the log/floor transform is monotonic and doesn't change the
+argmax) vs. the tissue where its gene (transcript TPMs summed per gene_id) wins,
+and the distance (1 - Pearson r, from the corr matrix) between those two
+tissues. Ties broken to the alphabetically-first tissue -- tissue columns are
+already sorted alphabetically upstream (build_gtex_v11_tx_gct.py /
+build_gtex_txs_gct.py), so plain argmax (numpy returns the first max on ties)
+suffices."""
 import sys
 import numpy as np
 import pandas as pd
+from gls_tau import tissue_corr, floor_tpm
 
 IN_GCT = sys.argv[1]
 OUT_CORR_CSV = sys.argv[2]
@@ -19,7 +23,7 @@ tissues = list(df.columns[2:])
 assert tissues == sorted(tissues), "tissue columns must be alphabetically sorted for tie-breaking"
 
 tx_mat = df[tissues].to_numpy()
-corr = pd.DataFrame(np.corrcoef(tx_mat, rowvar=False), index=tissues, columns=tissues)
+corr = pd.DataFrame(tissue_corr(floor_tpm(tx_mat)), index=tissues, columns=tissues)
 corr.to_csv(OUT_CORR_CSV)
 
 gene_mat_df = df.groupby("Description")[tissues].sum()
