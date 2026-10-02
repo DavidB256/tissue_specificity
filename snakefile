@@ -942,4 +942,4 @@ rule plot_gene_vs_transcript_tau_scatter:
     wildcard_constraints:
         txs_source = TXS_SOURCES_RE
     shell:
-        "python3 scripts/plot_gene_vs_transcript_tau_scatter.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {output}"
+        "python3 scripts/plot_gene_vs_transcript_tau_scatter.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {output} {wildcards.txs_source}"
