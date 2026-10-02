@@ -242,7 +242,9 @@ rule all:
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/top_multitranscript_tau_kde.png",
                txs_source=["gtex_txs", "gtex_v11_tx"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
-               txs_source=["gtex_txs", "gtex_v11_tx"])
+               txs_source=["gtex_txs", "gtex_v11_tx"]),
+        # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
+        f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -943,3 +945,24 @@ rule plot_gene_vs_transcript_tau_scatter:
         txs_source = TXS_SOURCES_RE
     shell:
         "python3 scripts/plot_gene_vs_transcript_tau_scatter.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {output} {wildcards.txs_source}"
+
+rule compute_tx_gene_winner_distance:
+    input:
+        lambda wc: TXS_BASE_GCT[wc.txs_source]
+    output:
+        corr=f"{GENE_SPEC}/{{txs_source}}/tissue_correlation_matrix.csv",
+        dist=f"{GENE_SPEC}/{{txs_source}}/tx_gene_winner_distance.csv"
+    wildcard_constraints:
+        txs_source = TXS_SOURCES_RE
+    shell:
+        "python3 scripts/compute_tx_gene_winner_distance.py {input} {output.corr} {output.dist}"
+
+rule plot_tx_gene_winner_distance_hist:
+    input:
+        f"{GENE_SPEC}/{{txs_source}}/tx_gene_winner_distance.csv"
+    output:
+        f"{GENE_SPEC}/{{txs_source}}/figures/tx_gene_winner_distance_hist.png"
+    wildcard_constraints:
+        txs_source = TXS_SOURCES_RE
+    shell:
+        "python3 scripts/plot_tx_gene_winner_distance_hist.py {input} {output}"
