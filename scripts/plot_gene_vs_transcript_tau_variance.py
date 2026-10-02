@@ -1,12 +1,17 @@
 """Two scatterplots, gene-level tau_unweighted (compute_gene_tau_gtex_txs.py) vs. (i)
 tau_range and (ii) tau_var among that gene's own transcripts (compute_multitranscript_
 variance.py -- multi-transcript genes only), points colored by the gene's
-median_log_tpm (median across the 9 tissues of log10(TPM+1), floor_tpm'd)."""
+median_log_tpm (median across the 9 tissues of log10(TPM+1), floor_tpm'd). A red LOESS
+curve (moderately wide bandwidth, frac=0.4) is overlaid on each panel; points are drawn
+at alpha=0.1 so the LOESS trend reads clearly through the dense overplotting."""
 import sys
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
+LOESS_FRAC = 0.4
 
 IN_GENE_TAU_CSV = sys.argv[1]
 IN_MULTITX_CSV = sys.argv[2]
@@ -22,7 +27,9 @@ sc = None
 for ax, (col, ylabel) in zip(axes, panels):
     sub = df.dropna(subset=[col])
     sc = ax.scatter(sub["tau_unweighted"], sub[col], c=sub["median_log_tpm"],
-                     cmap="viridis", s=10, alpha=0.6)
+                     cmap="viridis", s=10, alpha=0.1)
+    smoothed = lowess(sub[col], sub["tau_unweighted"], frac=LOESS_FRAC)
+    ax.plot(smoothed[:, 0], smoothed[:, 1], color="red", linewidth=2)
     ax.set_xlabel("gene tau_unweighted")
     ax.set_ylabel(ylabel)
     ax.set_title(f"{ylabel} vs gene tau (n={len(sub)} genes)")
