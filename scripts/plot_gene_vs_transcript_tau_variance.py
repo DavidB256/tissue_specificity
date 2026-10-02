@@ -1,7 +1,7 @@
 """Scatterplots, gene-level tau_unweighted (compute_gene_tau_gtex_txs.py) vs. (i)
 tau_range and (ii) tau_var among that gene's own transcripts (compute_multitranscript_
 variance.py -- multi-transcript genes only). Row 1 colors points by the gene's
-median_log_tpm (median across the 9 tissues of log10(TPM+1), floor_tpm'd); row 2
+median_log_tpm (median across the 9 tissues of log10(TPM+1), no flooring); row 2
 repeats the same two (x, y) panels colored by n_transcripts (log-scaled -- heavily
 right-skewed, median 4, max ~150) instead. A red LOESS curve (moderately wide
 bandwidth, frac=0.4) is overlaid on every panel; points are drawn at alpha=0.1 so the
