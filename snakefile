@@ -214,7 +214,8 @@ rule all:
         # gtex_txs: CHESS transcript-level tau (9 tissues) + multi-transcript-gene variance
         f"{GENE_SPEC_GTEX_TXS}/figures/multitranscript_variance.png",
         f"{GENE_SPEC_GTEX_TXS}/figures/gene_vs_transcript_tau_variance.png",
-        f"{GENE_SPEC_GTEX_TXS}/figures/top_multitranscript_tau_kde.png"
+        f"{GENE_SPEC_GTEX_TXS}/figures/top_multitranscript_tau_kde.png",
+        f"{GENE_SPEC_GTEX_TXS}/figures/gene_vs_transcript_tau_scatter.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -838,3 +839,13 @@ rule plot_top_multitranscript_tau_kde:
         f"{GENE_SPEC_GTEX_TXS}/figures/top_multitranscript_tau_kde.png"
     shell:
         "python3 scripts/plot_top_multitranscript_tau_kde.py {input.tau} {input.meta} {input.multitx} {output}"
+
+rule plot_gene_vs_transcript_tau_scatter:
+    input:
+        tx_tau=f"{GENE_SPEC_GTEX_TXS}/weighted_tau.csv",
+        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv",
+        gene_tau=f"{GENE_SPEC_GTEX_TXS}/gene_tau.csv"
+    output:
+        f"{GENE_SPEC_GTEX_TXS}/figures/gene_vs_transcript_tau_scatter.png"
+    shell:
+        "python3 scripts/plot_gene_vs_transcript_tau_scatter.py {input.tx_tau} {input.meta} {input.gene_tau} {output}"
