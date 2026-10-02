@@ -844,8 +844,9 @@ rule plot_gene_vs_transcript_tau_scatter:
     input:
         tx_tau=f"{GENE_SPEC_GTEX_TXS}/weighted_tau.csv",
         meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv",
-        gene_tau=f"{GENE_SPEC_GTEX_TXS}/gene_tau.csv"
+        gene_tau=f"{GENE_SPEC_GTEX_TXS}/gene_tau.csv",
+        multitx=f"{GENE_SPEC_GTEX_TXS}/multitranscript_variance.csv"
     output:
         f"{GENE_SPEC_GTEX_TXS}/figures/gene_vs_transcript_tau_scatter.png"
     shell:
-        "python3 scripts/plot_gene_vs_transcript_tau_scatter.py {input.tx_tau} {input.meta} {input.gene_tau} {output}"
+        "python3 scripts/plot_gene_vs_transcript_tau_scatter.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {output}"
