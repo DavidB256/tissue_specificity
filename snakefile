@@ -75,7 +75,8 @@ SOURCES = {
         n_free=10, n_free_cluster=10, display="Baron pancreas (protein-coding)",
     ),
 }
-STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm"}
+STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
+        "gtex_v11_tx": "transcript_median_tpm"}
 RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
 # legacy paths (predate this wildcard scheme, kept as literals rather than migrated --
 # no data movement, see streamline-snakefile.md plan): GTEx nests clusters under a
@@ -91,6 +92,7 @@ CLUSTERS_TAU_CSV = {
 TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
     "baron_protein_coding": "log10 TPM, TPM<1->0, Baron pancreas cell types (protein-coding)",
+    "gtex_v11_tx": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding)",
 }
 # headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
 CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
@@ -163,7 +165,7 @@ AGGS = ["mean", "max"]
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
-    source = r"gtex_protein_coding|baron_protein_coding",
+    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
     method = r"free_weights|free_cluster_weights"
@@ -244,7 +246,9 @@ rule all:
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
                txs_source=["gtex_txs", "gtex_v11_tx"]),
         # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
-        f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png"
+        f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
+        # gtex_v11_tx: tissue correlation matrix + its inverse (standard per-source pipeline)
+        f"{GENE_SPEC}/gtex_v11_tx/figures/corr_and_inverse.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
