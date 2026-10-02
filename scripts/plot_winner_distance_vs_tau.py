@@ -1,12 +1,16 @@
 """2-subfig scatter: (i) tx-gene winner distance vs. gene tau_unweighted, (ii)
 tx-gene winner distance vs. transcript tau_unweighted. Distance is
 1 - Pearson r (log10(TPM+1), TPM<1->0) between a transcript's winning tissue
-and its gene's winning tissue (compute_tx_gene_winner_distance.py)."""
+and its gene's winning tissue (compute_tx_gene_winner_distance.py). Red LOESS
+curve (small bandwidth, frac=LOESS_FRAC) overlaid on each."""
 import sys
 import pandas as pd
+from statsmodels.nonparametric.smoothers_lowess import lowess
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+LOESS_FRAC = 0.05
 
 IN_DIST_CSV = sys.argv[1]
 IN_GENE_TAU_CSV = sys.argv[2]
@@ -24,12 +28,16 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 7))
 
 d0 = df.dropna(subset=["tau_gene", "dist"])
 axes[0].scatter(d0["tau_gene"], d0["dist"], s=8, alpha=0.1, color="steelblue")
+smoothed0 = lowess(d0["dist"], d0["tau_gene"], frac=LOESS_FRAC)
+axes[0].plot(smoothed0[:, 0], smoothed0[:, 1], color="red", linewidth=2)
 axes[0].set_xlabel("gene tau_unweighted")
 axes[0].set_ylabel("tx-gene winner distance (1 - Pearson r)")
 axes[0].set_title(f"distance vs. gene tau (n={len(d0)})")
 
 d1 = df.dropna(subset=["tau_tx", "dist"])
 axes[1].scatter(d1["tau_tx"], d1["dist"], s=8, alpha=0.1, color="steelblue")
+smoothed1 = lowess(d1["dist"], d1["tau_tx"], frac=LOESS_FRAC)
+axes[1].plot(smoothed1[:, 0], smoothed1[:, 1], color="red", linewidth=2)
 axes[1].set_xlabel("transcript tau_unweighted")
 axes[1].set_ylabel("tx-gene winner distance (1 - Pearson r)")
 axes[1].set_title(f"distance vs. transcript tau (n={len(d1)})")
