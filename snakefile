@@ -107,28 +107,12 @@ def base_gct(source):
     return f"{GENE_SPEC}/{source}/{STUB[source]}_protein_coding.gct.gz"
 
 
-# ---- gtex_txs: CHESS transcript-level tau on 9 GTEx tissues (Bone_Marrow, Uterus,
-# Vagina, Blood, Lung, Heart, Colon, Fallopian_Tube, Brain). Parallel to gtex/baron in
-# name only -- no legs/agg/method wildcard axes apply (no redundant-tissue group to
-# collapse into a free_weights reference, see gtex-txs-pipeline plan), so kept as its
-# own small non-wildcarded block rather than folded into SOURCES. ----
-
-GENE_SPEC_GTEX_TXS = f"{GENE_SPEC}/gtex_txs"
-GTEX_TXS_RAW_DIR = f"{DATA}/gtex_txs_raw"
-GTEX_SALMON_SRC = "/ccb/salz8-1/avaraby/GTEx_salmon"
-TX_TISSUES = ["Bone_Marrow", "Uterus", "Vagina", "Blood", "Lung", "Heart", "Colon", "Fallopian_Tube", "Brain"]
-CHESS_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/chess3.1.3.annotation.gtf"
-CHESS_GTF_LOCAL = f"{DATA}/chess3.1.3.annotation.gtf"
-GTEX_TXS_BASE_GCT = f"{GENE_SPEC_GTEX_TXS}/transcript_median_tpm_protein_coding.gct.gz"
-
 # ---- gtex_v11_tx: RSEM transcript-level tau on the full 68-tissue GTEx v11 panel
-# (Ensembl transcript/gene IDs, unlike gtex_txs's CHESS IDs). Downstream analysis
-# (tau/multi-transcript-variance/figures) is identical in shape to gtex_txs, so those
-# 7 steps are wildcarded over {txs_source: gtex_txs|gtex_v11_tx} below (TXS_BASE_GCT/
-# TXS_META_CSV); only raw-data ingestion (symlink+quant-to-GCT vs. download+stream-
-# median-GCT) differs enough to stay source-specific. Unlike gtex_txs, TPM<1 IS
-# floored here -- immediately after the per-tissue median, in build_gtex_v11_tx_gct.py
-# -- per explicit instruction for this source. ----
+# (Ensembl transcript/gene IDs). Downstream analysis (tau/multi-transcript-variance/
+# figures) is wildcarded over {txs_source} below (TXS_BASE_GCT/TXS_META_CSV) --
+# currently a single source, kept wildcarded for easy extension to a future
+# transcript-level source. TPM<1 is floored immediately after the per-tissue median,
+# in build_gtex_v11_tx_gct.py. ----
 
 GENE_SPEC_GTEX_V11_TX = f"{GENE_SPEC}/gtex_v11_tx"
 GTEX_V11_TX_TPM_URL = "https://storage.googleapis.com/adult-gtex/bulk-gex/v11/rna-seq/GTEx_Analysis_2025-08-22_v11_RSEMv1.3.3_transcripts_tpm.txt.gz"
@@ -137,10 +121,9 @@ GTEX_V11_SAMPLE_ATTRS_URL = "https://storage.googleapis.com/adult-gtex/annotatio
 GTEX_V11_SAMPLE_ATTRS_RAW = f"{DATA}/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt"
 GTEX_V11_TX_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX}/transcript_median_tpm_protein_coding.gct.gz"
 
-TXS_SOURCES_RE = r"gtex_txs|gtex_v11_tx"
-TXS_BASE_GCT = {"gtex_txs": GTEX_TXS_BASE_GCT, "gtex_v11_tx": GTEX_V11_TX_BASE_GCT}
+TXS_SOURCES_RE = r"gtex_v11_tx"
+TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT}
 TXS_META_CSV = {
-    "gtex_txs": f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv",
     "gtex_v11_tx": f"{GENE_SPEC_GTEX_V11_TX}/transcript_meta.csv",
 }
 
@@ -236,15 +219,11 @@ rule all:
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
-        # gtex_txs + gtex_v11_tx: transcript-level tau + multi-transcript-gene variance
-        expand(f"{GENE_SPEC}/{{txs_source}}/figures/multitranscript_variance.png",
-               txs_source=["gtex_txs", "gtex_v11_tx"]),
-        expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_variance.png",
-               txs_source=["gtex_txs", "gtex_v11_tx"]),
-        expand(f"{GENE_SPEC}/{{txs_source}}/figures/top_multitranscript_tau_kde.png",
-               txs_source=["gtex_txs", "gtex_v11_tx"]),
-        expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
-               txs_source=["gtex_txs", "gtex_v11_tx"]),
+        # gtex_v11_tx: transcript-level tau + multi-transcript-gene variance
+        f"{GENE_SPEC}/gtex_v11_tx/figures/multitranscript_variance.png",
+        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_vs_transcript_tau_variance.png",
+        f"{GENE_SPEC}/gtex_v11_tx/figures/top_multitranscript_tau_kde.png",
+        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_vs_transcript_tau_scatter.png",
         # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
         f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
         # gtex_v11_tx: tissue correlation matrix + its inverse (standard per-source pipeline)
@@ -777,57 +756,6 @@ rule plot_tau_vs_frac_brain_hist2d_minfrac:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge{{min_frac}}.png"
     shell:
         "python3 scripts/plot_tau_vs_frac_brain_hist2d.py {input.gct} {input.tau} {output} {wildcards.min_frac}"
-
-# ---- gtex_txs raw-data ingestion (CHESS quant, 9 tissues -- see block above) ----
-
-rule link_chess_gtf:
-    output:
-        CHESS_GTF_LOCAL
-    shell:
-        "ln -s {CHESS_GTF} {output}"
-
-rule link_gtex_txs_counts:
-    output:
-        f"{GTEX_TXS_RAW_DIR}/{{tissue}}/tx_counts.txt"
-    wildcard_constraints:
-        tissue = "|".join(TX_TISSUES)
-    shell:
-        "mkdir -p $(dirname {output}) && ln -s {GTEX_SALMON_SRC}/{wildcards.tissue}/tx_counts.txt {output}"
-
-rule build_chess_transcript_meta:
-    input:
-        CHESS_GTF_LOCAL
-    output:
-        f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
-    shell:
-        "python3 scripts/build_chess_transcript_meta.py {input} {output}"
-
-rule build_gtex_txs_median_tpm:
-    input:
-        counts=expand(f"{GTEX_TXS_RAW_DIR}/{{tissue}}/tx_counts.txt", tissue=TX_TISSUES),
-        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
-    output:
-        f"{GENE_SPEC_GTEX_TXS}/tissue_median_tpm.csv"
-    shell:
-        "python3 scripts/build_gtex_txs_median_tpm.py {input.meta} {output} {input.counts}"
-
-rule build_gtex_txs_gct:
-    input:
-        tpm=f"{GENE_SPEC_GTEX_TXS}/tissue_median_tpm.csv",
-        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
-    output:
-        f"{GENE_SPEC_GTEX_TXS}/transcript_median_tpm.gct.gz"
-    shell:
-        "python3 scripts/build_gtex_txs_gct.py {input.tpm} {input.meta} {output}"
-
-rule filter_protein_coding_transcripts_gtex_txs:
-    input:
-        gct=f"{GENE_SPEC_GTEX_TXS}/transcript_median_tpm.gct.gz",
-        meta=f"{GENE_SPEC_GTEX_TXS}/chess_transcript_meta.csv"
-    output:
-        GTEX_TXS_BASE_GCT
-    shell:
-        "python3 scripts/filter_protein_coding_transcripts.py {input.gct} {input.meta} {output}"
 
 # ---- gtex_v11_tx raw-data ingestion (RSEM quant, full 68-tissue panel, Ensembl IDs) ----
 
