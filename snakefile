@@ -992,10 +992,11 @@ rule plot_gene_tau_vs_mean_tx_tau:
         tx_tau=f"{GENE_SPEC}/{{txs_source}}/weighted_tau.csv",
         meta=lambda wc: TXS_META_CSV[wc.txs_source],
         gene_tau=f"{GENE_SPEC}/{{txs_source}}/gene_tau.csv",
-        multitx=f"{GENE_SPEC}/{{txs_source}}/multitranscript_variance.csv"
+        multitx=f"{GENE_SPEC}/{{txs_source}}/multitranscript_variance.csv",
+        gct=lambda wc: TXS_BASE_GCT[wc.txs_source]
     output:
         f"{GENE_SPEC}/{{txs_source}}/figures/gene_tau_vs_mean_tx_tau.png"
     wildcard_constraints:
         txs_source = TXS_SOURCES_RE
     shell:
-        "python3 scripts/plot_gene_tau_vs_mean_tx_tau.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {output} {wildcards.txs_source}"
+        "python3 scripts/plot_gene_tau_vs_mean_tx_tau.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {input.gct} {output} {wildcards.txs_source}"
