@@ -252,7 +252,9 @@ rule all:
         # gtex_v11_tx: tx-gene winner distance vs. gene/tx tau
         f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_tau.png",
         # gtex_v11_tx: gene tau vs. mean transcript tau
-        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_tau_vs_mean_tx_tau.png"
+        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_tau_vs_mean_tx_tau.png",
+        # gtex_v11_tx: log10(TPM+1) vs. tau, gene and tx level, colored by n_transcripts
+        f"{GENE_SPEC}/gtex_v11_tx/figures/log_tpm_vs_tau_by_ntx.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1000,3 +1002,15 @@ rule plot_gene_tau_vs_mean_tx_tau:
         txs_source = TXS_SOURCES_RE
     shell:
         "python3 scripts/plot_gene_tau_vs_mean_tx_tau.py {input.tx_tau} {input.meta} {input.gene_tau} {input.multitx} {input.gct} {output} {wildcards.txs_source}"
+
+rule plot_log_tpm_vs_tau_by_ntx:
+    input:
+        gene_tau=f"{GENE_SPEC}/{{txs_source}}/gene_tau.csv",
+        tx_tau=f"{GENE_SPEC}/{{txs_source}}/weighted_tau.csv",
+        gct=lambda wc: TXS_BASE_GCT[wc.txs_source]
+    output:
+        f"{GENE_SPEC}/{{txs_source}}/figures/log_tpm_vs_tau_by_ntx.png"
+    wildcard_constraints:
+        txs_source = TXS_SOURCES_RE
+    shell:
+        "python3 scripts/plot_log_tpm_vs_tau_by_ntx.py {input.gene_tau} {input.tx_tau} {input.gct} {output} {wildcards.txs_source}"
