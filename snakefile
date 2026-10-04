@@ -76,7 +76,7 @@ SOURCES = {
     ),
 }
 STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
-        "gtex_v11_tx": "transcript_median_tpm"}
+        "gtex_v11_tx": "transcript_median_tpm", "gtex_v11_tx_gene": "gene_median_tpm"}
 RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
 # legacy paths (predate this wildcard scheme, kept as literals rather than migrated --
 # no data movement, see streamline-snakefile.md plan): GTEx nests clusters under a
@@ -84,10 +84,14 @@ RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARO
 CLUSTERS_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/tissue_clusters.csv",
     "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_hierclust0.1.csv",
+    "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/tissue_clusters_hierclust0.1.csv",
+    "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/tissue_clusters_hierclust0.1.csv",
 }
 CLUSTERS_TAU_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
     "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/weighted_tau_hierclust0.1.csv",
+    "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/weighted_tau_hierclust0.1.csv",
+    "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/weighted_tau_hierclust0.1.csv",
 }
 TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
@@ -127,6 +131,24 @@ TXS_META_CSV = {
     "gtex_v11_tx": f"{GENE_SPEC_GTEX_V11_TX}/transcript_meta.csv",
 }
 
+# ---- gtex_v11_tx DE free_cluster_weights, tx and gene resolution, hierclust0.1 leg
+# only, max-agg only (per explicit choice -- see commit history). Gene-level GCT
+# (gtex_v11_tx_gene) sums the already-floored transcript GCT per gene_id; reuses
+# base_gct()/STUB like any other source. Tissue clustering (hierclust0.1) is computed
+# once from the tx-level correlation (already built for the corr_and_inverse figure)
+# and shared by both resolutions -- clustering is a tissue-tissue relationship,
+# independent of whether the expression matrix is at tx or gene resolution. Reuses the
+# generic build_cluster_leg_gct/compute_weighted_tau_leg/optimize_free_cluster_weights_chain
+# rules (source-wildcarded, no SOURCES-dict coupling); combine_free_cluster_weights_chains
+# is NOT reused since it reads SOURCES[source]["n_free_cluster"] -- a bespoke combine
+# rule below hardcodes N_FREE_CLUSTER_GTEX_V11_TX instead, to avoid adding gtex_v11_tx*
+# to SOURCES (which would also auto-wire unrequested margin/diag_reg_inv_corr/
+# noise-variance/free_weights targets via rule all's source=SOURCES expansions). ----
+
+GTEX_V11_TX_GENE_BASE_GCT = base_gct("gtex_v11_tx_gene")
+GTEX_V11_TX_RES_RE = r"gtex_v11_tx|gtex_v11_tx_gene"
+N_FREE_CLUSTER_GTEX_V11_TX = 20
+
 
 def leg_gct_path(source, leg, agg_suffix=""):
     return f"{GENE_SPEC}/{source}/{leg}{agg_suffix}/{STUB[source]}_{leg}.gct.gz"
@@ -148,7 +170,7 @@ AGGS = ["mean", "max"]
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
-    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx",
+    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
     method = r"free_weights|free_cluster_weights"
@@ -235,7 +257,10 @@ rule all:
         # gtex_v11_tx: log10(TPM+1) vs. tau, gene and tx level, colored by n_transcripts
         f"{GENE_SPEC}/gtex_v11_tx/figures/log_tpm_vs_tau_by_ntx.png",
         # gtex_v11_tx: tx-gene winner distance vs. n_transcripts, colored by gene tau
-        f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_ntx.png"
+        f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_ntx.png",
+        # gtex_v11_tx: DE free_cluster_weights (hierclust0.1, max-agg), tx + gene resolution
+        f"{GENE_SPEC}/gtex_v11_tx/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -956,3 +981,44 @@ rule plot_winner_distance_vs_ntx:
         txs_source = TXS_SOURCES_RE
     shell:
         "python3 scripts/plot_winner_distance_vs_ntx.py {input.dist} {input.gene_tau} {input.gct} {output} {wildcards.txs_source}"
+
+# ---- gtex_v11_tx DE free_cluster_weights (tx + gene resolution) -- see block
+# comment near GTEX_V11_TX_GENE_BASE_GCT for design rationale ----
+
+rule build_gtex_v11_tx_gene_gct:
+    input:
+        GTEX_V11_TX_BASE_GCT
+    output:
+        GTEX_V11_TX_GENE_BASE_GCT
+    shell:
+        "python3 scripts/build_gtex_v11_tx_gene_gct.py {input} {output}"
+
+rule compute_tau_cluster_weighted_gtex_v11_tx:
+    input:
+        gct=lambda wc: base_gct(wc.res),
+        linkage=f"{GENE_SPEC_GTEX_V11_TX}/tissue_correlation_linkage.csv",
+        corr=f"{GENE_SPEC_GTEX_V11_TX}/tissue_correlation.csv"
+    output:
+        clusters=f"{GENE_SPEC}/{{res}}/cluster_weights/tissue_clusters_hierclust0.1.csv",
+        tau=f"{GENE_SPEC}/{{res}}/cluster_weights/weighted_tau_hierclust0.1.csv"
+    wildcard_constraints:
+        res = GTEX_V11_TX_RES_RE
+    shell:
+        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
+
+rule combine_free_cluster_weights_chains_gtex_v11_tx:
+    input:
+        lambda wc: expand(f"{GENE_SPEC}/{wc.res}/free_cluster_weights_max/hierclust0.1/chains/chain_{{chain}}/best.csv",
+                           chain=range(N_FREE_CLUSTER_GTEX_V11_TX))
+    output:
+        weights=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/weights.csv",
+        cluster_weights=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/cluster_weights.csv",
+        tau=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        summary=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/chains_summary.csv"
+    wildcard_constraints:
+        res = GTEX_V11_TX_RES_RE
+    params:
+        chains_dir=lambda wc: f"{GENE_SPEC}/{wc.res}/free_cluster_weights_max/hierclust0.1/chains"
+    shell:
+        "python3 scripts/combine_free_weights_chains.py cluster {params.chains_dir} {N_FREE_CLUSTER_GTEX_V11_TX} "
+        "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
