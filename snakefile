@@ -45,7 +45,7 @@ wildcard_constraints:
 # Five decision axes, coordinated through wildcards instead of copy-pasted
 # rule blocks:
 #   source (gtex_protein_coding | baron_protein_coding) -- SOURCES registry
-#   resolution/"leg" (onebrain|oneislets | simplified_0.1) -- per-source, see
+#   resolution/"leg" (onebrain|oneislets | hierclust0.1) -- per-source, see
 #       SOURCES[source]["legs"]
 #   combination method (mean | max) -- {agg_suffix} wildcard, "_mean" or
 #       "_max", always explicit (no bare/unsuffixed default -- mean and max
@@ -67,11 +67,11 @@ GENE_SPEC_BARON_PC = f"{GENE_SPEC}/baron_protein_coding"
 
 SOURCES = {
     "gtex_protein_coding": dict(
-        legs={"onebrain": ("prefix", "Brain"), "simplified_0.1": ("cluster", None)},
+        legs={"onebrain": ("prefix", "Brain"), "hierclust0.1": ("cluster", None)},
         n_free=60, n_free_cluster=20, display="GTEx (protein-coding)",
     ),
     "baron_protein_coding": dict(
-        legs={"oneislets": ("group", BARON_ONEISLETS_MEMBERS), "simplified_0.1": ("cluster", None)},
+        legs={"oneislets": ("group", BARON_ONEISLETS_MEMBERS), "hierclust0.1": ("cluster", None)},
         n_free=10, n_free_cluster=10, display="Baron pancreas (protein-coding)",
     ),
 }
@@ -83,11 +83,11 @@ RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARO
 # "full/" subdir, Baron doesn't.
 CLUSTERS_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/tissue_clusters.csv",
-    "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_simplified_0.1.csv",
+    "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_hierclust0.1.csv",
 }
 CLUSTERS_TAU_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
-    "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/weighted_tau_simplified_0.1.csv",
+    "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/weighted_tau_hierclust0.1.csv",
 }
 TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
@@ -143,7 +143,7 @@ def leg_members(source, leg):
     return val  # kind == "group": explicit member list
 
 
-LEGS_RE = r"onebrain|oneislets|simplified_0\.1"
+LEGS_RE = r"onebrain|oneislets|hierclust0\.1"
 AGGS = ["mean", "max"]
 AGG_SUFFIX_RE = r"_mean|_max"
 
@@ -184,7 +184,7 @@ rule all:
         # per-source: correlation heatmap, dendrogram, full-resolution cluster weights
         expand(f"{GENE_SPEC}/{{source}}/figures/tissue_correlation_clustermap.png", source=SOURCES),
         expand(f"{GENE_SPEC}/{{source}}/figures/corr_and_inverse.png", source=SOURCES),
-        expand(f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_simplified_0.1.png", source=SOURCES),
+        expand(f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_hierclust0.1.png", source=SOURCES),
         # per-source, per-leg, per-agg: leg weighted_tau (reference tau for free_weights)
         [leg_tau_path(source, leg, f"_{agg}")
          for source, cfg in SOURCES.items() for leg in cfg["legs"] for agg in AGGS],
@@ -440,7 +440,7 @@ rule plot_tissue_clusters_dendrogram:
         linkage=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage.csv",
         clusters=lambda wc: CLUSTERS_CSV[wc.source]
     output:
-        f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_simplified_0.1.png"
+        f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_hierclust0.1.png"
     params:
         label=lambda wc: SOURCES[wc.source]["display"]
     shell:
@@ -466,7 +466,7 @@ rule build_cluster_leg_gct:
         gct=lambda wc: base_gct(wc.source),
         clusters=lambda wc: CLUSTERS_CSV[wc.source]
     output:
-        f"{GENE_SPEC}/{{source}}/simplified_0.1{{agg_suffix}}/{{stub}}_simplified_0.1.gct.gz"
+        f"{GENE_SPEC}/{{source}}/hierclust0.1{{agg_suffix}}/{{stub}}_hierclust0.1.gct.gz"
     params:
         agg=lambda wc: wc.agg_suffix.lstrip("_")
     shell:

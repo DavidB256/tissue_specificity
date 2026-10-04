@@ -1,5 +1,5 @@
 """Absolute-value version of plot_tau_delta_scatter.py: scatter |delta_tau| vs
-|delta_tau_w| for each tissue-reduction scenario (onebrain, simplified_0.1). Points
+|delta_tau_w| for each tissue-reduction scenario (onebrain, hierclust0.1). Points
 below the y=x line have |delta_tau_w| < |delta_tau| -- free-weighting shrank the gene's
 tau shift from collapsing tissue resolution, regardless of the shift's sign."""
 import sys
@@ -19,7 +19,7 @@ OUT_PNG = sys.argv[5]
 
 SCENARIOS = [
     ("onebrain", IN_ONEBRAIN_FREE_TAU, IN_ONEBRAIN_REF_TAU),
-    ("simplified_0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
+    ("hierclust0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
 ]
 
 

@@ -1,6 +1,6 @@
 """free_weights analog of plot_tau_cluster_vs_full.py: 4-panel comparison of tau on
 full (68 tissues) vs a reduced-resolution reference (LABEL, e.g. "onebrain" or
-"simplified_0.1" -- unweighted tau on that collapsed-tissue GCT, used as the
+"hierclust0.1" -- unweighted tau on that collapsed-tissue GCT, used as the
 optimization target, see optimize_free_weights.py). Row 1: (1) tau_unweighted vs
 tau_unweighted, (2) tau_free_weighted (full) vs tau_unweighted (reference). Row 2:
 (3) tau vs tau_weighted on full tissues, (4) tau vs tau_weighted on the reference's
@@ -8,7 +8,7 @@ collapsed tissues (tau_weighted_diag_reg_inv_corr). Points colored by gene categ
 max-expressing tissue, full 68-tissue GCT) vs "other", to show how the free_weights
 correction differs across degrees of tissue redundancy (these tissue groups hold many
 highly correlated subtissues). Category set depends on LABEL: onebrain uses Brain vs
-other only; all other labels (e.g. simplified_0.1) use Brain/Kidney/Liver vs other."""
+other only; all other labels (e.g. hierclust0.1) use Brain/Kidney/Liver vs other."""
 import sys
 import numpy as np
 import pandas as pd

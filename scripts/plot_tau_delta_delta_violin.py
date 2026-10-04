@@ -1,8 +1,8 @@
 """Violin plots of DeltaDeltaTau := |delta_tau_w| - |delta_tau| (negative = free
 weighting shrank the tau shift from collapsing tissue resolution, positive = it grew),
-grouped by each gene's most-expressed tissue cluster in simplified_0.1 (dist_threshold=0.1
+grouped by each gene's most-expressed tissue cluster in hierclust0.1 (dist_threshold=0.1
 hierarchical clustering, see identify tissue_clusters.csv). Two rows: onebrain leg,
-simplified_0.1 leg. Same cluster assignment (from the full 68-tissue GCT) is used for
+hierclust0.1 leg. Same cluster assignment (from the full 68-tissue GCT) is used for
 both rows. TPM ties for a gene's max-expressing tissue are broken randomly. Each violin is
 annotated with n and the p-value of a one-sample t-test that the mean is 0."""
 import sys
@@ -28,7 +28,7 @@ rng = np.random.default_rng(0)
 
 SCENARIOS = [
     ("onebrain", IN_ONEBRAIN_FREE_TAU, IN_ONEBRAIN_REF_TAU),
-    ("simplified_0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
+    ("hierclust0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
 ]
 
 
@@ -41,7 +41,7 @@ def load_delta_delta(free_tau_csv, ref_tau_csv):
     return pd.DataFrame({"gene": df["gene"], "delta_delta_tau": delta_tau_w - delta_tau})
 
 
-# per-gene most-expressed tissue -> simplified_0.1 cluster, ties broken randomly
+# per-gene most-expressed tissue -> hierclust0.1 cluster, ties broken randomly
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(gct.columns[2:])
 mat = floor_tpm(gct[tissues].values.astype(float))
@@ -71,7 +71,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
     sns.violinplot(data=dd, x="cluster", y="delta_delta_tau", order=order, ax=ax,
                     color="tab:blue", cut=0, inner="quartile")
     ax.axhline(0, color="gray", lw=1, ls="--")
-    ax.set_xlabel("tissue cluster (labeled by shortest tissue name, simplified_0.1)")
+    ax.set_xlabel("tissue cluster (labeled by shortest tissue name, hierclust0.1)")
     ax.set_ylabel(r"$\Delta\Delta\tau = |\Delta\tau_w| - |\Delta\tau|$")
     ax.set_title(f"full vs {display_label(label)}, n={len(dd)} genes", fontsize=10, pad=14)
     ax.tick_params(axis="x", rotation=30, labelsize=7)
@@ -87,7 +87,7 @@ for ax, (label, free_tau_csv, ref_tau_csv) in zip(axes, SCENARIOS):
         ax.text(i, vals.max() + pad * 0.3, f"n={counts[c]}\np={pval:.1e}",
                 ha="center", va="bottom", fontsize=6, rotation=30)
 
-fig.suptitle(r"$\Delta\Delta\tau$ by gene's most-expressed tissue cluster (simplified_0.1)")
+fig.suptitle(r"$\Delta\Delta\tau$ by gene's most-expressed tissue cluster (hierclust0.1)")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

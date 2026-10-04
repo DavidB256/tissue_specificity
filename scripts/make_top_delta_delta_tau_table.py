@@ -1,6 +1,6 @@
 """Top-20-per-scenario table of genes with the lowest DeltaDeltaTau
 (= |delta_tau_w| - |delta_tau|, most negative = free weighting most shrank the tau shift
-from collapsing tissue resolution), for onebrain and simplified_0.1. Reports each gene's
+from collapsing tissue resolution), for onebrain and hierclust0.1. Reports each gene's
 top-2 most-expressed tissues (from the full 68-tissue GCT) plus tau/tau_weighted in
 the full and alternate (collapsed) scenarios."""
 import sys
@@ -18,7 +18,7 @@ TOP_N = 20
 
 SCENARIOS = [
     ("onebrain", IN_ONEBRAIN_FREE_TAU, IN_ONEBRAIN_REF_TAU),
-    ("simplified_0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
+    ("hierclust0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
 ]
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)

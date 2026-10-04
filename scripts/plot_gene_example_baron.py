@@ -27,7 +27,7 @@ COLLAPSED_NAME = "oneislets"
 AGG_SUFFIX = "" if AGG == "mean" else "_max"
 
 full_gct = pd.read_csv(f"{BARON_DIR}/celltype_tpm_protein_coding.gct.gz", sep="\t", skiprows=2)
-full_tau = pd.read_csv(f"{BARON_DIR}/cluster_weights/weighted_tau_simplified_0.1.csv")
+full_tau = pd.read_csv(f"{BARON_DIR}/cluster_weights/weighted_tau_hierclust0.1.csv")
 collapsed_tau = pd.read_csv(f"{BARON_DIR}/{COLLAPSED_NAME}{AGG_SUFFIX}/weighted_tau.csv")
 free_tau = pd.read_csv(f"{BARON_DIR}/{WEIGHT_MODE}{AGG_SUFFIX}/{COLLAPSED_NAME}/weighted_tau.csv")
 free_weights = pd.read_csv(f"{BARON_DIR}/{WEIGHT_MODE}{AGG_SUFFIX}/{COLLAPSED_NAME}/weights.csv")

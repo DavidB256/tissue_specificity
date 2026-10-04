@@ -1,7 +1,7 @@
 """"free_weights"/"free_cluster_weights": optimize tissue weights directly (not derived
 from any GLS or clustering formula) to maximize the Spearman rank correlation between
 weighted tau on the full-resolution GCT and a fixed reference tau_unweighted on some
-reduced-resolution GCT (e.g. onebrain/oneislets/simplified_0.1, already computed -- see
+reduced-resolution GCT (e.g. onebrain/oneislets/hierclust0.1, already computed -- see
 compute_weighted_tau.py). L-BFGS is not viable here: tau_i(w) is a smooth ratio of two
 linear functions of w (argmax per gene depends only on raw TPM, never on w), but Spearman
 rho only depends on gene RANK order, which is piecewise-constant in w -- a small step in

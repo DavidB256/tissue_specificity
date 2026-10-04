@@ -1,4 +1,4 @@
-"""For each tissue-reduction scenario (onebrain, simplified_0.1), scatter each gene's
+"""For each tissue-reduction scenario (onebrain, hierclust0.1), scatter each gene's
 change in tau caused by collapsing tissue resolution, unweighted vs free-weighted:
   delta_tau   = tau_unweighted(full, 68 tissues)      - tau_unweighted(reduced)
   delta_tau_w = tau_free_weighted(full, 68 tissues)   - tau_unweighted(reduced)
@@ -21,7 +21,7 @@ OUT_PNG = sys.argv[5]
 
 SCENARIOS = [
     ("onebrain", IN_ONEBRAIN_FREE_TAU, IN_ONEBRAIN_REF_TAU),
-    ("simplified_0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
+    ("hierclust0.1", IN_SIMPLIFIED_FREE_TAU, IN_SIMPLIFIED_REF_TAU),
 ]
 
 
