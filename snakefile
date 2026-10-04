@@ -287,7 +287,9 @@ rule all:
         f"{GENE_SPEC}/gtex_v11_tx/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         # gtex_v11_tx_protein_coding: DE free_cluster_weights (hierclust0.1, max-agg), tx only
-        f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
+        f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        # gtex_v11_tx_protein_coding: per-gene isoform information content (entropy + KL)
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -875,6 +877,15 @@ rule build_gtex_v11_tx_pc_meta:
         TXS_META_CSV["gtex_v11_tx_protein_coding"]
     shell:
         "python3 scripts/build_gtex_v11_tx_meta.py {input.gct} {input.name_map} {output}"
+
+rule compute_tx_info_content:
+    input:
+        GTEX_V11_TX_PC_BASE_GCT
+    output:
+        pickle=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_kl_divergence.pkl",
+        csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    shell:
+        "python3 scripts/compute_tx_info_content.py {input} {output.pickle} {output.csv}"
 
 # ---- shared downstream analysis (tau / multi-transcript variance / figures),
 # identical in shape for both sources -- wildcarded over txs_source. ----
