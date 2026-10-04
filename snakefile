@@ -76,7 +76,8 @@ SOURCES = {
     ),
 }
 STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
-        "gtex_v11_tx": "transcript_median_tpm", "gtex_v11_tx_gene": "gene_median_tpm"}
+        "gtex_v11_tx": "transcript_median_tpm", "gtex_v11_tx_gene": "gene_median_tpm",
+        "gtex_v11_tx_protein_coding": "transcript_median_tpm"}
 RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
 # legacy paths (predate this wildcard scheme, kept as literals rather than migrated --
 # no data movement, see streamline-snakefile.md plan): GTEx nests clusters under a
@@ -86,17 +87,20 @@ CLUSTERS_CSV = {
     "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/tissue_clusters_hierclust0.1.csv",
+    "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
 }
 CLUSTERS_TAU_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
     "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/weighted_tau_hierclust0.1.csv",
+    "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
 }
 TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
     "baron_protein_coding": "log10 TPM, TPM<1->0, Baron pancreas cell types (protein-coding)",
     "gtex_v11_tx": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding)",
+    "gtex_v11_tx_protein_coding": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding, strict transcript biotype)",
 }
 # headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
 CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
@@ -125,10 +129,19 @@ GTEX_V11_SAMPLE_ATTRS_URL = "https://storage.googleapis.com/adult-gtex/annotatio
 GTEX_V11_SAMPLE_ATTRS_RAW = f"{DATA}/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt"
 GTEX_V11_TX_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX}/transcript_median_tpm_protein_coding.gct.gz"
 
-TXS_SOURCES_RE = r"gtex_v11_tx"
-TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT}
+# ---- gtex_v11_tx_protein_coding: gtex_v11_tx further filtered to transcripts whose
+# OWN GENCODE v47 transcript_type=="protein_coding" (stricter than gtex_v11_tx's
+# gene-level protein_coding filter, which still admits e.g. NMD/retained-intron
+# isoforms of a coding gene). ----
+
+GENE_SPEC_GTEX_V11_TX_PC = f"{GENE_SPEC}/gtex_v11_tx_protein_coding"
+GTEX_V11_TX_PC_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_median_tpm_protein_coding.gct.gz"
+
+TXS_SOURCES_RE = r"gtex_v11_tx|gtex_v11_tx_protein_coding"
+TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT, "gtex_v11_tx_protein_coding": GTEX_V11_TX_PC_BASE_GCT}
 TXS_META_CSV = {
     "gtex_v11_tx": f"{GENE_SPEC_GTEX_V11_TX}/transcript_meta.csv",
+    "gtex_v11_tx_protein_coding": f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_meta.csv",
 }
 
 # ---- gtex_v11_tx DE free_cluster_weights, tx and gene resolution, hierclust0.1 leg
@@ -146,8 +159,16 @@ TXS_META_CSV = {
 # noise-variance/free_weights targets via rule all's source=SOURCES expansions). ----
 
 GTEX_V11_TX_GENE_BASE_GCT = base_gct("gtex_v11_tx_gene")
-GTEX_V11_TX_RES_RE = r"gtex_v11_tx|gtex_v11_tx_gene"
+GTEX_V11_TX_RES_RE = r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding"
 N_FREE_CLUSTER_GTEX_V11_TX = 20
+# which dir's own tissue_correlation.csv/linkage.csv each DE "res" clusters against --
+# gtex_v11_tx_gene reuses the tx-level basis (same tissue-tissue relationship, see
+# comment above); gtex_v11_tx_protein_coding gets its own (different transcript set).
+CLUSTER_CORR_BASIS = {
+    "gtex_v11_tx": "gtex_v11_tx",
+    "gtex_v11_tx_gene": "gtex_v11_tx",
+    "gtex_v11_tx_protein_coding": "gtex_v11_tx_protein_coding",
+}
 
 
 def leg_gct_path(source, leg, agg_suffix=""):
@@ -170,7 +191,7 @@ AGGS = ["mean", "max"]
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
-    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene",
+    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
     method = r"free_weights|free_cluster_weights"
@@ -241,11 +262,15 @@ rule all:
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
-        # gtex_v11_tx: transcript-level tau + multi-transcript-gene variance
-        f"{GENE_SPEC}/gtex_v11_tx/figures/multitranscript_variance.png",
-        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_vs_transcript_tau_variance.png",
-        f"{GENE_SPEC}/gtex_v11_tx/figures/top_multitranscript_tau_kde.png",
-        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_vs_transcript_tau_scatter.png",
+        # gtex_v11_tx + gtex_v11_tx_protein_coding: transcript-level tau + multi-transcript-gene variance
+        expand(f"{GENE_SPEC}/{{txs_source}}/figures/multitranscript_variance.png",
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+        expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_variance.png",
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+        expand(f"{GENE_SPEC}/{{txs_source}}/figures/top_multitranscript_tau_kde.png",
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+        expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
         # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
         f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
         # gtex_v11_tx: tissue correlation matrix + its inverse (standard per-source pipeline)
@@ -260,7 +285,9 @@ rule all:
         f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_ntx.png",
         # gtex_v11_tx: DE free_cluster_weights (hierclust0.1, max-agg), tx + gene resolution
         f"{GENE_SPEC}/gtex_v11_tx/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
+        f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        # gtex_v11_tx_protein_coding: DE free_cluster_weights (hierclust0.1, max-agg), tx only
+        f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -831,6 +858,24 @@ rule build_gtex_v11_tx_meta:
     shell:
         "python3 scripts/build_gtex_v11_tx_meta.py {input.gct} {input.name_map} {output}"
 
+rule filter_protein_coding_transcripts_gtex_v11_tx_pc:
+    input:
+        gct=GTEX_V11_TX_BASE_GCT,
+        gencode=GENCODE_V47_GTF_LOCAL
+    output:
+        GTEX_V11_TX_PC_BASE_GCT
+    shell:
+        "python3 scripts/filter_protein_coding_transcript_biotype.py {input.gct} {input.gencode} {output}"
+
+rule build_gtex_v11_tx_pc_meta:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        name_map=f"{GENE_SPEC}/gencode_v47_gene_id_name_map.csv"
+    output:
+        TXS_META_CSV["gtex_v11_tx_protein_coding"]
+    shell:
+        "python3 scripts/build_gtex_v11_tx_meta.py {input.gct} {input.name_map} {output}"
+
 # ---- shared downstream analysis (tau / multi-transcript variance / figures),
 # identical in shape for both sources -- wildcarded over txs_source. ----
 
@@ -996,8 +1041,8 @@ rule build_gtex_v11_tx_gene_gct:
 rule compute_tau_cluster_weighted_gtex_v11_tx:
     input:
         gct=lambda wc: base_gct(wc.res),
-        linkage=f"{GENE_SPEC_GTEX_V11_TX}/tissue_correlation_linkage.csv",
-        corr=f"{GENE_SPEC_GTEX_V11_TX}/tissue_correlation.csv"
+        linkage=lambda wc: f"{GENE_SPEC}/{CLUSTER_CORR_BASIS[wc.res]}/tissue_correlation_linkage.csv",
+        corr=lambda wc: f"{GENE_SPEC}/{CLUSTER_CORR_BASIS[wc.res]}/tissue_correlation.csv"
     output:
         clusters=f"{GENE_SPEC}/{{res}}/cluster_weights/tissue_clusters_hierclust0.1.csv",
         tau=f"{GENE_SPEC}/{{res}}/cluster_weights/weighted_tau_hierclust0.1.csv"
