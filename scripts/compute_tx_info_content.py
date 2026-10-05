@@ -18,25 +18,41 @@ gene's overall pattern. Equivalently: the mutual information between "which
 transcript" and "which tissue" under the model tx ~ p_i, tissue ~
 tx's own tissue pmf.
 
+Also adds two tau_free_weighted-based columns (DE free_cluster_weights,
+hierclust0.1 leg, max-agg -- the shared per-tissue weight vector fit on this
+source's transcripts, IN_WEIGHTS_CSV): tx_tau_weighted_mean, the same p_i-
+weighted average as weighted_kl but of each expressed transcript's own
+tau_free_weighted (IN_TX_TAU_CSV); and gene_tau_weighted, this gene's own
+tau_free_weighted computed by applying that SAME shared weight vector to the
+gene's aggregated (summed-isoform) tissue profile -- no separate gene-level
+DE fit needed, since it's the one weight vector already fit at tx resolution.
+
 Writes two outputs: OUT_PICKLE, a dict gene_id -> {transcript_id: (tx_total_tpm,
 KL_i)} for every expressed transcript, and OUT_CSV with one row per gene:
 gene_id, n_tx (expressed transcripts used), H, H_norm, effective_n,
-weighted_kl. Genes with zero expressed transcripts (every isoform floored to
-0 TPM in every tissue) are dropped -- no distribution to measure."""
+weighted_kl, tx_tau_weighted_mean, gene_tau_weighted. Genes with zero
+expressed transcripts (every isoform floored to 0 TPM in every tissue) are
+dropped -- no distribution to measure."""
 import sys
 import pickle
 import numpy as np
 import pandas as pd
+from gls_tau import weighted_tau
 
 IN_GCT = sys.argv[1]
-OUT_PICKLE = sys.argv[2]
-OUT_CSV = sys.argv[3]
+IN_WEIGHTS_CSV = sys.argv[2]
+IN_TX_TAU_CSV = sys.argv[3]
+OUT_PICKLE = sys.argv[4]
+OUT_CSV = sys.argv[5]
 
 df = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(df.columns[2:])
 mat = df[tissues].to_numpy(dtype=float)
 tx_ids = df["Name"].to_numpy()
 gene_ids = df["Description"].to_numpy()
+
+w = pd.read_csv(IN_WEIGHTS_CSV).set_index("tissue").loc[tissues]["weight"].to_numpy()
+tx_tau_w = pd.read_csv(IN_TX_TAU_CSV).set_index("gene")["tau_free_weighted"]
 
 tx_total = mat.sum(axis=1)
 keep = tx_total > 0
@@ -65,17 +81,22 @@ for gene_id in pd.unique(gene_ids):
 
     gene_entry = {}
     weighted_kl = 0.0
+    tx_tau_weighted_mean = 0.0
     for j, i in enumerate(idx):
         mask = tx_pmf[i] > 0
         ratio = np.divide(tx_pmf[i], gene_pmf, out=np.ones_like(tx_pmf[i]), where=mask)
         kl = float(np.sum(np.where(mask, tx_pmf[i] * np.log2(ratio), 0.0)))
         gene_entry[tx_ids[i]] = (float(tx_total[i]), kl)
         weighted_kl += p[j] * kl
+        tx_tau_weighted_mean += p[j] * tx_tau_w[tx_ids[i]]
     out_dict[gene_id] = gene_entry
+
+    gene_tau_weighted = float(weighted_tau(gene_profile[None, :], w)[0])
 
     rows.append({
         "gene_id": gene_id, "n_tx": n, "H": H, "H_norm": H_norm,
         "effective_n": effective_n, "weighted_kl": weighted_kl,
+        "tx_tau_weighted_mean": tx_tau_weighted_mean, "gene_tau_weighted": gene_tau_weighted,
     })
 
 with open(OUT_PICKLE, "wb") as f:
