@@ -291,7 +291,8 @@ rule all:
         # gtex_v11_tx_protein_coding: per-gene isoform information content (entropy + KL)
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_weighted.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_weighted.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -906,6 +907,14 @@ rule plot_gene_vs_tx_tau_weighted:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_weighted.png"
     shell:
         "python3 scripts/plot_gene_vs_tx_tau_weighted.py {input} {output}"
+
+rule plot_weighted_kl_vs_tau:
+    input:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png"
+    shell:
+        "python3 scripts/plot_weighted_kl_vs_tau.py {input} {output}"
 
 # ---- shared downstream analysis (tau / multi-transcript variance / figures),
 # identical in shape for both sources -- wildcarded over txs_source. ----
