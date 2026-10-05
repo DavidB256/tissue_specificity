@@ -289,7 +289,8 @@ rule all:
         # gtex_v11_tx_protein_coding: DE free_cluster_weights (hierclust0.1, max-agg), tx only
         f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         # gtex_v11_tx_protein_coding: per-gene isoform information content (entropy + KL)
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -886,6 +887,14 @@ rule compute_tx_info_content:
         csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
     shell:
         "python3 scripts/compute_tx_info_content.py {input} {output.pickle} {output.csv}"
+
+rule plot_effective_n_vs_weighted_kl:
+    input:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png"
+    shell:
+        "python3 scripts/plot_effective_n_vs_weighted_kl.py {input} {output}"
 
 # ---- shared downstream analysis (tau / multi-transcript variance / figures),
 # identical in shape for both sources -- wildcarded over txs_source. ----
