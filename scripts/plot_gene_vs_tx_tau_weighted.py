@@ -1,9 +1,10 @@
 """Scatter: one point per gene, x=gene_tau_weighted (gene's own tau_free_weighted,
 shared hierclust0.1/max-agg DE weight vector applied to the gene's aggregated
-tissue profile), y=tx_tau_weighted_mean (TPM-share-weighted average of its
-expressed transcripts' own tau_free_weighted) -- both from
-compute_tx_info_content.py's tx_info_content.csv. OLS fit (equation + 95% CIs
-for b0/b1 in the legend) and a red LOESS curve overlaid."""
+tissue profile), y=tx_tau_weighted_rms (TPM-share-weighted quadratic mean,
+sqrt(sum p_i * tau_free_weighted_i^2), of its expressed transcripts' own
+tau_free_weighted) -- both from compute_tx_info_content.py's
+tx_info_content.csv. OLS fit (equation + 95% CIs for b0/b1 in the legend) and
+a red LOESS curve overlaid."""
 import sys
 import numpy as np
 import pandas as pd
@@ -18,9 +19,9 @@ LOESS_FRAC = 0.4
 IN_CSV = sys.argv[1]
 OUT_PNG = sys.argv[2]
 
-df = pd.read_csv(IN_CSV).dropna(subset=["gene_tau_weighted", "tx_tau_weighted_mean"])
+df = pd.read_csv(IN_CSV).dropna(subset=["gene_tau_weighted", "tx_tau_weighted_rms"])
 x = df["gene_tau_weighted"].to_numpy()
-y = df["tx_tau_weighted_mean"].to_numpy()
+y = df["tx_tau_weighted_rms"].to_numpy()
 
 model = sm.OLS(y, sm.add_constant(x)).fit()
 b0, b1 = model.params
@@ -41,7 +42,7 @@ smoothed = lowess(y, x, frac=LOESS_FRAC)
 ax.plot(smoothed[:, 0], smoothed[:, 1], color="darkorange", linewidth=2, label="LOESS")
 
 ax.set_xlabel("gene tau_weighted (free_cluster_weights, hierclust0.1, max-agg)")
-ax.set_ylabel("TPM-weighted mean transcript tau_weighted")
+ax.set_ylabel("TPM-weighted RMS transcript tau_weighted")
 ax.set_title(f"gtex_v11_tx_protein_coding: gene vs. tx tau_weighted (n={len(df)} genes)")
 ax.legend(loc="lower right", fontsize=9)
 fig.tight_layout()
