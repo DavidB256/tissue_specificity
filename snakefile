@@ -292,7 +292,13 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_weighted.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_share_hist.png",
+        # gtex_v11_tx_protein_coding: donor-level multi-sample bootstrap (SE(tau), SE(TPM), P(tx_tau>gene_tau))
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tpm_se.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tpm_se.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tau_summary.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -915,6 +921,36 @@ rule plot_weighted_kl_vs_tau:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png"
     shell:
         "python3 scripts/plot_weighted_kl_vs_tau.py {input} {output}"
+
+rule plot_tx_share_hist:
+    input:
+        GTEX_V11_TX_PC_BASE_GCT
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_share_hist.png"
+    shell:
+        "python3 scripts/plot_tx_share_hist.py {input} {output}"
+
+N_BOOTSTRAP_GTEX_V11_TX_PC = 200
+BOOTSTRAP_SEED_GTEX_V11_TX_PC = 0
+
+rule bootstrap_gtex_v11_tx_protein_coding:
+    input:
+        raw_tpm=GTEX_V11_TX_TPM_RAW,
+        sample_tissue=f"{GENE_SPEC_GTEX_V11_TX}/sample_tissue_map.csv",
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        weights=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weights.csv"
+    output:
+        tx_tpm_se=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tpm_se.csv",
+        gene_tpm_se=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tpm_se.csv",
+        tx_tau_summary=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv",
+        gene_tau_summary=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tau_summary.csv"
+    params:
+        out_dir=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap",
+        n=N_BOOTSTRAP_GTEX_V11_TX_PC,
+        seed=BOOTSTRAP_SEED_GTEX_V11_TX_PC
+    shell:
+        "python3 scripts/bootstrap_gtex_v11_tx_protein_coding.py {input.raw_tpm} {input.sample_tissue} "
+        "{input.gct} {input.weights} {params.out_dir} {params.n} {params.seed}"
 
 # ---- shared downstream analysis (tau / multi-transcript variance / figures),
 # identical in shape for both sources -- wildcarded over txs_source. ----
