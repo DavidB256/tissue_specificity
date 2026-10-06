@@ -63,32 +63,31 @@ df = df[df["n_tx"] >= 2]
 
 df["tau_diff_weighted"] = df["tx_tau_weighted"] - df["gene_tau_weighted"]
 df["tau_diff_unweighted"] = df["tx_tau_unweighted"] - df["gene_tau_unweighted"]
-df["p_weighted"] = 2 * np.minimum(df["prob_tx_tau_gt_gene_weighted"], 1 - df["prob_tx_tau_gt_gene_weighted"])
-df["p_unweighted"] = 2 * np.minimum(df["prob_tx_tau_gt_gene_unweighted"], 1 - df["prob_tx_tau_gt_gene_unweighted"])
 
 df = df.dropna(subset=[
     "isoform_fraction", "tx_tau_weighted", "tau_diff_weighted", "prob_tx_tau_gt_gene_weighted",
     "tx_tau_unweighted", "tau_diff_unweighted", "prob_tx_tau_gt_gene_unweighted",
 ])
 
+# one-sided bootstrap p-value for "tx tau > gene tau" is 1 - prob(tx tau > gene tau)
 SIG_COLOR, NONSIG_COLOR = "crimson", "steelblue"
 
 
 def scatter_by_sig(ax, x, y, sig):
-    ax.scatter(x[~sig], y[~sig], s=8, alpha=0.1, color=NONSIG_COLOR, label="p>=0.05")
-    ax.scatter(x[sig], y[sig], s=8, alpha=0.1, color=SIG_COLOR, label="p<0.05")
+    ax.scatter(x[~sig], y[~sig], s=8, alpha=0.1, color=NONSIG_COLOR, label="not significant")
+    ax.scatter(x[sig], y[sig], s=8, alpha=0.1, color=SIG_COLOR, label="p<0.05 (tx tau > gene tau)")
 
 
 rows = [
-    ("weighted", "p_weighted", "tx_tau_weighted", "tau_diff_weighted", "prob_tx_tau_gt_gene_weighted",
+    ("weighted", "prob_tx_tau_gt_gene_weighted", "tx_tau_weighted", "tau_diff_weighted", "prob_tx_tau_gt_gene_weighted",
      "tx tau_weighted", "tx tau_weighted - gene tau_weighted", "P(tx tau_weighted > gene tau_weighted)"),
-    ("unweighted", "p_unweighted", "tx_tau_unweighted", "tau_diff_unweighted", "prob_tx_tau_gt_gene_unweighted",
+    ("unweighted", "prob_tx_tau_gt_gene_unweighted", "tx_tau_unweighted", "tau_diff_unweighted", "prob_tx_tau_gt_gene_unweighted",
      "tx tau_unweighted", "tx tau_unweighted - gene tau_unweighted", "P(tx tau_unweighted > gene tau_unweighted)"),
 ]
 
 fig, axes = plt.subplots(2, 3, figsize=(18, 12))
 for r, (tag, pcol, y1, y2, y3, ylab1, ylab2, ylab3) in enumerate(rows):
-    sig = df[pcol] < 0.05
+    sig = df[pcol] >= 0.95
     for c, (ycol, ylab) in enumerate([(y1, ylab1), (y2, ylab2), (y3, ylab3)]):
         ax = axes[r, c]
         scatter_by_sig(ax, df["isoform_fraction"], df[ycol], sig)
@@ -103,5 +102,5 @@ fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)
 
-print(f"n={len(df)} n_sig_weighted={int((df['p_weighted']<0.05).sum())} "
-      f"n_sig_unweighted={int((df['p_unweighted']<0.05).sum())} -> {OUT_PNG}", file=sys.stderr)
+print(f"n={len(df)} n_sig_weighted={int((df['prob_tx_tau_gt_gene_weighted']>=0.95).sum())} "
+      f"n_sig_unweighted={int((df['prob_tx_tau_gt_gene_unweighted']>=0.95).sum())} -> {OUT_PNG}", file=sys.stderr)
