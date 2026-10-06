@@ -298,7 +298,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tpm_se.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tpm_se.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tau_summary.csv"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tau_summary.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/isoform_fraction_vs_tau.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -932,6 +933,18 @@ rule plot_tx_share_hist:
 
 N_BOOTSTRAP_GTEX_V11_TX_PC = 200
 BOOTSTRAP_SEED_GTEX_V11_TX_PC = 0
+
+rule plot_isoform_fraction_vs_tau:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
+        bootstrap_tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/isoform_fraction_vs_tau.png"
+    shell:
+        "python3 scripts/plot_isoform_fraction_vs_tau.py {input.gct} {input.tx_tau} {input.info_content} "
+        "{input.bootstrap_tx_tau} {output}"
 
 rule bootstrap_gtex_v11_tx_protein_coding:
     input:
