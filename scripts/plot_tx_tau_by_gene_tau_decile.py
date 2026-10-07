@@ -1,8 +1,10 @@
-"""10 violin plots, one per decile bin of gene tau_weighted ([0,0.1), [0.1,0.2),
-..., [0.9,1.0]), gtex_v11_tx_protein_coding. Each violin: tx tau_weighted for
-"significant" transcripts -- txs contributing >=10% of their gene's total
-expression (isoform_fraction = tx_total / gene_total TPM, from the base GCT,
-tx_total>0 only). n annotated per bin (can be 0 for low-tau bins)."""
+"""Violin plots of gene tau_weighted bins ([0.2,0.3), [0.3,0.4), ..., [0.8,0.9),
+[0.9,0.95), [0.95,1.0] -- <0.2 dropped, always empty; top decile split at 0.95),
+gtex_v11_tx_protein_coding (already gene-level protein_coding filtered in the
+base GCT). Each violin: tx tau_weighted for "significant" transcripts -- txs
+contributing >=10% of their gene's total expression (isoform_fraction =
+tx_total / gene_total TPM, from the base GCT, tx_total>0 only). n annotated
+per bin (can be 0)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -41,13 +43,12 @@ df = df.dropna(subset=["isoform_fraction", "tx_tau_weighted", "gene_tau_weighted
 
 sig = df[df["isoform_fraction"] >= SIG_FRACTION].copy()
 
-bin_edges = np.linspace(0, 1, 11)
-bin_edges[-1] += 1e-9
-bin_labels = [f"[{bin_edges[i]:.1f},{min(bin_edges[i+1], 1.0):.1f})" for i in range(10)]
-bin_labels[-1] = "[0.9,1.0]"
-sig["bin"] = pd.cut(sig["gene_tau_weighted"], bins=bin_edges, right=False, labels=range(10))
+bin_edges = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0 + 1e-9]
+n_bins = len(bin_edges) - 1
+bin_labels = [f"[{bin_edges[i]:.2f},{bin_edges[i+1]:.2f})" for i in range(n_bins - 1)] + ["[0.95,1.00]"]
+sig["bin"] = pd.cut(sig["gene_tau_weighted"], bins=bin_edges, right=False, labels=range(n_bins))
 
-groups = [sig.loc[sig["bin"] == b, "tx_tau_weighted"].dropna().values for b in range(10)]
+groups = [sig.loc[sig["bin"] == b, "tx_tau_weighted"].dropna().values for b in range(n_bins)]
 ns = [len(g) for g in groups]
 
 fig, ax = plt.subplots(figsize=(14, 7))
@@ -59,7 +60,7 @@ if nonempty:
         pc.set_facecolor("steelblue")
         pc.set_alpha(0.5)
 
-ax.set_xticks(range(1, 11))
+ax.set_xticks(range(1, n_bins + 1))
 ax.set_xticklabels([f"{lab}\nn={n}" for lab, n in zip(bin_labels, ns)], fontsize=8)
 ax.set_xlabel("gene tau_weighted decile bin")
 ax.set_ylabel("tx tau_weighted")
