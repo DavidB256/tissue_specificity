@@ -302,7 +302,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/isoform_fraction_vs_tau.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_tau_by_all_tx_sig.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -978,6 +979,16 @@ rule plot_specific_isoform_tissue_contribution:
     shell:
         "python3 scripts/plot_specific_isoform_tissue_contribution.py {input.gct} {input.specific_isoform} "
         "{input.clusters} {output}"
+
+rule plot_tx_tau_by_gene_tau_decile:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png"
+    shell:
+        "python3 scripts/plot_tx_tau_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule bootstrap_gtex_v11_tx_protein_coding:
     input:
