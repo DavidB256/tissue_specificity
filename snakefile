@@ -971,11 +971,13 @@ rule find_specific_isoform_genes:
 rule plot_specific_isoform_tissue_contribution:
     input:
         gct=GTEX_V11_TX_PC_BASE_GCT,
-        specific_isoform=f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv"
+        specific_isoform=f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv",
+        clusters=CLUSTERS_CSV["gtex_v11_tx_protein_coding"]
     output:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png"
     shell:
-        "python3 scripts/plot_specific_isoform_tissue_contribution.py {input.gct} {input.specific_isoform} {output}"
+        "python3 scripts/plot_specific_isoform_tissue_contribution.py {input.gct} {input.specific_isoform} "
+        "{input.clusters} {output}"
 
 rule bootstrap_gtex_v11_tx_protein_coding:
     input:
