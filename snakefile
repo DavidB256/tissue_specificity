@@ -303,7 +303,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_tau_by_all_tx_sig.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png",
+        f"{GENE_SPEC}/mxe_chr1_test.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -989,6 +990,14 @@ rule plot_tx_tau_by_gene_tau_decile:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png"
     shell:
         "python3 scripts/plot_tx_tau_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
+
+rule find_mutually_exclusive_exons_chr1:
+    input:
+        GENCODE_V47_GTF_LOCAL
+    output:
+        f"{GENE_SPEC}/mxe_chr1_test.csv"
+    shell:
+        "python3 scripts/find_mutually_exclusive_exons.py {input} {output} chr1"
 
 rule bootstrap_gtex_v11_tx_protein_coding:
     input:
