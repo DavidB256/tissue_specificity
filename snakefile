@@ -304,7 +304,9 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png",
-        f"{GENE_SPEC}/mxe_chr1_test.csv"
+        f"{GENE_SPEC}/mxe_chr1_test.csv",
+        f"{GENE_SPEC}/transcript_tss.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -797,6 +799,14 @@ rule build_gencode_gene_id_name_map:
     shell:
         "python3 scripts/build_gencode_gene_id_name_map.py {input} {output}"
 
+rule extract_transcript_tss:
+    input:
+        GENCODE_V47_GTF_LOCAL
+    output:
+        f"{GENE_SPEC}/transcript_tss.csv"
+    shell:
+        "python3 scripts/extract_transcript_tss.py {input} {output}"
+
 rule list_neural_threshold_crossing_genes:
     input:
         gct=lambda wc: base_gct("gtex_protein_coding"),
@@ -998,6 +1008,16 @@ rule find_mutually_exclusive_exons_chr1:
         f"{GENE_SPEC}/mxe_chr1_test.csv"
     shell:
         "python3 scripts/find_mutually_exclusive_exons.py {input} {output} chr1"
+
+rule plot_tau_vs_tss_variance:
+    input:
+        tss=f"{GENE_SPEC}/transcript_tss.csv",
+        transcript_meta=TXS_META_CSV["gtex_v11_tx_protein_coding"],
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png"
+    shell:
+        "python3 scripts/plot_tau_vs_tss_variance.py {input.tss} {input.transcript_meta} {input.info_content} {output}"
 
 rule bootstrap_gtex_v11_tx_protein_coding:
     input:
