@@ -63,7 +63,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-neg_log10_p = -np.log10(out["p_value"].clip(lower=1e-300))
+neg_log10_p = -np.log10(out["p_value"].clip(lower=1e-6))
 
 fig, ax = plt.subplots(figsize=(8, 7))
 ax.scatter(out["gene_tau_weighted"], neg_log10_p, s=5, alpha=0.3)
