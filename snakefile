@@ -1013,11 +1013,13 @@ rule plot_tau_vs_tss_variance:
     input:
         tss=f"{GENE_SPEC}/transcript_tss.csv",
         transcript_meta=TXS_META_CSV["gtex_v11_tx_protein_coding"],
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
+        specific_isoform=f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv"
     output:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png"
     shell:
-        "python3 scripts/plot_tau_vs_tss_variance.py {input.tss} {input.transcript_meta} {input.info_content} {output}"
+        "python3 scripts/plot_tau_vs_tss_variance.py {input.tss} {input.transcript_meta} {input.info_content} "
+        "{input.specific_isoform} {output}"
 
 rule bootstrap_gtex_v11_tx_protein_coding:
     input:
