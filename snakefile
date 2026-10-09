@@ -308,7 +308,9 @@ rule all:
         f"{GENE_SPEC}/transcript_tss.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_sig.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_sig.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_anova_by_tss.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_anova_by_tss_pval.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1022,6 +1024,19 @@ rule plot_gene_vs_tx_tau_sig:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_sig.png"
     shell:
         "python3 scripts/plot_gene_vs_tx_tau_sig.py {input.gct} {input.tx_tau} {input.info_content} {output}"
+
+rule anova_tau_deviation_by_tss:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
+        tss=f"{GENE_SPEC}/transcript_tss.csv"
+    output:
+        csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_anova_by_tss.csv",
+        png=f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_anova_by_tss_pval.png"
+    shell:
+        "python3 scripts/anova_tau_deviation_by_tss.py {input.gct} {input.tx_tau} {input.info_content} {input.tss} "
+        "{output.csv} {output.png}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
