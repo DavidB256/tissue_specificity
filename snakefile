@@ -306,7 +306,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png",
         f"{GENE_SPEC}/mxe_chr1_test.csv",
         f"{GENE_SPEC}/transcript_tss.csv",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1000,6 +1001,16 @@ rule plot_tx_tau_by_gene_tau_decile:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png"
     shell:
         "python3 scripts/plot_tx_tau_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
+
+rule plot_min_tx_tau_by_gene_tau_decile:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png"
+    shell:
+        "python3 scripts/plot_min_tx_tau_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
