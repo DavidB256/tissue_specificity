@@ -317,7 +317,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_tss_icc.csv",
         f"{GENE_SPEC}/tx_gene_length_fraction.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_vs_length_fraction.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression.csv"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression_isoform_fraction.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1117,6 +1118,18 @@ rule fit_tau_deviation_regression:
     shell:
         "python3 scripts/fit_tau_deviation_regression.py {input.gct} {input.tx_tau} {input.info_content} "
         "{input.length_fraction} {output}"
+
+rule fit_tau_deviation_regression_isoform_fraction:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
+        length_fraction=f"{GENE_SPEC}/tx_gene_length_fraction.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression_isoform_fraction.csv"
+    shell:
+        "python3 scripts/fit_tau_deviation_regression_isoform_fraction.py {input.gct} {input.tx_tau} "
+        "{input.info_content} {input.length_fraction} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
