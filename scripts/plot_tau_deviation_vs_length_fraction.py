@@ -12,6 +12,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
+LOESS_FRAC = 0.2
 
 IN_GCT = sys.argv[1]
 IN_TX_TAU_CSV = sys.argv[2]
@@ -61,6 +64,8 @@ ax.scatter(df["length_fraction"], df["deviation_arctanh"], s=4, alpha=0.15)
 ax.axhline(0, color="gray", linestyle="--", linewidth=1)
 slope, intercept = np.polyfit(df["length_fraction"], df["deviation_arctanh"], 1)
 ax.plot(x_line, slope * x_line + intercept, color="red", linewidth=1.5)
+loess_fit = lowess(df["deviation_arctanh"], df["length_fraction"], frac=LOESS_FRAC)
+ax.plot(loess_fit[:, 0], loess_fit[:, 1], color="darkorange", linewidth=1.5)
 ax.set_xlabel("length_fraction (tx_length / gene_exonic_length)")
 ax.set_ylabel("arctanh(tx tau_weighted) - arctanh(gene tau_weighted)")
 ax.set_title(f"arctanh-transformed deviation\nspearman rho={rho_arctanh:.3f} (p={pval_arctanh:.2g}), "
@@ -71,6 +76,8 @@ ax.scatter(df["length_fraction"], df["deviation"], s=4, alpha=0.15)
 ax.axhline(0, color="gray", linestyle="--", linewidth=1)
 slope, intercept = np.polyfit(df["length_fraction"], df["deviation"], 1)
 ax.plot(x_line, slope * x_line + intercept, color="red", linewidth=1.5)
+loess_fit = lowess(df["deviation"], df["length_fraction"], frac=LOESS_FRAC)
+ax.plot(loess_fit[:, 0], loess_fit[:, 1], color="darkorange", linewidth=1.5)
 ax.set_xlabel("length_fraction (tx_length / gene_exonic_length)")
 ax.set_ylabel("tx tau_weighted - gene tau_weighted")
 ax.set_title(f"raw deviation\nspearman rho={rho_raw:.3f} (p={pval_raw:.2g}), OLS slope={slope:.3f}")
