@@ -320,7 +320,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression_isoform_fraction.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_histogram_weighted.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1154,6 +1155,15 @@ rule extract_extreme_tau_deviation_gtf:
     shell:
         "python3 scripts/extract_extreme_tau_deviation_gtf.py {input.gtf} {input.gct} {input.tx_tau} "
         "{input.info_content} {output}"
+
+rule plot_extreme_tau_deviation_screenshots:
+    input:
+        gtf=GENCODE_V47_GTF_LOCAL,
+        selected_tx=f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf.selected_tx.csv"
+    output:
+        directory(f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots")
+    shell:
+        "python3 scripts/plot_extreme_tau_deviation_screenshots.py {input.gtf} {input.selected_tx} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
