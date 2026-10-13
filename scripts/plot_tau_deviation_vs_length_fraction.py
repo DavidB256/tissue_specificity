@@ -2,7 +2,7 @@
 relative to total gene exonic length (length_fraction = tx_length /
 gene_exonic_length, union of all the gene's exons)? Signed deviation only.
 Panel 1: deviation computed after arctanh-transforming tau (Fisher
-z-transform; tau clipped to [0, 1-1e-6] first, arctanh(1) undefined).
+z-transform; tau scaled by 0.9999 first, arctanh(1) undefined).
 Panel 2: deviation on raw tau. All quantified transcripts (tx_total>0) of
 multi-tx genes (n_tx>=2), not just "significant" ones."""
 import sys
@@ -19,11 +19,11 @@ IN_INFO_CONTENT_CSV = sys.argv[3]
 IN_LENGTH_FRACTION_CSV = sys.argv[4]
 OUT_PNG = sys.argv[5]
 
-EPS = 1e-6
+SCALE = 0.9999
 
 
 def arctanh_tau(tau):
-    return np.arctanh(np.clip(tau, 0.0, 1.0 - EPS))
+    return np.arctanh(SCALE * tau)
 
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
