@@ -52,21 +52,28 @@ df = df[n_tx_per_gene >= 2]
 rho_arctanh, pval_arctanh = spearmanr(df["length_fraction"], df["deviation_arctanh"])
 rho_raw, pval_raw = spearmanr(df["length_fraction"], df["deviation"])
 
+x_line = np.array([df["length_fraction"].min(), df["length_fraction"].max()])
+
 fig, axes = plt.subplots(1, 2, figsize=(15, 7))
 
 ax = axes[0]
 ax.scatter(df["length_fraction"], df["deviation_arctanh"], s=4, alpha=0.15)
 ax.axhline(0, color="gray", linestyle="--", linewidth=1)
+slope, intercept = np.polyfit(df["length_fraction"], df["deviation_arctanh"], 1)
+ax.plot(x_line, slope * x_line + intercept, color="red", linewidth=1.5)
 ax.set_xlabel("length_fraction (tx_length / gene_exonic_length)")
 ax.set_ylabel("arctanh(tx tau_weighted) - arctanh(gene tau_weighted)")
-ax.set_title(f"arctanh-transformed deviation\nspearman rho={rho_arctanh:.3f} (p={pval_arctanh:.2g})")
+ax.set_title(f"arctanh-transformed deviation\nspearman rho={rho_arctanh:.3f} (p={pval_arctanh:.2g}), "
+             f"OLS slope={slope:.3f}")
 
 ax = axes[1]
 ax.scatter(df["length_fraction"], df["deviation"], s=4, alpha=0.15)
 ax.axhline(0, color="gray", linestyle="--", linewidth=1)
+slope, intercept = np.polyfit(df["length_fraction"], df["deviation"], 1)
+ax.plot(x_line, slope * x_line + intercept, color="red", linewidth=1.5)
 ax.set_xlabel("length_fraction (tx_length / gene_exonic_length)")
 ax.set_ylabel("tx tau_weighted - gene tau_weighted")
-ax.set_title(f"raw deviation\nspearman rho={rho_raw:.3f} (p={pval_raw:.2g})")
+ax.set_title(f"raw deviation\nspearman rho={rho_raw:.3f} (p={pval_raw:.2g}), OLS slope={slope:.3f}")
 
 fig.suptitle(f"gtex_v11_tx_protein_coding: tau deviation vs. relative tx length (n_tx={len(df)})")
 fig.tight_layout()
