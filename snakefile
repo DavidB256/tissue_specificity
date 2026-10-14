@@ -324,7 +324,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1223,6 +1224,16 @@ rule plot_extreme_tau_deviation_screenshots:
         directory(f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots")
     shell:
         "python3 scripts/plot_extreme_tau_deviation_screenshots.py {input.gtf} {input.gct} {input.selected_tx} {output}"
+
+rule plot_n_sig_tx_vs_mean_tau_deviation:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png"
+    shell:
+        "python3 scripts/plot_n_sig_tx_vs_mean_tau_deviation.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
