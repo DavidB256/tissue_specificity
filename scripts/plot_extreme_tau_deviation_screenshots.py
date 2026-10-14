@@ -1,8 +1,10 @@
-"""For each of the 91 extreme-tau-deviation transcripts (see
+"""For each gene with >=1 extreme-tau-deviation transcript (see
 extract_extreme_tau_deviation_gtf.py), render an IGV-style "screenshot" of
-its gene's full model (every GENCODE transcript of that gene, not just
-quantified ones), highlighting the extreme transcript. One PNG per
-transcript, into its own subdirectory."""
+its full gene model (every GENCODE transcript of that gene, not just
+quantified ones), highlighting the extreme transcript(s). Transcripts
+ordered top-to-bottom by total TPM (summed across tissues); unquantified
+transcripts (0 TPM) sort to the bottom. Grey vertical lines mark the TSS and
+5' splice site of each extreme transcript. One PNG per gene (not per tx)."""
 import sys
 import os
 import re
@@ -11,11 +13,17 @@ import pandas as pd
 from gene_model_render import render_gene_model
 
 IN_GTF = sys.argv[1]
-IN_SELECTED_TX_CSV = sys.argv[2]
-OUT_DIR = sys.argv[3]
+IN_GCT = sys.argv[2]
+IN_SELECTED_TX_CSV = sys.argv[3]
+OUT_DIR = sys.argv[4]
 
 selected = pd.read_csv(IN_SELECTED_TX_CSV)
 selected_genes = set(selected["gene_id"])
+gene_to_highlight_tx = selected.groupby("gene_id")["transcript_id"].apply(set).to_dict()
+
+gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
+tissues = list(gct.columns[2:])
+tx_tpm = dict(zip(gct["Name"], gct[tissues].sum(axis=1)))
 
 genes = {}  # gene_id -> gene dict
 gene_transcripts = defaultdict(dict)  # gene_id -> {transcript_id: {strand, exons, cds}}
@@ -47,19 +55,45 @@ with open(IN_GTF) as f:
             elif feature == "CDS":
                 tx["cds"].append((start, end))
 
+
+def tss_and_five_prime_ss(tx):
+    exons_sorted = sorted(tx["exons"])
+    if tx["strand"] == "+":
+        first = exons_sorted[0]
+        tss = first[0]
+        five_prime_ss = first[1] if len(exons_sorted) > 1 else None
+    else:
+        first = exons_sorted[-1]
+        tss = first[1]
+        five_prime_ss = first[0] if len(exons_sorted) > 1 else None
+    return tss, five_prime_ss
+
+
 os.makedirs(OUT_DIR, exist_ok=True)
 
 n_written = 0
-for _, row in selected.iterrows():
-    gene_id, tx_id = row["gene_id"], row["transcript_id"]
+for gene_id, highlight_tx_ids in gene_to_highlight_tx.items():
     gene = genes[gene_id]
     transcripts = {t: d for t, d in gene_transcripts[gene_id].items() if d["exons"]}
+    order = sorted(transcripts, key=lambda t: (-tx_tpm.get(t, 0.0), t))
 
-    subtitle = (f"extreme tx {tx_id}: isoform_fraction={row['isoform_fraction']:.3f}, "
-                f"tx_tau_weighted={row['tx_tau_weighted']:.3f}, gene_tau_weighted={row['gene_tau_weighted']:.3f}, "
-                f"arctanh_deviation={row['deviation_arctanh']:.3f}")
-    out_png = os.path.join(OUT_DIR, f"{gene['gene_name']}_{tx_id}.png")
-    render_gene_model(gene, transcripts, tx_id, out_png, subtitle=subtitle)
+    vlines = []
+    for tx_id in sorted(highlight_tx_ids):
+        tss, five_prime_ss = tss_and_five_prime_ss(transcripts[tx_id])
+        vlines.append((tss, f"TSS ({tx_id})"))
+        if five_prime_ss is not None:
+            vlines.append((five_prime_ss, f"5'SS ({tx_id})"))
+
+    rows = selected[selected["gene_id"] == gene_id]
+    subtitle_parts = [
+        f"{r.transcript_id}: isoform_fraction={r.isoform_fraction:.3f}, tx_tau_weighted={r.tx_tau_weighted:.3f}, "
+        f"arctanh_deviation={r.deviation_arctanh:.3f}"
+        for r in rows.itertuples()
+    ]
+    subtitle = "extreme tx -- " + " | ".join(subtitle_parts)
+
+    out_png = os.path.join(OUT_DIR, f"{gene['gene_name']}_{gene_id}.png")
+    render_gene_model(gene, transcripts, order, highlight_tx_ids, vlines, out_png, subtitle=subtitle)
     n_written += 1
 
-print(f"n_screenshots={n_written} n_genes={len(genes)} -> {OUT_DIR}", file=sys.stderr)
+print(f"n_screenshots={n_written} n_genes={len(genes)} n_selected_tx={len(selected)} -> {OUT_DIR}", file=sys.stderr)

@@ -1159,11 +1159,12 @@ rule extract_extreme_tau_deviation_gtf:
 rule plot_extreme_tau_deviation_screenshots:
     input:
         gtf=GENCODE_V47_GTF_LOCAL,
+        gct=GTEX_V11_TX_PC_BASE_GCT,
         selected_tx=f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf.selected_tx.csv"
     output:
         directory(f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots")
     shell:
-        "python3 scripts/plot_extreme_tau_deviation_screenshots.py {input.gtf} {input.selected_tx} {output}"
+        "python3 scripts/plot_extreme_tau_deviation_screenshots.py {input.gtf} {input.gct} {input.selected_tx} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
