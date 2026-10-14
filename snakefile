@@ -322,6 +322,7 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_histogram_weighted.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv"
 
@@ -530,7 +531,7 @@ rule plot_tissue_clusters_dendrogram:
     output:
         f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_hierclust0.1.png"
     params:
-        label=lambda wc: SOURCES[wc.source]["display"]
+        label=lambda wc: SOURCES[wc.source]["display"] if wc.source in SOURCES else wc.source
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} '{params.label}'"
 
