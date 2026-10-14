@@ -321,7 +321,9 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression_isoform_fraction.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_histogram_weighted.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -531,6 +533,61 @@ rule plot_tissue_clusters_dendrogram:
         label=lambda wc: SOURCES[wc.source]["display"]
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} '{params.label}'"
+
+# ---- correlation-coefficient choice as a wildcard (default pipeline is all pearson,
+# unsuffixed paths above; {corr_method} here lets any {source} get a spearman -- or
+# any future method's -- correlation/linkage/clusters/dendrogram alongside pearson's,
+# without touching the unsuffixed default files the rest of the pipeline depends on) ----
+
+rule compute_tissue_correlation_by_method:
+    input:
+        lambda wc: base_gct(wc.source)
+    output:
+        corr=f"{GENE_SPEC}/{{source}}/tissue_correlation_{{corr_method}}.csv",
+        linkage=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage_{{corr_method}}.csv"
+    wildcard_constraints:
+        corr_method="pearson|spearman"
+    shell:
+        "python3 scripts/compute_tissue_correlation.py {input} {output.corr} {output.linkage} {wildcards.corr_method}"
+
+rule compute_tau_cluster_weighted_by_method:
+    input:
+        gct=lambda wc: base_gct(wc.source),
+        linkage=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage_{{corr_method}}.csv",
+        corr=f"{GENE_SPEC}/{{source}}/tissue_correlation_{{corr_method}}.csv"
+    output:
+        clusters=f"{GENE_SPEC}/{{source}}/cluster_weights_{{corr_method}}/tissue_clusters_hierclust0.1.csv",
+        tau=f"{GENE_SPEC}/{{source}}/cluster_weights_{{corr_method}}/weighted_tau_hierclust0.1.csv"
+    wildcard_constraints:
+        corr_method="pearson|spearman"
+    shell:
+        "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
+
+rule plot_tissue_clusters_dendrogram_by_method:
+    input:
+        linkage=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage_{{corr_method}}.csv",
+        clusters=f"{GENE_SPEC}/{{source}}/cluster_weights_{{corr_method}}/tissue_clusters_hierclust0.1.csv"
+    output:
+        f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_hierclust0.1_{{corr_method}}.png"
+    params:
+        label=lambda wc: SOURCES.get(wc.source, {}).get("display", wc.source)
+    wildcard_constraints:
+        corr_method="pearson|spearman"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} "
+        "'{params.label} ({wildcards.corr_method})'"
+
+rule compare_dendrogram_methods:
+    input:
+        linkage_a=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage.csv",
+        linkage_b=f"{GENE_SPEC}/{{source}}/tissue_correlation_linkage_spearman.csv",
+        clusters_a=lambda wc: CLUSTERS_CSV[wc.source],
+        clusters_b=f"{GENE_SPEC}/{{source}}/cluster_weights_spearman/tissue_clusters_hierclust0.1.csv"
+    output:
+        f"{GENE_SPEC}/{{source}}/dendrogram_pearson_vs_spearman.csv"
+    shell:
+        "python3 scripts/compare_dendrogram_methods.py {input.linkage_a} {input.linkage_b} "
+        "{input.clusters_a} {input.clusters_b} {output}"
 
 # ---- leg (resolution) GCTs + reference weighted_tau, wildcarded over source/leg/agg ----
 

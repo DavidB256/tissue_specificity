@@ -4,10 +4,19 @@ compute_tau_stability.py."""
 import numpy as np
 
 
-def tissue_corr(mat):
-    """Pearson correlation of log10(TPM+1) across tissues (columns) of a genes x
-    tissues matrix."""
-    return np.corrcoef(np.log10(mat + 1.0), rowvar=False)
+def tissue_corr(mat, method="pearson"):
+    """Pearson (default) or Spearman correlation of log10(TPM+1) across tissues
+    (columns) of a genes x tissues matrix. Spearman is rank-based so the log10
+    transform doesn't change its value (monotonic), kept only for a shared code
+    path with pearson."""
+    log_mat = np.log10(mat + 1.0)
+    if method == "pearson":
+        return np.corrcoef(log_mat, rowvar=False)
+    if method == "spearman":
+        from scipy.stats import spearmanr
+        rho, _ = spearmanr(log_mat, axis=0)
+        return rho
+    raise ValueError(f"unknown method: {method}")
 
 
 def tissue_corr_pairwise_masked(mat):
@@ -29,12 +38,13 @@ def tissue_corr_pairwise_masked(mat):
     return R
 
 
-def tissue_corr_expressed_only(mat):
+def tissue_corr_expressed_only(mat, method="pearson"):
     """tissue_corr restricted to genes with TPM>=1 (post floor_tpm) in at least one
     tissue. Single consistent gene set across all tissue pairs, so R stays PSD (unlike
-    tissue_corr_pairwise_masked)."""
+    tissue_corr_pairwise_masked) when method="pearson"; spearman has no PSD guarantee
+    either way."""
     expressed = mat.max(axis=1) > 0
-    return tissue_corr(mat[expressed])
+    return tissue_corr(mat[expressed], method=method)
 
 
 def diag_reg_inv_corr_weights(R, lam=0.0):
