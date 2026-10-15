@@ -325,7 +325,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1234,6 +1235,15 @@ rule plot_n_sig_tx_vs_mean_tau_deviation:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png"
     shell:
         "python3 scripts/plot_n_sig_tx_vs_mean_tau_deviation.py {input.gct} {input.tx_tau} {input.info_content} {output}"
+
+rule find_multiple_specific_isoform_genes:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        bootstrap_tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv"
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv"
+    shell:
+        "python3 scripts/find_multiple_specific_isoform_genes.py {input.gct} {input.bootstrap_tx_tau} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
