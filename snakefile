@@ -147,12 +147,9 @@ GTEX_V11_TX_PC_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_median_tpm_pro
 # body-site panel (55 tissues -- different panel from gtex_v11_tx's 68). Gene-level
 # protein_coding filter only (CHESS has no per-transcript biotype attr, so no
 # stricter tx-biotype filter is possible here, unlike gtex_v11_tx_protein_coding).
-# Raw source has no per-donor values (only per-tissue summary stats), so the
-# donor-level bootstrap step -- and everything downstream of it
-# (specific_isoform_genes, multiple_specific_isoform_genes, isoform_fraction_vs_tau,
-# gene_tau_by_all_tx_sig, specific_isoform_tissue_contribution, tau_vs_tss_variance's
-# specific-isoform panel) -- has no equivalent here and is intentionally not
-# replicated for this source. ----
+# Raw source has no per-donor values (only per-tissue summary stats: min/25/50/75/
+# max/count), so the bootstrap step uses quantile-interpolation resampling instead
+# of real donor resampling -- see bootstrap_chess_tx_protein_coding.py. ----
 
 GENE_SPEC_CHESS_TX_PC = f"{GENE_SPEC}/chess_tx_protein_coding"
 CHESS_TX_META_FULL_CSV = f"{GENE_SPEC}/chess_tx_meta_full.csv"
@@ -358,8 +355,9 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
-        # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding
-        # (see ANNOTATION_GTF comment for what's NOT replicated -- bootstrap-dependent outputs)
+        # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding,
+        # including the bootstrap (quantile-interpolation resampling, see
+        # bootstrap_chess_tx_protein_coding.py)
         f"{GENE_SPEC}/chess_tx_tissue_stats.csv",
         f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/tx_info_content.csv",
@@ -388,7 +386,17 @@ rule all:
         f"{GENE_SPEC_CHESS_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
         f"{GENE_SPEC_CHESS_TX_PC}/dendrogram_pearson_vs_spearman.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
-        f"{GENE_SPEC_CHESS_TX_PC}/high_tau_isoform_pairs_wasserstein.csv"
+        f"{GENE_SPEC_CHESS_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/tx_tpm_se.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/gene_tpm_se.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/tx_tau_summary.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/gene_tau_summary.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/isoform_fraction_vs_tau.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/gene_tau_by_all_tx_sig.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/specific_isoform_genes.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/specific_isoform_tissue_contribution.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_vs_tss_variance.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/multiple_specific_isoform_genes.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1076,12 +1084,15 @@ rule build_chess_tx_meta:
 
 # ---- rules below genericized over {source} (gtex_v11_tx_protein_coding |
 # chess_tx_protein_coding) -- shared global `source` wildcard_constraints at top
-# of file. A handful of rules stay hardcoded to gtex_v11_tx_protein_coding (not
-# genericized): they depend on the donor-level bootstrap, which has no CHESS
-# equivalent (see ANNOTATION_GTF comment above) -- plot_isoform_fraction_vs_tau,
+# of file. Bootstrap-dependent rules (plot_isoform_fraction_vs_tau,
 # plot_gene_tau_by_all_tx_sig, find_specific_isoform_genes,
 # plot_specific_isoform_tissue_contribution, find_multiple_specific_isoform_genes,
-# and bootstrap_gtex_v11_tx_protein_coding itself. ----
+# plot_tau_vs_tss_variance) are ALSO genericized -- each source's own
+# bootstrap_{gtex_v11_tx_protein_coding,chess_tx_protein_coding} rule (further
+# below) writes to the same generic {source}/bootstrap/ path shape, real donor
+# resampling for gtex_v11_tx_protein_coding vs. quantile-interpolation
+# resampling for chess_tx_protein_coding (see bootstrap_chess_tx_protein_coding.py --
+# no per-donor data in the CHESS bodysite raw table, only per-cell summary stats). ----
 
 rule compute_tx_info_content:
     input:
@@ -1131,42 +1142,42 @@ BOOTSTRAP_SEED_GTEX_V11_TX_PC = 0
 
 rule plot_isoform_fraction_vs_tau:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        bootstrap_tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        bootstrap_tx_tau=f"{GENE_SPEC}/{{source}}/bootstrap/tx_tau_summary.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/isoform_fraction_vs_tau.png"
+        f"{GENE_SPEC}/{{source}}/figures/isoform_fraction_vs_tau.png"
     shell:
         "python3 scripts/plot_isoform_fraction_vs_tau.py {input.gct} {input.tx_tau} {input.info_content} "
         "{input.bootstrap_tx_tau} {output}"
 
 rule plot_gene_tau_by_all_tx_sig:
     input:
-        bootstrap_tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        bootstrap_tx_tau=f"{GENE_SPEC}/{{source}}/bootstrap/tx_tau_summary.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_tau_by_all_tx_sig.png"
+        f"{GENE_SPEC}/{{source}}/figures/gene_tau_by_all_tx_sig.png"
     shell:
         "python3 scripts/plot_gene_tau_by_all_tx_sig.py {input.bootstrap_tx_tau} {input.info_content} {output}"
 
 rule find_specific_isoform_genes:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        bootstrap_tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        bootstrap_tx_tau=f"{GENE_SPEC}/{{source}}/bootstrap/tx_tau_summary.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv"
+        f"{GENE_SPEC}/{{source}}/specific_isoform_genes.csv"
     shell:
         "python3 scripts/find_specific_isoform_genes.py {input.gct} {input.bootstrap_tx_tau} {input.info_content} {output}"
 
 rule plot_specific_isoform_tissue_contribution:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        specific_isoform=f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv",
-        clusters=CLUSTERS_CSV["gtex_v11_tx_protein_coding"]
+        gct=lambda wc: base_gct(wc.source),
+        specific_isoform=f"{GENE_SPEC}/{{source}}/specific_isoform_genes.csv",
+        clusters=lambda wc: CLUSTERS_CSV[wc.source]
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png"
+        f"{GENE_SPEC}/{{source}}/figures/specific_isoform_tissue_contribution.png"
     shell:
         "python3 scripts/plot_specific_isoform_tissue_contribution.py {input.gct} {input.specific_isoform} "
         "{input.clusters} {output}"
@@ -1344,10 +1355,10 @@ rule plot_n_sig_tx_vs_mean_tau_deviation:
 
 rule find_multiple_specific_isoform_genes:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        bootstrap_tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv"
+        gct=lambda wc: base_gct(wc.source),
+        bootstrap_tx_tau=f"{GENE_SPEC}/{{source}}/bootstrap/tx_tau_summary.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv"
+        f"{GENE_SPEC}/{{source}}/multiple_specific_isoform_genes.csv"
     shell:
         "python3 scripts/find_multiple_specific_isoform_genes.py {input.gct} {input.bootstrap_tx_tau} {output}"
 
@@ -1370,12 +1381,12 @@ rule find_mutually_exclusive_exons_chr1:
 
 rule plot_tau_vs_tss_variance:
     input:
-        tss=f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_tss.csv",
-        transcript_meta=TXS_META_CSV["gtex_v11_tx_protein_coding"],
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        specific_isoform=f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv"
+        tss=f"{GENE_SPEC}/{{source}}/transcript_tss.csv",
+        transcript_meta=lambda wc: TXS_META_CSV[wc.source],
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        specific_isoform=f"{GENE_SPEC}/{{source}}/specific_isoform_genes.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png"
+        f"{GENE_SPEC}/{{source}}/figures/tau_vs_tss_variance.png"
     shell:
         "python3 scripts/plot_tau_vs_tss_variance.py {input.tss} {input.transcript_meta} {input.info_content} "
         "{input.specific_isoform} {output}"
@@ -1398,6 +1409,27 @@ rule bootstrap_gtex_v11_tx_protein_coding:
     shell:
         "python3 scripts/bootstrap_gtex_v11_tx_protein_coding.py {input.raw_tpm} {input.sample_tissue} "
         "{input.gct} {input.weights} {params.out_dir} {params.n} {params.seed}"
+
+N_BOOTSTRAP_CHESS_TX_PC = 200
+BOOTSTRAP_SEED_CHESS_TX_PC = 0
+
+rule bootstrap_chess_tx_protein_coding:
+    input:
+        gct=CHESS_TX_PC_BASE_GCT,
+        tissue_stats=f"{GENE_SPEC}/chess_tx_tissue_stats.csv",
+        weights=f"{GENE_SPEC_CHESS_TX_PC}/free_cluster_weights_max/hierclust0.1/weights.csv"
+    output:
+        tx_tpm_se=f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/tx_tpm_se.csv",
+        gene_tpm_se=f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/gene_tpm_se.csv",
+        tx_tau_summary=f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/tx_tau_summary.csv",
+        gene_tau_summary=f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/gene_tau_summary.csv"
+    params:
+        out_dir=f"{GENE_SPEC_CHESS_TX_PC}/bootstrap",
+        n=N_BOOTSTRAP_CHESS_TX_PC,
+        seed=BOOTSTRAP_SEED_CHESS_TX_PC
+    shell:
+        "python3 scripts/bootstrap_chess_tx_protein_coding.py {input.gct} {input.tissue_stats} "
+        "{input.weights} {params.out_dir} {params.n} {params.seed}"
 
 # ---- shared downstream analysis (tau / multi-transcript variance / figures),
 # identical in shape for both sources -- wildcarded over txs_source. ----
