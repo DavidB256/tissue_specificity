@@ -1,8 +1,8 @@
 """2-panel figure for compare_dendrogram_scenarios.py's output: left, bar chart
-of n_clusters (flatclust threshold 0.1) for each of the 8 {pearson,spearman} x
-{TPM<1,TPM<10} x {gtex_v11_tx_protein_coding,chess_tx_protein_coding} scenarios;
-right, heatmap of the pairwise dendrogram distance matrix (1 - cophenetic
-correlation, restricted to common tissues for cross-source pairs)."""
+of n_clusters (flatclust threshold 0.1) for each of the 12 {pearson,spearman} x
+{none,TPM<1,TPM<10} x {gtex_v11_tx_protein_coding,chess_tx_protein_coding}
+scenarios; right, heatmap of the pairwise dendrogram distance matrix (1 -
+cophenetic correlation, restricted to common tissues for cross-source pairs)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -16,12 +16,14 @@ OUT_PNG = sys.argv[3]
 
 SOURCE_LABEL = {"gtex_v11_tx_protein_coding": "gtex", "chess_tx_protein_coding": "chess"}
 SOURCE_COLOR = {"gtex_v11_tx_protein_coding": "#4C72B0", "chess_tx_protein_coding": "#DD8452"}
-FLOOR_HATCH = {1.0: "", 10.0: "//"}
+FLOOR_LABEL = {0.0: "none", 1.0: "TPM<1", 10.0: "TPM<10"}
+FLOOR_HATCH = {0.0: "..", 1.0: "", 10.0: "//"}
 
 
 def short_name(scenario):
     source, floor, method = scenario.split("__")
-    return f"{SOURCE_LABEL[source]}\nf{floor.replace('floor', '')}\n{method}"
+    floor_val = float(floor.replace("floor", ""))
+    return f"{SOURCE_LABEL[source]}\n{FLOOR_LABEL[floor_val]}\n{method}"
 
 
 counts = pd.read_csv(IN_CLUSTER_COUNTS_CSV)
@@ -51,7 +53,7 @@ ax1.set_ylabel("n clusters (flatclust threshold 0.1)")
 ax1.set_title("tissue cluster count by scenario")
 from matplotlib.patches import Patch
 legend_elems = [Patch(facecolor=SOURCE_COLOR[s], label=SOURCE_LABEL[s]) for s in order]
-legend_elems += [Patch(facecolor="white", edgecolor="black", hatch=h, label=f"TPM<{int(f)}")
+legend_elems += [Patch(facecolor="white", edgecolor="black", hatch=h, label=FLOOR_LABEL[f])
                   for f, h in FLOOR_HATCH.items()]
 ax1.legend(handles=legend_elems, fontsize=8, loc="upper left")
 

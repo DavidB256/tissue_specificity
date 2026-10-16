@@ -1,9 +1,10 @@
-"""Compare 8 tissue-clustering dendrograms built from every combination of
-{pearson, spearman} x {TPM<1, TPM<10 floor} x {gtex_v11_tx_protein_coding,
-chess_tx_protein_coding}. Each scenario: floor_tpm(mat, floor) -> tissue_corr_
-expressed_only(method) -> average-linkage dendrogram (distance=1-corr) -> flat
-clusters at distance threshold 0.1 (fcluster, same hierclust0.1 convention used
-throughout this pipeline).
+"""Compare 12 tissue-clustering dendrograms built from every combination of
+{pearson, spearman} x {none, TPM<1, TPM<10 floor} x {gtex_v11_tx_protein_coding,
+chess_tx_protein_coding}. "none" (floor=0) never rounds any value down to 0 --
+floor_tpm(mat, floor=0) is a no-op since TPM is always >=0. Each scenario:
+floor_tpm(mat, floor) -> tissue_corr_expressed_only(method) -> average-linkage
+dendrogram (distance=1-corr) -> flat clusters at distance threshold 0.1
+(fcluster, same hierclust0.1 convention used throughout this pipeline).
 
 Dendrogram distance metric: 1 - cophenetic correlation. The cophenetic distance
 between two leaves is just the merge height of their lowest common ancestor --
@@ -33,7 +34,7 @@ OUT_DISTANCE_MATRIX_CSV = sys.argv[4]
 OUT_DISTANCE_LONG_CSV = sys.argv[5]
 
 DIST_THRESHOLD = 0.1
-FLOORS = [1.0, 10.0]
+FLOORS = [0.0, 1.0, 10.0]
 METHODS = ["pearson", "spearman"]
 SOURCES = {"gtex_v11_tx_protein_coding": IN_GTEX_GCT, "chess_tx_protein_coding": IN_CHESS_GCT}
 
