@@ -360,6 +360,7 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
         # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding
         # (see ANNOTATION_GTF comment for what's NOT replicated -- bootstrap-dependent outputs)
+        f"{GENE_SPEC}/chess_tx_tissue_stats.csv",
         f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/tx_info_content.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/effective_n_vs_weighted_kl.png",
@@ -1046,6 +1047,14 @@ rule parse_chess_gtf_meta:
         CHESS_TX_META_FULL_CSV
     shell:
         "python3 scripts/parse_chess_gtf_meta.py {input} {output}"
+
+rule reformat_chess_tx_tissue_stats:
+    input:
+        CHESS_BODYSITE_RAW_TSV
+    output:
+        f"{GENE_SPEC}/chess_tx_tissue_stats.csv"
+    shell:
+        "python3 scripts/reformat_chess_tx_tissue_stats.py {input} {output}"
 
 rule build_chess_tx_gct:
     input:
