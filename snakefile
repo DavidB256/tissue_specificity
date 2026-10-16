@@ -402,7 +402,9 @@ rule all:
         f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
-        f"{GENE_SPEC}/figures/dendrogram_scenarios.png"
+        f"{GENE_SPEC}/figures/dendrogram_scenarios.png",
+        # baron_protein_coding: per-cell UMAP + called clusters, by TPM floor choice
+        f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -537,6 +539,24 @@ rule build_baron_gct:
         f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"
     shell:
         "python3 scripts/build_baron_gct.py {input} {output}"
+
+rule compute_baron_cell_tpm:
+    input:
+        samples=BARON_HUMAN_SAMPLES,
+        lengths=f"{GENE_SPEC_BARON}/gene_lengths.csv",
+        gencode=GENCODE_V47_GTF_LOCAL
+    output:
+        f"{GENE_SPEC_BARON_PC}/cell_tpm.csv"
+    shell:
+        "python3 scripts/compute_baron_cell_tpm.py {input.samples} {input.lengths} {input.gencode} {output}"
+
+rule plot_baron_umap_thresholds:
+    input:
+        f"{GENE_SPEC_BARON_PC}/cell_tpm.csv"
+    output:
+        f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png"
+    shell:
+        "python3 scripts/plot_baron_umap_thresholds.py {input} {output}"
 
 # ---- protein-coding filter + full-resolution correlation/clustering (per source) ----
 
