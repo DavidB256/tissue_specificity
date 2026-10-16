@@ -25,7 +25,8 @@ gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(gct.columns[2:])
 tx_tpm = dict(zip(gct["Name"], gct[tissues].sum(axis=1)))
 
-genes = {}  # gene_id -> gene dict
+genes = {}  # gene_id -> gene dict (span/name derived from its own exons -- some
+            # annotations, e.g. CHESS, have no separate "gene" feature line)
 gene_transcripts = defaultdict(dict)  # gene_id -> {transcript_id: {strand, exons, cds}}
 
 with open(IN_GTF) as f:
@@ -39,13 +40,7 @@ with open(IN_GTF) as f:
         if gene_id not in selected_genes:
             continue
 
-        if feature == "gene":
-            gene_name = re.search(r'gene_name "([^"]+)"', attrs).group(1)
-            genes[gene_id] = {
-                "gene_id": gene_id, "gene_name": gene_name, "chrom": fields[0],
-                "start": int(fields[3]), "end": int(fields[4]), "strand": fields[6],
-            }
-        elif feature in ("transcript", "exon", "CDS"):
+        if feature in ("transcript", "exon", "CDS"):
             transcript_id = re.search(r'transcript_id "([^"]+)"', attrs).group(1)
             tx = gene_transcripts[gene_id].setdefault(
                 transcript_id, {"strand": fields[6], "exons": [], "cds": []})
@@ -54,6 +49,15 @@ with open(IN_GTF) as f:
                 tx["exons"].append((start, end))
             elif feature == "CDS":
                 tx["cds"].append((start, end))
+
+        if feature == "exon":
+            gene_name_match = re.search(r'gene_name "([^"]+)"', attrs)
+            gene = genes.setdefault(gene_id, {
+                "gene_id": gene_id, "gene_name": gene_name_match.group(1) if gene_name_match else gene_id,
+                "chrom": fields[0], "start": start, "end": end, "strand": fields[6],
+            })
+            gene["start"] = min(gene["start"], start)
+            gene["end"] = max(gene["end"], end)
 
 
 def tss_and_five_prime_ss(tx):

@@ -17,6 +17,8 @@ GENE_SPEC = f"{DATA}/gene_specificity"
 MANE_GTF_SRC = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/MANE.v1.5.gtf"
 GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/gencode.v47.annotation.gtf"
 GENCODE_V47_GTF_LOCAL = f"{DATA}/gencode.v47.annotation.gtf"
+CHESS_GTF_LOCAL = f"{DATA}/chess3.1.3.annotation.gtf"
+CHESS_BODYSITE_RAW_TSV = f"{DATA}/gtex-bodysite-expression-tpm-sva2-2026-10-15.raw.tsv.gz"
 
 # Baron et al. (GSE84133) pancreas scRNA-seq -> per-cell-type TPM matrix. Gene
 # length for TPM = MANE_Select summed exon length, falling back to the longest
@@ -77,7 +79,8 @@ SOURCES = {
 }
 STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
         "gtex_v11_tx": "transcript_median_tpm", "gtex_v11_tx_gene": "gene_median_tpm",
-        "gtex_v11_tx_protein_coding": "transcript_median_tpm"}
+        "gtex_v11_tx_protein_coding": "transcript_median_tpm",
+        "chess_tx_protein_coding": "transcript_median_tpm"}
 RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
 # legacy paths (predate this wildcard scheme, kept as literals rather than migrated --
 # no data movement, see streamline-snakefile.md plan): GTEx nests clusters under a
@@ -88,6 +91,7 @@ CLUSTERS_CSV = {
     "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
+    "chess_tx_protein_coding": f"{GENE_SPEC}/chess_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
 }
 CLUSTERS_TAU_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
@@ -95,12 +99,14 @@ CLUSTERS_TAU_CSV = {
     "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
+    "chess_tx_protein_coding": f"{GENE_SPEC}/chess_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
 }
 TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
     "baron_protein_coding": "log10 TPM, TPM<1->0, Baron pancreas cell types (protein-coding)",
     "gtex_v11_tx": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding)",
     "gtex_v11_tx_protein_coding": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding, strict transcript biotype)",
+    "chess_tx_protein_coding": "log10 TPM, TPM<1->0, CHESS 3.1.3 transcripts (protein-coding, gene-level biotype)",
 }
 # headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
 CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
@@ -137,12 +143,33 @@ GTEX_V11_TX_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX}/transcript_median_tpm_protein_c
 GENE_SPEC_GTEX_V11_TX_PC = f"{GENE_SPEC}/gtex_v11_tx_protein_coding"
 GTEX_V11_TX_PC_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_median_tpm_protein_coding.gct.gz"
 
-TXS_SOURCES_RE = r"gtex_v11_tx|gtex_v11_tx_protein_coding"
-TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT, "gtex_v11_tx_protein_coding": GTEX_V11_TX_PC_BASE_GCT}
+# ---- chess_tx_protein_coding: CHESS 3.1.3 transcript-level median TPM, GTEx
+# body-site panel (55 tissues -- different panel from gtex_v11_tx's 68). Gene-level
+# protein_coding filter only (CHESS has no per-transcript biotype attr, so no
+# stricter tx-biotype filter is possible here, unlike gtex_v11_tx_protein_coding).
+# Raw source has no per-donor values (only per-tissue summary stats), so the
+# donor-level bootstrap step -- and everything downstream of it
+# (specific_isoform_genes, multiple_specific_isoform_genes, isoform_fraction_vs_tau,
+# gene_tau_by_all_tx_sig, specific_isoform_tissue_contribution, tau_vs_tss_variance's
+# specific-isoform panel) -- has no equivalent here and is intentionally not
+# replicated for this source. ----
+
+GENE_SPEC_CHESS_TX_PC = f"{GENE_SPEC}/chess_tx_protein_coding"
+CHESS_TX_META_FULL_CSV = f"{GENE_SPEC}/chess_tx_meta_full.csv"
+CHESS_TX_PC_BASE_GCT = f"{GENE_SPEC_CHESS_TX_PC}/transcript_median_tpm_protein_coding.gct.gz"
+
+TXS_SOURCES_RE = r"gtex_v11_tx|gtex_v11_tx_protein_coding|chess_tx_protein_coding"
+TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT, "gtex_v11_tx_protein_coding": GTEX_V11_TX_PC_BASE_GCT,
+                "chess_tx_protein_coding": CHESS_TX_PC_BASE_GCT}
 TXS_META_CSV = {
     "gtex_v11_tx": f"{GENE_SPEC_GTEX_V11_TX}/transcript_meta.csv",
     "gtex_v11_tx_protein_coding": f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_meta.csv",
+    "chess_tx_protein_coding": f"{GENE_SPEC_CHESS_TX_PC}/transcript_meta.csv",
 }
+
+# annotation GTF + TSS/length-fraction feature files, per tx_source (CHESS/GENCODE
+# differ in id space, so these can't be shared across sources like CLUSTER_CORR_BASIS)
+ANNOTATION_GTF = {"gtex_v11_tx_protein_coding": GENCODE_V47_GTF_LOCAL, "chess_tx_protein_coding": CHESS_GTF_LOCAL}
 
 # ---- gtex_v11_tx DE free_cluster_weights, tx and gene resolution, hierclust0.1 leg
 # only, max-agg only (per explicit choice -- see commit history). Gene-level GCT
@@ -159,15 +186,17 @@ TXS_META_CSV = {
 # noise-variance/free_weights targets via rule all's source=SOURCES expansions). ----
 
 GTEX_V11_TX_GENE_BASE_GCT = base_gct("gtex_v11_tx_gene")
-GTEX_V11_TX_RES_RE = r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding"
+GTEX_V11_TX_RES_RE = r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding"
 N_FREE_CLUSTER_GTEX_V11_TX = 20
 # which dir's own tissue_correlation.csv/linkage.csv each DE "res" clusters against --
 # gtex_v11_tx_gene reuses the tx-level basis (same tissue-tissue relationship, see
-# comment above); gtex_v11_tx_protein_coding gets its own (different transcript set).
+# comment above); gtex_v11_tx_protein_coding/chess_tx_protein_coding each get their
+# own (different transcript set/tissue panel).
 CLUSTER_CORR_BASIS = {
     "gtex_v11_tx": "gtex_v11_tx",
     "gtex_v11_tx_gene": "gtex_v11_tx",
     "gtex_v11_tx_protein_coding": "gtex_v11_tx_protein_coding",
+    "chess_tx_protein_coding": "chess_tx_protein_coding",
 }
 
 
@@ -191,7 +220,7 @@ AGGS = ["mean", "max"]
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
-    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding",
+    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
     method = r"free_weights|free_cluster_weights"
@@ -262,15 +291,16 @@ rule all:
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
-        # gtex_v11_tx + gtex_v11_tx_protein_coding: transcript-level tau + multi-transcript-gene variance
+        # gtex_v11_tx + gtex_v11_tx_protein_coding + chess_tx_protein_coding: transcript-level
+        # tau + multi-transcript-gene variance
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/multitranscript_variance.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_variance.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/top_multitranscript_tau_kde.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
         f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
         # gtex_v11_tx: tissue correlation matrix + its inverse (standard per-source pipeline)
@@ -305,7 +335,7 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png",
         f"{GENE_SPEC}/mxe_chr1_test.csv",
-        f"{GENE_SPEC}/transcript_tss.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_tss.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_sig.png",
@@ -315,7 +345,7 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_variance_by_tss_count_grouped50bp.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_deviation_by_gene_tau_decile.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_tss_icc.csv",
-        f"{GENE_SPEC}/tx_gene_length_fraction.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_gene_length_fraction.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_vs_length_fraction.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression_isoform_fraction.csv",
@@ -327,7 +357,37 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv"
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
+        # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding
+        # (see ANNOTATION_GTF comment for what's NOT replicated -- bootstrap-dependent outputs)
+        f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/tx_info_content.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/effective_n_vs_weighted_kl.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/gene_vs_tx_tau_weighted.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/weighted_kl_vs_tau.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tx_share_hist.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tx_tau_by_gene_tau_decile.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/transcript_tss.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/gene_vs_tx_tau_sig.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/tau_deviation_anova_by_tss.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_deviation_anova_by_tss_pval.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_variance_by_tss_count.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_variance_by_tss_count_grouped50bp.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tx_tau_deviation_by_gene_tau_decile.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/tau_tss_icc.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/tx_gene_length_fraction.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_deviation_vs_length_fraction.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/tau_deviation_regression.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/tau_deviation_regression_isoform_fraction.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_deviation_histogram_weighted.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/extreme_tau_deviation.gtf",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/extreme_tau_deviation_screenshots",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/dendrogram_pearson_vs_spearman.csv",
+        f"{GENE_SPEC_CHESS_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
+        f"{GENE_SPEC_CHESS_TX_PC}/high_tau_isoform_pairs_wasserstein.csv"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -877,9 +937,9 @@ rule build_gencode_gene_id_name_map:
 
 rule extract_transcript_tss:
     input:
-        GENCODE_V47_GTF_LOCAL
+        lambda wc: ANNOTATION_GTF[wc.source]
     output:
-        f"{GENE_SPEC}/transcript_tss.csv"
+        f"{GENE_SPEC}/{{source}}/transcript_tss.csv"
     shell:
         "python3 scripts/extract_transcript_tss.py {input} {output}"
 
@@ -979,46 +1039,81 @@ rule build_gtex_v11_tx_pc_meta:
     shell:
         "python3 scripts/build_gtex_v11_tx_meta.py {input.gct} {input.name_map} {output}"
 
+rule parse_chess_gtf_meta:
+    input:
+        CHESS_GTF_LOCAL
+    output:
+        CHESS_TX_META_FULL_CSV
+    shell:
+        "python3 scripts/parse_chess_gtf_meta.py {input} {output}"
+
+rule build_chess_tx_gct:
+    input:
+        raw_tsv=CHESS_BODYSITE_RAW_TSV,
+        full_meta=CHESS_TX_META_FULL_CSV
+    output:
+        CHESS_TX_PC_BASE_GCT
+    shell:
+        "python3 scripts/build_chess_tx_gct.py {input.raw_tsv} {input.full_meta} {output}"
+
+rule build_chess_tx_meta:
+    input:
+        gct=CHESS_TX_PC_BASE_GCT,
+        full_meta=CHESS_TX_META_FULL_CSV
+    output:
+        TXS_META_CSV["chess_tx_protein_coding"]
+    shell:
+        "python3 scripts/build_chess_tx_meta.py {input.gct} {input.full_meta} {output}"
+
+# ---- rules below genericized over {source} (gtex_v11_tx_protein_coding |
+# chess_tx_protein_coding) -- shared global `source` wildcard_constraints at top
+# of file. A handful of rules stay hardcoded to gtex_v11_tx_protein_coding (not
+# genericized): they depend on the donor-level bootstrap, which has no CHESS
+# equivalent (see ANNOTATION_GTF comment above) -- plot_isoform_fraction_vs_tau,
+# plot_gene_tau_by_all_tx_sig, find_specific_isoform_genes,
+# plot_specific_isoform_tissue_contribution, find_multiple_specific_isoform_genes,
+# and bootstrap_gtex_v11_tx_protein_coding itself. ----
+
 rule compute_tx_info_content:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        weights=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weights.csv",
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
+        gct=lambda wc: base_gct(wc.source),
+        weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weights.csv",
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
     output:
-        pickle=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_kl_divergence.pkl",
-        csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        pickle=f"{GENE_SPEC}/{{source}}/tx_kl_divergence.pkl",
+        csv=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     shell:
         "python3 scripts/compute_tx_info_content.py {input.gct} {input.weights} {input.tx_tau} {output.pickle} {output.csv}"
 
 rule plot_effective_n_vs_weighted_kl:
     input:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png"
+        f"{GENE_SPEC}/{{source}}/figures/effective_n_vs_weighted_kl.png"
     shell:
         "python3 scripts/plot_effective_n_vs_weighted_kl.py {input} {output}"
 
 rule plot_gene_vs_tx_tau_weighted:
     input:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_weighted.png"
+        f"{GENE_SPEC}/{{source}}/figures/gene_vs_tx_tau_weighted.png"
     shell:
         "python3 scripts/plot_gene_vs_tx_tau_weighted.py {input} {output}"
 
 rule plot_weighted_kl_vs_tau:
     input:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png"
+        f"{GENE_SPEC}/{{source}}/figures/weighted_kl_vs_tau.png"
     shell:
         "python3 scripts/plot_weighted_kl_vs_tau.py {input} {output}"
 
 rule plot_tx_share_hist:
     input:
-        GTEX_V11_TX_PC_BASE_GCT
+        lambda wc: base_gct(wc.source)
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_share_hist.png"
+        f"{GENE_SPEC}/{{source}}/figures/tx_share_hist.png"
     shell:
         "python3 scripts/plot_tx_share_hist.py {input} {output}"
 
@@ -1069,171 +1164,172 @@ rule plot_specific_isoform_tissue_contribution:
 
 rule plot_tx_tau_by_gene_tau_decile:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png"
+        f"{GENE_SPEC}/{{source}}/figures/tx_tau_by_gene_tau_decile.png"
     shell:
         "python3 scripts/plot_tx_tau_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule plot_min_tx_tau_by_gene_tau_decile:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png"
+        f"{GENE_SPEC}/{{source}}/figures/min_tx_tau_by_gene_tau_decile.png"
     shell:
         "python3 scripts/plot_min_tx_tau_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule plot_gene_vs_tx_tau_sig:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_sig.png"
+        f"{GENE_SPEC}/{{source}}/figures/gene_vs_tx_tau_sig.png"
     shell:
         "python3 scripts/plot_gene_vs_tx_tau_sig.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule anova_tau_deviation_by_tss:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        tss=f"{GENE_SPEC}/transcript_tss.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        tss=f"{GENE_SPEC}/{{source}}/transcript_tss.csv"
     output:
-        csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_anova_by_tss.csv",
-        png=f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_anova_by_tss_pval.png"
+        csv=f"{GENE_SPEC}/{{source}}/tau_deviation_anova_by_tss.csv",
+        png=f"{GENE_SPEC}/{{source}}/figures/tau_deviation_anova_by_tss_pval.png"
     shell:
         "python3 scripts/anova_tau_deviation_by_tss.py {input.gct} {input.tx_tau} {input.info_content} {input.tss} "
         "{output.csv} {output.png}"
 
 rule plot_tau_variance_by_tss_count:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        tss=f"{GENE_SPEC}/transcript_tss.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        tss=f"{GENE_SPEC}/{{source}}/transcript_tss.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_variance_by_tss_count.png"
+        f"{GENE_SPEC}/{{source}}/figures/tau_variance_by_tss_count.png"
     shell:
         "python3 scripts/plot_tau_variance_by_tss_count.py {input.gct} {input.tx_tau} {input.tss} {output}"
 
 rule plot_tau_variance_by_tss_count_grouped50bp:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        tss=f"{GENE_SPEC}/transcript_tss.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        tss=f"{GENE_SPEC}/{{source}}/transcript_tss.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_variance_by_tss_count_grouped50bp.png"
+        f"{GENE_SPEC}/{{source}}/figures/tau_variance_by_tss_count_grouped50bp.png"
     shell:
         "python3 scripts/plot_tau_variance_by_tss_count_grouped50bp.py {input.gct} {input.tx_tau} {input.tss} {output}"
 
 rule plot_tx_tau_deviation_by_gene_tau_decile:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_deviation_by_gene_tau_decile.png"
+        f"{GENE_SPEC}/{{source}}/figures/tx_tau_deviation_by_gene_tau_decile.png"
     shell:
         "python3 scripts/plot_tx_tau_deviation_by_gene_tau_decile.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule compute_tau_tss_icc:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        tss=f"{GENE_SPEC}/transcript_tss.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        tss=f"{GENE_SPEC}/{{source}}/transcript_tss.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_tss_icc.csv"
+        f"{GENE_SPEC}/{{source}}/tau_tss_icc.csv"
     shell:
         "python3 scripts/compute_tau_tss_icc.py {input.gct} {input.tx_tau} {input.info_content} {input.tss} {output}"
 
 rule compute_tx_gene_length_fraction:
     input:
-        GENCODE_V47_GTF_LOCAL
+        lambda wc: ANNOTATION_GTF[wc.source]
     output:
-        f"{GENE_SPEC}/tx_gene_length_fraction.csv"
+        f"{GENE_SPEC}/{{source}}/tx_gene_length_fraction.csv"
     shell:
         "python3 scripts/compute_tx_gene_length_fraction.py {input} {output}"
 
 rule plot_tau_deviation_vs_length_fraction:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        length_fraction=f"{GENE_SPEC}/tx_gene_length_fraction.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        length_fraction=f"{GENE_SPEC}/{{source}}/tx_gene_length_fraction.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_vs_length_fraction.png"
+        f"{GENE_SPEC}/{{source}}/figures/tau_deviation_vs_length_fraction.png"
     shell:
         "python3 scripts/plot_tau_deviation_vs_length_fraction.py {input.gct} {input.tx_tau} {input.info_content} "
         "{input.length_fraction} {output}"
 
 rule fit_tau_deviation_regression:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        length_fraction=f"{GENE_SPEC}/tx_gene_length_fraction.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        length_fraction=f"{GENE_SPEC}/{{source}}/tx_gene_length_fraction.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression.csv"
+        f"{GENE_SPEC}/{{source}}/tau_deviation_regression.csv"
     shell:
         "python3 scripts/fit_tau_deviation_regression.py {input.gct} {input.tx_tau} {input.info_content} "
         "{input.length_fraction} {output}"
 
 rule fit_tau_deviation_regression_isoform_fraction:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
-        length_fraction=f"{GENE_SPEC}/tx_gene_length_fraction.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        length_fraction=f"{GENE_SPEC}/{{source}}/tx_gene_length_fraction.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tau_deviation_regression_isoform_fraction.csv"
+        f"{GENE_SPEC}/{{source}}/tau_deviation_regression_isoform_fraction.csv"
     shell:
         "python3 scripts/fit_tau_deviation_regression_isoform_fraction.py {input.gct} {input.tx_tau} "
         "{input.info_content} {input.length_fraction} {output}"
 
 rule plot_tau_deviation_histogram_weighted:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_deviation_histogram_weighted.png"
+        f"{GENE_SPEC}/{{source}}/figures/tau_deviation_histogram_weighted.png"
     shell:
         "python3 scripts/plot_tau_deviation_histogram_weighted.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
 rule extract_extreme_tau_deviation_gtf:
     input:
-        gtf=GENCODE_V47_GTF_LOCAL,
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gtf=lambda wc: ANNOTATION_GTF[wc.source],
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf"
+        gtf=f"{GENE_SPEC}/{{source}}/extreme_tau_deviation.gtf",
+        selected_tx=f"{GENE_SPEC}/{{source}}/extreme_tau_deviation.gtf.selected_tx.csv"
     shell:
         "python3 scripts/extract_extreme_tau_deviation_gtf.py {input.gtf} {input.gct} {input.tx_tau} "
-        "{input.info_content} {output}"
+        "{input.info_content} {output.gtf}"
 
 rule plot_extreme_tau_deviation_screenshots:
     input:
-        gtf=GENCODE_V47_GTF_LOCAL,
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        selected_tx=f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf.selected_tx.csv"
+        gtf=lambda wc: ANNOTATION_GTF[wc.source],
+        gct=lambda wc: base_gct(wc.source),
+        selected_tx=f"{GENE_SPEC}/{{source}}/extreme_tau_deviation.gtf.selected_tx.csv"
     output:
-        directory(f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots")
+        directory(f"{GENE_SPEC}/{{source}}/figures/extreme_tau_deviation_screenshots")
     shell:
         "python3 scripts/plot_extreme_tau_deviation_screenshots.py {input.gtf} {input.gct} {input.selected_tx} {output}"
 
 rule plot_n_sig_tx_vs_mean_tau_deviation:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png"
+        f"{GENE_SPEC}/{{source}}/figures/n_sig_tx_vs_mean_tau_deviation.png"
     shell:
         "python3 scripts/plot_n_sig_tx_vs_mean_tau_deviation.py {input.gct} {input.tx_tau} {input.info_content} {output}"
 
@@ -1248,10 +1344,10 @@ rule find_multiple_specific_isoform_genes:
 
 rule find_high_tau_isoform_pairs_wasserstein:
     input:
-        gct=GTEX_V11_TX_PC_BASE_GCT,
-        tx_tau=f"{GENE_SPEC_GTEX_V11_TX_PC}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
+        gct=lambda wc: base_gct(wc.source),
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv"
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv"
+        f"{GENE_SPEC}/{{source}}/high_tau_isoform_pairs_wasserstein.csv"
     shell:
         "python3 scripts/find_high_tau_isoform_pairs_wasserstein.py {input.gct} {input.tx_tau} {output}"
 
@@ -1265,7 +1361,7 @@ rule find_mutually_exclusive_exons_chr1:
 
 rule plot_tau_vs_tss_variance:
     input:
-        tss=f"{GENE_SPEC}/transcript_tss.csv",
+        tss=f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_tss.csv",
         transcript_meta=TXS_META_CSV["gtex_v11_tx_protein_coding"],
         info_content=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
         specific_isoform=f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv"
