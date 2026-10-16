@@ -401,7 +401,8 @@ rule all:
         # 8-way dendrogram comparison
         f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
-        f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv"
+        f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
+        f"{GENE_SPEC}/figures/dendrogram_scenarios.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -678,6 +679,15 @@ rule compare_dendrogram_scenarios:
     shell:
         "python3 scripts/compare_dendrogram_scenarios.py {input.gtex_gct} {input.chess_gct} "
         "{output.cluster_counts} {output.distance_matrix} {output.distance_long}"
+
+rule plot_dendrogram_scenarios:
+    input:
+        cluster_counts=f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
+        distance_matrix=f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv"
+    output:
+        f"{GENE_SPEC}/figures/dendrogram_scenarios.png"
+    shell:
+        "python3 scripts/plot_dendrogram_scenarios.py {input.cluster_counts} {input.distance_matrix} {output}"
 
 # ---- leg (resolution) GCTs + reference weighted_tau, wildcarded over source/leg/agg ----
 
