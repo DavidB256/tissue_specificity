@@ -401,6 +401,7 @@ rule all:
         # 8-way dendrogram comparison
         f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
+        f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
         f"{GENE_SPEC}/figures/dendrogram_scenarios.png",
         # baron_protein_coding: per-cell UMAP + called clusters, by TPM floor choice
@@ -695,19 +696,22 @@ rule compare_dendrogram_scenarios:
     output:
         cluster_counts=f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
         distance_matrix=f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
+        rf_matrix=f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv",
         distance_long=f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv"
     shell:
         "python3 scripts/compare_dendrogram_scenarios.py {input.gtex_gct} {input.chess_gct} "
-        "{output.cluster_counts} {output.distance_matrix} {output.distance_long}"
+        "{output.cluster_counts} {output.distance_matrix} {output.rf_matrix} {output.distance_long}"
 
 rule plot_dendrogram_scenarios:
     input:
         cluster_counts=f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
-        distance_matrix=f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv"
+        distance_matrix=f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
+        rf_matrix=f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv"
     output:
         f"{GENE_SPEC}/figures/dendrogram_scenarios.png"
     shell:
-        "python3 scripts/plot_dendrogram_scenarios.py {input.cluster_counts} {input.distance_matrix} {output}"
+        "python3 scripts/plot_dendrogram_scenarios.py {input.cluster_counts} {input.distance_matrix} "
+        "{input.rf_matrix} {output}"
 
 # ---- leg (resolution) GCTs + reference weighted_tau, wildcarded over source/leg/agg ----
 
