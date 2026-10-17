@@ -1,10 +1,15 @@
-"""Compare 12 tissue-clustering dendrograms built from every combination of
+"""Compare 13 tissue-clustering dendrograms: 12 built from every combination of
 {pearson, spearman} x {none, TPM<1, TPM<10 floor} x {gtex_v11_tx_protein_coding,
-chess_tx_protein_coding}. "none" (floor=0) never rounds any value down to 0 --
-floor_tpm(mat, floor=0) is a no-op since TPM is always >=0. Each scenario:
-floor_tpm(mat, floor) -> tissue_corr_expressed_only(method) -> average-linkage
-dendrogram (distance=1-corr) -> flat clusters at distance threshold 0.1
-(fcluster, same hierclust0.1 convention used throughout this pipeline).
+chess_tx_protein_coding}, plus 1 from UBERON ontology distance (gtex tissues
+only -- see compute_uberon_tissue_distance.py). "none" (floor=0) never rounds
+any value down to 0 -- floor_tpm(mat, floor=0) is a no-op since TPM is always
+>=0. Each correlation scenario: floor_tpm(mat, floor) -> tissue_corr_
+expressed_only(method) -> average-linkage dendrogram (distance=1-corr) -> flat
+clusters at distance threshold 0.1 (fcluster, same hierclust0.1 convention
+used throughout this pipeline) -- note this threshold was calibrated for the
+1-corr distance scale and is NOT meaningful for the UBERON scenario's batet-
+based distances (expect its n_clusters to land near 68, i.e. mostly
+singletons); the cophenetic/RF comparisons below don't depend on this cut.
 
 Two distinct notions of "different dendrograms" are measured, restricted to
 common tissues the same way for cross-source pairs (any gtex vs. chess pair:
@@ -40,10 +45,12 @@ from gls_tau import tissue_corr_expressed_only, floor_tpm
 
 IN_GTEX_GCT = sys.argv[1]
 IN_CHESS_GCT = sys.argv[2]
-OUT_CLUSTER_COUNTS_CSV = sys.argv[3]
-OUT_DISTANCE_MATRIX_CSV = sys.argv[4]
-OUT_RF_MATRIX_CSV = sys.argv[5]
-OUT_DISTANCE_LONG_CSV = sys.argv[6]
+IN_UBERON_LINKAGE_CSV = sys.argv[3]
+IN_UBERON_MAPPING_CSV = sys.argv[4]
+OUT_CLUSTER_COUNTS_CSV = sys.argv[5]
+OUT_DISTANCE_MATRIX_CSV = sys.argv[6]
+OUT_RF_MATRIX_CSV = sys.argv[7]
+OUT_DISTANCE_LONG_CSV = sys.argv[8]
 
 
 def get_bipartitions(Z, tissues):
@@ -97,6 +104,17 @@ common_tissues_all = sorted(set(gcts["gtex_v11_tx_protein_coding"][0]) & set(gct
 print(f"tissues: gtex={len(gcts['gtex_v11_tx_protein_coding'][0])} "
       f"chess={len(gcts['chess_tx_protein_coding'][0])} common={len(common_tissues_all)}", file=sys.stderr)
 
+def make_scenario(Z, tissues):
+    cluster_id = fcluster(Z, t=DIST_THRESHOLD, criterion="distance")
+    coph = squareform(cophenet(Z))
+    return {
+        "tissues": tissues, "cophenetic": coph,
+        "cluster_of": dict(zip(tissues, cluster_id)),
+        "splits": get_bipartitions(Z, tissues),
+        "n_clusters": len(set(cluster_id)),
+    }
+
+
 scenarios = {}
 rows = []
 for source in SOURCES:
@@ -110,19 +128,24 @@ for source in SOURCES:
             np.fill_diagonal(dist, 0.0)
             dist = (dist + dist.T) / 2
             Z = linkage(squareform(dist, checks=False), method="average")
-            cluster_id = fcluster(Z, t=DIST_THRESHOLD, criterion="distance")
-            coph = squareform(cophenet(Z))
-            n_clusters = len(set(cluster_id))
-            scenarios[name] = {
-                "tissues": tissues, "cophenetic": coph,
-                "cluster_of": dict(zip(tissues, cluster_id)),
-                "splits": get_bipartitions(Z, tissues),
-            }
+            scenarios[name] = make_scenario(Z, tissues)
             rows.append({
                 "scenario": name, "source": source, "floor_threshold": floor,
-                "corr_method": method, "n_tissues": len(tissues), "n_clusters": n_clusters,
+                "corr_method": method, "n_tissues": len(tissues),
+                "n_clusters": scenarios[name]["n_clusters"],
             })
-            print(f"{name}: n_tissues={len(tissues)} n_clusters={n_clusters}", file=sys.stderr)
+            print(f"{name}: n_tissues={len(tissues)} n_clusters={scenarios[name]['n_clusters']}", file=sys.stderr)
+
+uberon_tissues = list(pd.read_csv(IN_UBERON_MAPPING_CSV)["tissue"])
+uberon_Z = pd.read_csv(IN_UBERON_LINKAGE_CSV)[["cluster1", "cluster2", "distance", "n_obs"]].values
+scenarios["gtex_uberon_tree"] = make_scenario(uberon_Z, uberon_tissues)
+rows.append({
+    "scenario": "gtex_uberon_tree", "source": "gtex_uberon_tree", "floor_threshold": np.nan,
+    "corr_method": "n/a", "n_tissues": len(uberon_tissues),
+    "n_clusters": scenarios["gtex_uberon_tree"]["n_clusters"],
+})
+print(f"gtex_uberon_tree: n_tissues={len(uberon_tissues)} "
+      f"n_clusters={scenarios['gtex_uberon_tree']['n_clusters']}", file=sys.stderr)
 
 pd.DataFrame(rows).to_csv(OUT_CLUSTER_COUNTS_CSV, index=False)
 

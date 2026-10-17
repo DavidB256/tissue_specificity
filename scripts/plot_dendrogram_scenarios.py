@@ -1,10 +1,12 @@
 """3-panel figure for compare_dendrogram_scenarios.py's output: left, bar chart
-of n_clusters (flatclust threshold 0.1) for each of the 12 {pearson,spearman} x
-{none,TPM<1,TPM<10} x {gtex_v11_tx_protein_coding,chess_tx_protein_coding}
-scenarios; middle, heatmap of the pairwise cophenetic distance matrix (height-
-sensitive); right, heatmap of the pairwise Robinson-Foulds topology distance
-matrix (height-blind, pure tree-shape comparison -- see
-compare_dendrogram_scenarios.py's docstring for what distinguishes the two)."""
+of n_clusters (flatclust threshold 0.1 -- not a meaningful cut for the UBERON
+scenario, see that script's docstring) for each of the 13 scenarios: 12 from
+{pearson,spearman} x {none,TPM<1,TPM<10} x {gtex_v11_tx_protein_coding,
+chess_tx_protein_coding}, plus 1 from UBERON ontology distance; middle, heatmap
+of the pairwise cophenetic distance matrix (height-sensitive); right, heatmap
+of the pairwise Robinson-Foulds topology distance matrix (height-blind, pure
+tree-shape comparison -- see compare_dendrogram_scenarios.py's docstring for
+what distinguishes the two)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -17,22 +19,24 @@ IN_DISTANCE_MATRIX_CSV = sys.argv[2]
 IN_RF_MATRIX_CSV = sys.argv[3]
 OUT_PNG = sys.argv[4]
 
-SOURCE_LABEL = {"gtex_v11_tx_protein_coding": "gtex", "chess_tx_protein_coding": "chess"}
-SOURCE_COLOR = {"gtex_v11_tx_protein_coding": "#4C72B0", "chess_tx_protein_coding": "#DD8452"}
+SOURCE_LABEL = {"gtex_v11_tx_protein_coding": "gtex", "chess_tx_protein_coding": "chess",
+                "gtex_uberon_tree": "uberon"}
+SOURCE_COLOR = {"gtex_v11_tx_protein_coding": "#4C72B0", "chess_tx_protein_coding": "#DD8452",
+                 "gtex_uberon_tree": "#55A868"}
 FLOOR_LABEL = {0.0: "none", 1.0: "TPM<1", 10.0: "TPM<10"}
 FLOOR_HATCH = {0.0: "..", 1.0: "", 10.0: "//"}
 
 
 def short_name(scenario):
+    if scenario == "gtex_uberon_tree":
+        return "uberon\ntree\n(gtex tissues)"
     source, floor, method = scenario.split("__")
     floor_val = float(floor.replace("floor", ""))
     return f"{SOURCE_LABEL[source]}\n{FLOOR_LABEL[floor_val]}\n{method}"
 
 
 counts = pd.read_csv(IN_CLUSTER_COUNTS_CSV)
-counts["scenario"] = (counts["source"] + "__floor" + counts["floor_threshold"].astype(int).astype(str)
-                       + "__" + counts["corr_method"])
-order = ["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]
+order = ["gtex_v11_tx_protein_coding", "chess_tx_protein_coding", "gtex_uberon_tree"]
 counts["source_rank"] = counts["source"].map({s: i for i, s in enumerate(order)})
 counts = counts.sort_values(["source_rank", "floor_threshold", "corr_method"])
 
@@ -45,7 +49,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(22, 6.5))
 
 x = np.arange(len(counts))
 colors = counts["source"].map(SOURCE_COLOR)
-hatches = counts["floor_threshold"].map(FLOOR_HATCH)
+hatches = counts["floor_threshold"].map(FLOOR_HATCH).fillna("xx")
 bars = ax1.bar(x, counts["n_clusters"], color=colors)
 for bar, hatch in zip(bars, hatches):
     bar.set_hatch(hatch)

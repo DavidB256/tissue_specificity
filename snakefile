@@ -19,6 +19,7 @@ GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/genco
 GENCODE_V47_GTF_LOCAL = f"{DATA}/gencode.v47.annotation.gtf"
 CHESS_GTF_LOCAL = f"{DATA}/chess3.1.3.annotation.gtf"
 CHESS_BODYSITE_RAW_TSV = f"{DATA}/gtex-bodysite-expression-tpm-sva2-2026-10-15.raw.tsv.gz"
+UBERON_OWL_LOCAL = f"{DATA}/uberon.owl"
 
 # Baron et al. (GSE84133) pancreas scRNA-seq -> per-cell-type TPM matrix. Gene
 # length for TPM = MANE_Select summed exon length, falling back to the longest
@@ -397,8 +398,11 @@ rule all:
         f"{GENE_SPEC_CHESS_TX_PC}/figures/specific_isoform_tissue_contribution.png",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_vs_tss_variance.png",
         f"{GENE_SPEC_CHESS_TX_PC}/multiple_specific_isoform_genes.csv",
-        # pearson/spearman x TPM<1/TPM<10 x gtex_v11_tx_protein_coding/chess_tx_protein_coding:
-        # 8-way dendrogram comparison
+        # pearson/spearman x TPM<1/TPM<10 x gtex_v11_tx_protein_coding/chess_tx_protein_coding,
+        # plus a UBERON-ontology-distance tree: 13-way dendrogram comparison
+        f"{GENE_SPEC}/gtex_uberon_mapping.csv",
+        f"{GENE_SPEC}/uberon_tissue_distance.csv",
+        f"{GENE_SPEC}/uberon_tissue_linkage.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv",
@@ -689,10 +693,32 @@ rule compare_dendrogram_methods:
         "python3 scripts/compare_dendrogram_methods.py {input.linkage_a} {input.linkage_b} "
         "{input.clusters_a} {input.clusters_b} {output}"
 
+rule build_gtex_uberon_mapping:
+    input:
+        sample_attrs=GTEX_V11_SAMPLE_ATTRS_RAW,
+        gct=GTEX_V11_TX_PC_BASE_GCT
+    output:
+        f"{GENE_SPEC}/gtex_uberon_mapping.csv"
+    shell:
+        "python3 scripts/build_gtex_uberon_mapping.py {input.sample_attrs} {input.gct} {output}"
+
+rule compute_uberon_tissue_distance:
+    input:
+        owl=UBERON_OWL_LOCAL,
+        mapping=f"{GENE_SPEC}/gtex_uberon_mapping.csv"
+    output:
+        distance=f"{GENE_SPEC}/uberon_tissue_distance.csv",
+        linkage=f"{GENE_SPEC}/uberon_tissue_linkage.csv"
+    shell:
+        "python3 scripts/compute_uberon_tissue_distance.py {input.owl} {input.mapping} "
+        "{output.distance} {output.linkage}"
+
 rule compare_dendrogram_scenarios:
     input:
         gtex_gct=GTEX_V11_TX_PC_BASE_GCT,
-        chess_gct=CHESS_TX_PC_BASE_GCT
+        chess_gct=CHESS_TX_PC_BASE_GCT,
+        uberon_linkage=f"{GENE_SPEC}/uberon_tissue_linkage.csv",
+        uberon_mapping=f"{GENE_SPEC}/gtex_uberon_mapping.csv"
     output:
         cluster_counts=f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
         distance_matrix=f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
@@ -700,6 +726,7 @@ rule compare_dendrogram_scenarios:
         distance_long=f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv"
     shell:
         "python3 scripts/compare_dendrogram_scenarios.py {input.gtex_gct} {input.chess_gct} "
+        "{input.uberon_linkage} {input.uberon_mapping} "
         "{output.cluster_counts} {output.distance_matrix} {output.rf_matrix} {output.distance_long}"
 
 rule plot_dendrogram_scenarios:
