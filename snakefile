@@ -401,6 +401,7 @@ rule all:
         # pearson/spearman x TPM<1/TPM<10 x gtex_v11_tx_protein_coding/chess_tx_protein_coding,
         # plus a UBERON-ontology-distance tree: 13-way dendrogram comparison
         f"{GENE_SPEC}/gtex_uberon_mapping.csv",
+        f"{GENE_SPEC}/figures/gtex_uberon_dag.png",
         f"{GENE_SPEC}/uberon_tissue_distance.csv",
         f"{GENE_SPEC}/uberon_tissue_linkage.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
@@ -701,6 +702,15 @@ rule build_gtex_uberon_mapping:
         f"{GENE_SPEC}/gtex_uberon_mapping.csv"
     shell:
         "python3 scripts/build_gtex_uberon_mapping.py {input.sample_attrs} {input.gct} {output}"
+
+rule plot_gtex_uberon_dag:
+    input:
+        owl=UBERON_OWL_LOCAL,
+        mapping=f"{GENE_SPEC}/gtex_uberon_mapping.csv"
+    output:
+        f"{GENE_SPEC}/figures/gtex_uberon_dag.png"
+    shell:
+        "python3 scripts/plot_gtex_uberon_dag.py {input.owl} {input.mapping} {output}"
 
 rule compute_uberon_tissue_distance:
     input:
