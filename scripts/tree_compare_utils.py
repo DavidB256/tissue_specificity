@@ -52,6 +52,12 @@ def restricted_splits(splits, common_set):
     return out
 
 
+def cluster_count_curve(Z, thresholds):
+    """n_clusters (fcluster, criterion=distance) at each threshold in
+    thresholds -- a step function, non-increasing in threshold."""
+    return [len(set(fcluster(Z, t=t, criterion="distance"))) for t in thresholds]
+
+
 def make_scenario(Z, tissues, dist_threshold=0.1):
     cluster_id = fcluster(Z, t=dist_threshold, criterion="distance")
     coph = squareform(cophenet(Z))

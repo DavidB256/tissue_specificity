@@ -766,22 +766,25 @@ rule compare_gene_vs_tx_dendrograms:
         cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv",
         distance_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
         rf_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
-        distance_long=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv"
+        distance_long=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
+        threshold_curve=f"{GENE_SPEC}/gene_vs_tx_dendrograms_threshold_curve.csv"
     shell:
         "python3 scripts/compare_gene_vs_tx_dendrograms.py {input.gtex_pc_gct} "
         "{input.gtex_tx_gct} {input.chess_tx_gct} "
-        "{output.cluster_counts} {output.distance_matrix} {output.rf_matrix} {output.distance_long}"
+        "{output.cluster_counts} {output.distance_matrix} {output.rf_matrix} {output.distance_long} "
+        "{output.threshold_curve}"
 
 rule plot_gene_vs_tx_dendrograms:
     input:
         cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv",
         distance_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
-        rf_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv"
+        rf_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
+        threshold_curve=f"{GENE_SPEC}/gene_vs_tx_dendrograms_threshold_curve.csv"
     output:
         f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png"
     shell:
         "python3 scripts/plot_gene_vs_tx_dendrograms.py {input.cluster_counts} {input.distance_matrix} "
-        "{input.rf_matrix} {output}"
+        "{input.rf_matrix} {input.threshold_curve} {output}"
 
 # ---- leg (resolution) GCTs + reference weighted_tau, wildcarded over source/leg/agg ----
 
