@@ -5,7 +5,10 @@ pairwise distance among its members -- see compute_tau_cluster_weighted.py) draw
 horizontal red bar spanning that cluster's leaves. The diameter bar can sit well above
 the cluster's own merge height in the tree: average linkage merges on averaged distances,
 so a cluster can be admitted by the cut even when some pairs inside it are far more
-distant than the cut threshold (chaining) -- this figure makes that visible directly."""
+distant than the cut threshold (chaining) -- this figure makes that visible directly.
+Optional trailing args: SHOW_LEGEND (7th, "0" to drop the legend), LW_MULT (8th,
+multiplies the tree branch line widths, e.g. 2.0 for a poster render), DPI (9th,
+default 300)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -21,6 +24,9 @@ OUT_PNG = sys.argv[3]
 LABEL = sys.argv[4] if len(sys.argv) > 4 else "full"
 DIST_THRESHOLD = float(sys.argv[5]) if len(sys.argv) > 5 else 0.1
 SHOW_DIAMETERS = sys.argv[6] != "0" if len(sys.argv) > 6 else True
+SHOW_LEGEND = sys.argv[7] != "0" if len(sys.argv) > 7 else True
+LW_MULT = float(sys.argv[8]) if len(sys.argv) > 8 else 1.0
+DPI = int(sys.argv[9]) if len(sys.argv) > 9 else 300
 
 clusters = pd.read_csv(IN_CLUSTERS_CSV)
 tissues = clusters["tissue"].tolist()
@@ -29,6 +35,9 @@ Z = pd.read_csv(IN_LINKAGE_CSV)[["cluster1", "cluster2", "distance", "n_obs"]].v
 fig, ax = plt.subplots(figsize=(max(14, 0.22 * len(tissues)), 7))
 R = dendrogram(Z, labels=tissues, color_threshold=DIST_THRESHOLD,
                above_threshold_color="lightgray", leaf_rotation=90, leaf_font_size=6, ax=ax)
+if LW_MULT != 1.0:
+    for line in ax.get_lines():
+        line.set_linewidth(line.get_linewidth() * LW_MULT)
 
 leaf_x = {t: 5 + 10 * i for i, t in enumerate(R["ivl"])}
 
@@ -46,9 +55,10 @@ if SHOW_DIAMETERS:
 ax.set_xticklabels([greek_label(t.get_text()) for t in ax.get_xticklabels()])
 ax.axhline(DIST_THRESHOLD, ls="--", color="black", lw=1, label=f"cut = {DIST_THRESHOLD}")
 ax.set_ylabel("distance (1 - corr)")
-ax.legend(fontsize=8, loc="upper right")
+if SHOW_LEGEND:
+    ax.legend(fontsize=8, loc="upper right")
 fig.suptitle(f"{display_label(LABEL)}: hierarchical tissue clustering, cut={DIST_THRESHOLD}, "
              f"{clusters['cluster_id'].nunique()} clusters", fontsize=12)
 fig.tight_layout()
-fig.savefig(OUT_PNG, dpi=300)
+fig.savefig(OUT_PNG, dpi=DPI)
 plt.close(fig)
