@@ -1,18 +1,18 @@
 """Poster version of plot_tau_free_vs_full.py's row-1 panels only (gtex_protein_coding,
 free_cluster_weights_max, onebrain leg): left, tau_unweighted (full 68 tissues) vs tau
 on the brain-combined reference; right, tau_free_weighted (full) vs the same reference.
-dpi=600, no suptitle, panel titles simplified to "tau unweighted"/"tau weighted",
-pearson r line dropped from the left panel's stats key only, "mean" dropped from the
-dist-from-y=x key (median only, both panels), "Brain" decapitalized to "brain" in the
-category legend, and all 3 per-panel keys (category legend, diag-stats key,
-dist-from-y=x key) plus axis labels sized up (+4pt) for poster legibility."""
+dpi=600, no suptitle, panel titles simplified to "tau unweighted"/"tau weighted"
+(+5pt), pearson r line dropped from both panels' stats keys, "Brain" decapitalized
+to "brain" in the category legend, all 3 per-panel keys (category legend,
+diag-stats key, "median dist. from y=x:" key) at a matched font size, and axis
+labels sized up (+5pt) for poster legibility."""
 import sys
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import spearmanr
 from plot_utils import display_label
 from gls_tau import floor_tpm
 
@@ -25,8 +25,9 @@ LABEL = "onebrain"
 CATEGORIES = {"brain": "tab:red", "other": "tab:blue"}
 AXIS_LO, AXIS_HI = 0.2, 1.0
 KEY_FONTSIZE = 9 + 4
-LEGEND_FONTSIZE = 7 + 4
-AXIS_LABEL_FONTSIZE = 10 + 4
+LEGEND_FONTSIZE = KEY_FONTSIZE
+AXIS_LABEL_FONTSIZE = 10 + 5
+TITLE_FONTSIZE = 10 + 5
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(gct.columns[2:])
@@ -44,19 +45,16 @@ r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_diag_reg_in
 df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
 
 PANELS = [
-    ("tau_unweighted", "tau_ref", "tau unweighted", False),
-    ("tau_free_weighted", "tau_ref", "tau weighted", True),
+    ("tau_unweighted", "tau_ref", "tau unweighted"),
+    ("tau_free_weighted", "tau_ref", "tau weighted"),
 ]
 
 
-def annotate_stats(ax, x, y, show_pearson):
-    r_val, _ = pearsonr(x, y)
+def annotate_stats(ax, x, y):
     rho, _ = spearmanr(x, y)
     frac_below = (x > y).mean()
     frac_above = (x < y).mean()
     lines = []
-    if show_pearson:
-        lines.append(f"pearson r={r_val:.3f}")
     lines.append(f"spearman ρ={rho:.3f}")
     lines.append(f"below line={frac_below:.1%}")
     lines.append(f"above line={frac_above:.1%}")
@@ -64,8 +62,8 @@ def annotate_stats(ax, x, y, show_pearson):
             fontsize=KEY_FONTSIZE, bbox=dict(facecolor="white", alpha=0.7, edgecolor="none"))
 
 
-fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-for ax, (xcol, ycol, title, show_pearson) in zip(axes, PANELS):
+fig, axes = plt.subplots(1, 2, figsize=(19, 9.5))
+for ax, (xcol, ycol, title) in zip(axes, PANELS):
     for cat, color in CATEGORIES.items():
         sub = df[df["category"] == cat]
         alpha = 0.1 if cat == "other" else 0.3
@@ -75,14 +73,14 @@ for ax, (xcol, ycol, title, show_pearson) in zip(axes, PANELS):
     ax.set_ylim(AXIS_LO, AXIS_HI)
     ax.set_xlabel("full (68 tissues)", fontsize=AXIS_LABEL_FONTSIZE)
     ax.set_ylabel(display_label(LABEL), fontsize=AXIS_LABEL_FONTSIZE)
-    ax.set_title(title, fontsize=10)
-    annotate_stats(ax, df[xcol], df[ycol], show_pearson)
+    ax.set_title(title, fontsize=TITLE_FONTSIZE)
+    annotate_stats(ax, df[xcol], df[ycol])
 
     cat_legend = ax.legend(loc="center left", fontsize=LEGEND_FONTSIZE, markerscale=3)
     ax.add_artist(cat_legend)
 
     dist = (df[xcol] - df[ycol]).abs() / np.sqrt(2)
-    ax.legend(handles=[plt.Line2D([0], [0], color="none", label=f"dist from y=x: median={dist.median():.4f}")],
+    ax.legend(handles=[plt.Line2D([0], [0], color="none", label=f"median dist. from y=x: {dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=KEY_FONTSIZE)
 
 fig.tight_layout()
