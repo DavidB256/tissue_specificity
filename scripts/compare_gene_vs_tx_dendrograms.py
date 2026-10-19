@@ -1,7 +1,10 @@
 """Compare dendrograms across the gene-centric source (gtex_protein_coding)
 and the transcript-centric sources (gtex_v11_tx_protein_coding, chess_tx_
-protein_coding), at both TPM<1 and TPM<10 flooring, so the floor's effect can
-be compared alongside the gene-vs-tx effect. floor_tpm(mat, floor) -> tissue_
+protein_coding), at none/TPM<1/TPM<10 flooring, so the floor's effect can
+be compared alongside the gene-vs-tx effect. All 3 sources are the same GTEx
+v11 data -- gtex_protein_coding/gtex_v11_tx_protein_coding use GENCODE
+annotation, chess_tx_protein_coding uses CHESS; only the annotation (and
+gene- vs tx-level aggregation) differs. floor_tpm(mat, floor) -> tissue_
 corr_expressed_only(method="pearson") (which, after flooring, is automatically
 restricted to genes/tx reaching >=floor TPM in at least one tissue -- the
 "max(axis=1) > 0" filter already baked into tissue_corr_expressed_only
@@ -31,7 +34,7 @@ OUT_DISTANCE_MATRIX_CSV = sys.argv[5]
 OUT_RF_MATRIX_CSV = sys.argv[6]
 OUT_DISTANCE_LONG_CSV = sys.argv[7]
 
-FLOORS = [1.0, 10.0]
+FLOORS = [0.0, 1.0, 10.0]
 METHOD = "pearson"
 SOURCES = {
     "gtex_protein_coding": ("gene_centric", IN_GTEX_PC_GCT),
