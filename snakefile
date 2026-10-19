@@ -410,6 +410,9 @@ rule all:
         f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv",
         f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
         f"{GENE_SPEC}/figures/dendrogram_scenarios.png",
+        # UBERON Mantel test: transcriptomic cophenetic dist vs UBERON (1-batet) dist
+        f"{GENE_SPEC}/uberon_mantel_results.csv",
+        f"{GENE_SPEC}/figures/uberon_mantel_agreement.png",
         # baron_protein_coding: per-cell UMAP + called clusters, by TPM floor choice
         f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png",
         # gene-centric (gtex_protein_coding, baron_protein_coding) vs. tx-centric
@@ -757,6 +760,39 @@ rule plot_dendrogram_scenarios:
     shell:
         "python3 scripts/plot_dendrogram_scenarios.py {input.cluster_counts} {input.distance_matrix} "
         "{input.rf_matrix} {output}"
+
+# ---- UBERON Mantel test: does transcriptomic cophenetic distance correlate with
+# UBERON anatomical (1-batet) distance, across the 3 sources with a full 68/55-tissue
+# GTEx panel? Recommended alternative to forcing UBERON into a binary tree + RF (see
+# uberon_dag_tree_comparison_ideas.md option 5) -- no tree built on the UBERON side,
+# permutation-tested Pearson r between the two distance structures directly. ----
+
+rule compute_uberon_mantel:
+    input:
+        uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv",
+        gtex_corr=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation.csv",
+        gtex_linkage=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation_linkage.csv",
+        gtex_tx_corr=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/tissue_correlation.csv",
+        gtex_tx_linkage=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/tissue_correlation_linkage.csv",
+        chess_tx_corr=f"{GENE_SPEC}/chess_tx_protein_coding/tissue_correlation.csv",
+        chess_tx_linkage=f"{GENE_SPEC}/chess_tx_protein_coding/tissue_correlation_linkage.csv"
+    output:
+        results=f"{GENE_SPEC}/uberon_mantel_results.csv",
+        vectors=f"{GENE_SPEC}/uberon_mantel_results_vectors.pkl"
+    shell:
+        "python3 scripts/compute_uberon_mantel.py {input.uberon_distance} {output.results} "
+        "gtex_protein_coding:{input.gtex_corr}:{input.gtex_linkage} "
+        "gtex_v11_tx_protein_coding:{input.gtex_tx_corr}:{input.gtex_tx_linkage} "
+        "chess_tx_protein_coding:{input.chess_tx_corr}:{input.chess_tx_linkage}"
+
+rule plot_uberon_mantel:
+    input:
+        f"{GENE_SPEC}/uberon_mantel_results.csv",
+        vectors=f"{GENE_SPEC}/uberon_mantel_results_vectors.pkl"
+    output:
+        f"{GENE_SPEC}/figures/uberon_mantel_agreement.png"
+    shell:
+        "python3 scripts/plot_uberon_mantel.py {input[0]} {output}"
 
 rule compare_gene_vs_tx_dendrograms:
     input:

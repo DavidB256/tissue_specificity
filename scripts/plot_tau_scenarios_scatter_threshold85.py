@@ -12,7 +12,9 @@ categories (above->below, below->above, none) instead of the original's 5
 (2 thresholds: 0.5 and 0.8). dpi set via optional 5th arg (default 300);
 optional 6th arg FONT_BUMP (default 0) adds extra pt to every text element
 (key/axis-label/title/tick-label) -- used to size the poster_figs copy up
-further (+4pt) without changing the default gene_specificity output."""
+further (+4pt) without changing the default gene_specificity output; optional
+7th arg SHOW_TITLE ("0"/"1", default "1") -- pass "0" to drop the per-panel
+titles entirely (for a poster fig with no title at all)."""
 import sys
 import pandas as pd
 import matplotlib
@@ -27,6 +29,7 @@ OUT_PNG = sys.argv[3]
 LABEL = sys.argv[4] if len(sys.argv) > 4 else "reference"
 DPI = int(sys.argv[5]) if len(sys.argv) > 5 else 300
 FONT_BUMP = int(sys.argv[6]) if len(sys.argv) > 6 else 0
+SHOW_TITLE = (sys.argv[7] if len(sys.argv) > 7 else "1") != "0"
 
 THRESHOLD = 0.85
 KEY_FONTSIZE = 13 + FONT_BUMP
@@ -88,7 +91,8 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     ax.set_ylim(0, 1)
     ax.set_xlabel(xlabel, fontsize=AXIS_LABEL_FONTSIZE)
     ax.set_ylabel(f"tau_unweighted ({display_label(LABEL)})", fontsize=AXIS_LABEL_FONTSIZE)
-    ax.set_title(title, fontsize=TITLE_FONTSIZE)
+    if SHOW_TITLE:
+        ax.set_title(title, fontsize=TITLE_FONTSIZE)
     ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)
     annotate_stats(ax, df[xcol], df["tau_ref"])
 
