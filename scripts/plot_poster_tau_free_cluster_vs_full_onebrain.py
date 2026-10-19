@@ -1,0 +1,92 @@
+"""Poster version of plot_tau_free_vs_full.py's row-1 panels only (gtex_protein_coding,
+free_cluster_weights_max, onebrain leg): left, tau_unweighted (full 68 tissues) vs tau
+on the brain-combined reference; right, tau_free_weighted (full) vs the same reference.
+dpi=600, no suptitle, panel titles simplified to "tau unweighted"/"tau weighted",
+pearson r line dropped from the left panel's stats key only, "mean" dropped from the
+dist-from-y=x key (median only, both panels), "Brain" decapitalized to "brain" in the
+category legend, and all 3 per-panel keys (category legend, diag-stats key,
+dist-from-y=x key) plus axis labels sized up (+4pt) for poster legibility."""
+import sys
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr, spearmanr
+from plot_utils import display_label
+from gls_tau import floor_tpm
+
+IN_GCT = sys.argv[1]
+IN_FREE_TAU = sys.argv[2]
+IN_REF_TAU = sys.argv[3]
+OUT_PNG = sys.argv[4]
+
+LABEL = "onebrain"
+CATEGORIES = {"brain": "tab:red", "other": "tab:blue"}
+AXIS_LO, AXIS_HI = 0.2, 1.0
+KEY_FONTSIZE = 9 + 4
+LEGEND_FONTSIZE = 7 + 4
+AXIS_LABEL_FONTSIZE = 10 + 4
+
+gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
+tissues = list(gct.columns[2:])
+mat = floor_tpm(gct[tissues].values.astype(float))
+argmax_tissue = np.array(tissues)[mat.argmax(axis=1)]
+
+category = np.full(len(argmax_tissue), "other", dtype=object)
+category[np.char.find(argmax_tissue.astype(str), "Brain") >= 0] = "brain"
+cat_df = pd.DataFrame({"gene": gct["Name"].values, "category": category})
+
+d = pd.read_csv(IN_FREE_TAU)[["gene", "tau_unweighted", "tau_free_weighted"]]
+r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_diag_reg_inv_corr"]] \
+    .rename(columns={"tau_unweighted": "tau_ref", "tau_weighted_diag_reg_inv_corr": "tau_weighted_alt"})
+
+df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
+
+PANELS = [
+    ("tau_unweighted", "tau_ref", "tau unweighted", False),
+    ("tau_free_weighted", "tau_ref", "tau weighted", True),
+]
+
+
+def annotate_stats(ax, x, y, show_pearson):
+    r_val, _ = pearsonr(x, y)
+    rho, _ = spearmanr(x, y)
+    frac_below = (x > y).mean()
+    frac_above = (x < y).mean()
+    lines = []
+    if show_pearson:
+        lines.append(f"pearson r={r_val:.3f}")
+    lines.append(f"spearman ρ={rho:.3f}")
+    lines.append(f"below line={frac_below:.1%}")
+    lines.append(f"above line={frac_above:.1%}")
+    ax.text(0.03, 0.97, "\n".join(lines), transform=ax.transAxes, va="top", ha="left",
+            fontsize=KEY_FONTSIZE, bbox=dict(facecolor="white", alpha=0.7, edgecolor="none"))
+
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 7))
+for ax, (xcol, ycol, title, show_pearson) in zip(axes, PANELS):
+    for cat, color in CATEGORIES.items():
+        sub = df[df["category"] == cat]
+        alpha = 0.1 if cat == "other" else 0.3
+        ax.scatter(sub[xcol], sub[ycol], s=4, alpha=alpha, color=color, label=f"{cat} (n={len(sub)})")
+    ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
+    ax.set_xlim(AXIS_LO, AXIS_HI)
+    ax.set_ylim(AXIS_LO, AXIS_HI)
+    ax.set_xlabel("full (68 tissues)", fontsize=AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel(display_label(LABEL), fontsize=AXIS_LABEL_FONTSIZE)
+    ax.set_title(title, fontsize=10)
+    annotate_stats(ax, df[xcol], df[ycol], show_pearson)
+
+    cat_legend = ax.legend(loc="center left", fontsize=LEGEND_FONTSIZE, markerscale=3)
+    ax.add_artist(cat_legend)
+
+    dist = (df[xcol] - df[ycol]).abs() / np.sqrt(2)
+    ax.legend(handles=[plt.Line2D([0], [0], color="none", label=f"dist from y=x: median={dist.median():.4f}")],
+              loc="lower right", handlelength=0, handletextpad=0, fontsize=KEY_FONTSIZE)
+
+fig.tight_layout()
+fig.savefig(OUT_PNG, dpi=600)
+plt.close(fig)
+
+print(f"-> {OUT_PNG}", file=sys.stderr)

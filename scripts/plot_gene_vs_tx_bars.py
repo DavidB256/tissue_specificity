@@ -22,6 +22,7 @@ IN_GTEX_TX_PC_GCT = sys.argv[2]
 IN_CHESS_TX_PC_GCT = sys.argv[3]
 IN_CLUSTER_COUNTS_CSV = sys.argv[4]
 OUT_PNG = sys.argv[5]
+OUT_DPI = int(sys.argv[6]) if len(sys.argv) > 6 else 300
 
 N_BOOT = 200
 RNG = np.random.default_rng(0)
@@ -120,7 +121,7 @@ ax2.tick_params(axis="y", labelsize=12)
 ax2.yaxis.set_major_locator(MultipleLocator(0.1))
 
 fig.tight_layout()
-fig.savefig(OUT_PNG, dpi=300)
+fig.savefig(OUT_PNG, dpi=OUT_DPI)
 plt.close(fig)
 
 print(f"-> {OUT_PNG}", file=sys.stderr)
