@@ -356,6 +356,7 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_tau_vs_tx_wasserstein.png",
         # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding,
         # including the bootstrap (quantile-interpolation resampling, see
         # bootstrap_chess_tx_protein_coding.py)
@@ -1506,6 +1507,23 @@ rule find_high_tau_isoform_pairs_wasserstein:
         f"{GENE_SPEC}/{{source}}/high_tau_isoform_pairs_wasserstein.csv"
     shell:
         "python3 scripts/find_high_tau_isoform_pairs_wasserstein.py {input.gct} {input.tx_tau} {output}"
+
+rule compute_gene_tx_wasserstein:
+    input:
+        gct=lambda wc: base_gct(wc.source)
+    output:
+        f"{GENE_SPEC}/{{source}}/gene_tx_wasserstein.csv"
+    shell:
+        "python3 scripts/compute_gene_tx_wasserstein.py {input.gct} {output}"
+
+rule plot_gene_tau_vs_tx_wasserstein:
+    input:
+        tx_info_content=f"{GENE_SPEC}/{{source}}/tx_info_content.csv",
+        wasserstein=f"{GENE_SPEC}/{{source}}/gene_tx_wasserstein.csv"
+    output:
+        f"{GENE_SPEC}/{{source}}/figures/gene_tau_vs_tx_wasserstein.png"
+    shell:
+        "python3 scripts/plot_gene_tau_vs_tx_wasserstein.py {input.tx_info_content} {input.wasserstein} {output}"
 
 rule find_mutually_exclusive_exons_chr1:
     input:
