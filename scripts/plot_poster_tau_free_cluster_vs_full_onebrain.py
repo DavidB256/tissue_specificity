@@ -2,10 +2,10 @@
 free_cluster_weights_max, onebrain leg): left, tau_unweighted (full 68 tissues) vs tau
 on the brain-combined reference; right, tau_free_weighted (full) vs the same reference.
 dpi=600, no suptitle, panel titles simplified to "tau unweighted"/"tau weighted"
-(+5pt), pearson r line dropped from both panels' stats keys, "Brain" decapitalized
+(+9pt), pearson r line dropped from both panels' stats keys, "Brain" decapitalized
 to "brain" in the category legend, all 3 per-panel keys (category legend,
-diag-stats key, "median dist. from y=x:" key) at a matched font size, and axis
-labels sized up (+5pt) for poster legibility."""
+diag-stats key, "median dist. from y=x:" key) at a matched font size, axis
+labels sized up (+9pt), and tick labels sized up (+4pt) for poster legibility."""
 import sys
 import numpy as np
 import pandas as pd
@@ -24,10 +24,11 @@ OUT_PNG = sys.argv[4]
 LABEL = "onebrain"
 CATEGORIES = {"brain": "tab:red", "other": "tab:blue"}
 AXIS_LO, AXIS_HI = 0.2, 1.0
-KEY_FONTSIZE = 9 + 4
+KEY_FONTSIZE = 9 + 4 + 4
 LEGEND_FONTSIZE = KEY_FONTSIZE
-AXIS_LABEL_FONTSIZE = 10 + 5
-TITLE_FONTSIZE = 10 + 5
+AXIS_LABEL_FONTSIZE = 10 + 5 + 4
+TITLE_FONTSIZE = 10 + 5 + 4
+TICK_LABEL_FONTSIZE = 10 + 4
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(gct.columns[2:])
@@ -74,6 +75,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.set_xlabel("full (68 tissues)", fontsize=AXIS_LABEL_FONTSIZE)
     ax.set_ylabel(display_label(LABEL), fontsize=AXIS_LABEL_FONTSIZE)
     ax.set_title(title, fontsize=TITLE_FONTSIZE)
+    ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)
     annotate_stats(ax, df[xcol], df[ycol])
 
     cat_legend = ax.legend(loc="center left", fontsize=LEGEND_FONTSIZE, markerscale=3)
