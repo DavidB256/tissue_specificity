@@ -97,10 +97,11 @@ bars1 = ax1.bar(x, counts["n_clusters"], color=colors, edgecolor="black")
 for bar, hatch in zip(bars1, hatches):
     bar.set_hatch(hatch)
 for xi, n in zip(x, counts["n_clusters"]):
-    ax1.text(xi, n + 0.3, str(int(n)), ha="center", fontsize=10)
+    ax1.text(xi, n + 0.3, str(int(n)), ha="center", fontsize=12)
 ax1.set_xticks(x)
-ax1.set_xticklabels(labels, fontsize=10, rotation=30, ha="right", rotation_mode="anchor")
-ax1.set_ylabel("num. of clusters (fcluster threshold 0.1)")
+ax1.set_xticklabels(labels, fontsize=12, rotation=30, ha="right", rotation_mode="anchor")
+ax1.set_ylabel("num. of clusters (fcluster threshold 0.1)", fontsize=12)
+ax1.tick_params(axis="y", labelsize=12)
 legend_elems = [Patch(facecolor=c, edgecolor="black", label=KIND_LABEL[k]) for k, c in KIND_COLOR.items()]
 legend_elems += [Patch(facecolor="white", edgecolor="black", hatch=h, label=FLOOR_LABEL[f])
                   for f, h in FLOOR_HATCH.items()]
@@ -111,10 +112,11 @@ bars2 = ax2.bar(x, mean_dist_df["mean_dist"], yerr=mean_dist_df["boot_se"], caps
 for bar, hatch in zip(bars2, hatches):
     bar.set_hatch(hatch)
 for xi, v, se in zip(x, mean_dist_df["mean_dist"], mean_dist_df["boot_se"]):
-    ax2.text(xi, v + se + 0.005, f"{v:.3f}", ha="center", fontsize=10)
+    ax2.text(xi, v + se + 0.005, f"{v:.3f}", ha="center", fontsize=12)
 ax2.set_xticks(x)
-ax2.set_xticklabels(labels, fontsize=10, rotation=30, ha="right", rotation_mode="anchor")
-ax2.set_ylabel("mean pairwise distance (1 - r)")
+ax2.set_xticklabels(labels, fontsize=12, rotation=30, ha="right", rotation_mode="anchor")
+ax2.set_ylabel("mean pairwise distance (1 - r)", fontsize=12)
+ax2.tick_params(axis="y", labelsize=12)
 ax2.yaxis.set_major_locator(MultipleLocator(0.1))
 
 fig.tight_layout()
