@@ -786,6 +786,18 @@ rule plot_gene_vs_tx_dendrograms:
         "python3 scripts/plot_gene_vs_tx_dendrograms.py {input.cluster_counts} {input.distance_matrix} "
         "{input.rf_matrix} {input.threshold_curve} {output}"
 
+rule plot_gene_vs_tx_bars:
+    input:
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        chess_tx_gct=CHESS_TX_PC_BASE_GCT,
+        cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv"
+    output:
+        f"{GENE_SPEC}/figures/gene_vs_tx_bars.png"
+    shell:
+        "python3 scripts/plot_gene_vs_tx_bars.py {input.gtex_pc_gct} {input.gtex_tx_gct} "
+        "{input.chess_tx_gct} {input.cluster_counts} {output}"
+
 # ---- leg (resolution) GCTs + reference weighted_tau, wildcarded over source/leg/agg ----
 
 rule build_leg_gct:
