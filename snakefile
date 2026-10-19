@@ -410,7 +410,14 @@ rule all:
         f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
         f"{GENE_SPEC}/figures/dendrogram_scenarios.png",
         # baron_protein_coding: per-cell UMAP + called clusters, by TPM floor choice
-        f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png"
+        f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png",
+        # gene-centric (gtex_protein_coding, baron_protein_coding) vs. tx-centric
+        # (gtex_v11_tx_protein_coding, chess_tx_protein_coding) dendrograms, TPM<10 floor, pearson only
+        f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv",
+        f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
+        f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
+        f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
+        f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -748,6 +755,33 @@ rule plot_dendrogram_scenarios:
         f"{GENE_SPEC}/figures/dendrogram_scenarios.png"
     shell:
         "python3 scripts/plot_dendrogram_scenarios.py {input.cluster_counts} {input.distance_matrix} "
+        "{input.rf_matrix} {output}"
+
+rule compare_gene_vs_tx_dendrograms:
+    input:
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        baron_pc_gct=lambda wc: base_gct("baron_protein_coding"),
+        gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        chess_tx_gct=CHESS_TX_PC_BASE_GCT
+    output:
+        cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv",
+        distance_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
+        rf_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
+        distance_long=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv"
+    shell:
+        "python3 scripts/compare_gene_vs_tx_dendrograms.py {input.gtex_pc_gct} {input.baron_pc_gct} "
+        "{input.gtex_tx_gct} {input.chess_tx_gct} "
+        "{output.cluster_counts} {output.distance_matrix} {output.rf_matrix} {output.distance_long}"
+
+rule plot_gene_vs_tx_dendrograms:
+    input:
+        cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv",
+        distance_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
+        rf_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv"
+    output:
+        f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png"
+    shell:
+        "python3 scripts/plot_gene_vs_tx_dendrograms.py {input.cluster_counts} {input.distance_matrix} "
         "{input.rf_matrix} {output}"
 
 # ---- leg (resolution) GCTs + reference weighted_tau, wildcarded over source/leg/agg ----
