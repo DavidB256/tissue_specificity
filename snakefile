@@ -760,7 +760,6 @@ rule plot_dendrogram_scenarios:
 rule compare_gene_vs_tx_dendrograms:
     input:
         gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
-        baron_pc_gct=lambda wc: base_gct("baron_protein_coding"),
         gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
         chess_tx_gct=CHESS_TX_PC_BASE_GCT
     output:
@@ -769,7 +768,7 @@ rule compare_gene_vs_tx_dendrograms:
         rf_matrix=f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
         distance_long=f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv"
     shell:
-        "python3 scripts/compare_gene_vs_tx_dendrograms.py {input.gtex_pc_gct} {input.baron_pc_gct} "
+        "python3 scripts/compare_gene_vs_tx_dendrograms.py {input.gtex_pc_gct} "
         "{input.gtex_tx_gct} {input.chess_tx_gct} "
         "{output.cluster_counts} {output.distance_matrix} {output.rf_matrix} {output.distance_long}"
 
