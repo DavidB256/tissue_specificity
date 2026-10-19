@@ -45,11 +45,14 @@ bars = ax.bar(x, df["mantel_r"], color=colors, edgecolor="black")
 for bar, hatch in zip(bars, hatches):
     bar.set_hatch(hatch)
 for xi, r, s in zip(x, df["mantel_r"], df["stars"]):
-    ax.text(xi, r + 0.006, f"{r:.3f}{s}", ha="center", fontsize=12)
+    label = f"{r:.3f} ({s})" if s else f"{r:.3f}"
+    ax.text(xi, r + 0.006, label, ha="center", fontsize=12)
 ax.set_xticks(x)
 ax.set_xticklabels(labels, fontsize=12, rotation=30, ha="right", rotation_mode="anchor")
-ax.set_ylabel("Mantel r (vs. UBERON batet distance)", fontsize=12)
+ax.set_ylabel("agreement with UBERON (Mantel r of pairwise distances)", fontsize=12)
 ax.tick_params(axis="y", labelsize=12)
+bottom, top = ax.get_ylim()
+ax.set_ylim(bottom, top + 0.1)
 
 legend_elems = [Patch(facecolor=c, edgecolor="black", label=KIND_LABEL[k]) for k, c in KIND_COLOR.items()]
 legend_elems += [Patch(facecolor="white", edgecolor="black", hatch=h, label=FLOOR_LABEL[f])
