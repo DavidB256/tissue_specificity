@@ -13,6 +13,7 @@ MODEL_FITS = f"{DATA}/model_fits"
 DIST_FIGS = f"{DATA}/distribution_fits"
 PCA_FIGS = f"{DATA}/tissue_pca"
 GENE_SPEC = f"{DATA}/gene_specificity"
+POSTER_FIGS = f"{DATA}/poster_figs"
 
 MANE_GTF_SRC = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/MANE.v1.5.gtf"
 GENCODE_V47_GTF = "/ccb/salz4-4/dbass13/recursive_introns_data/annotations/gencode.v47.annotation.gtf"
@@ -421,7 +422,17 @@ rule all:
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
-        f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png"
+        f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png",
+        # gene_vs_tx scenarios' agreement with UBERON (Mantel r), used by poster_gene_tx_uberon_mantel
+        f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv",
+        # poster_figs: dpi=600 (or otherwise specially-formatted) figures for poster use
+        f"{POSTER_FIGS}/gene_vs_tx_bars.png",
+        f"{POSTER_FIGS}/tau_free_cluster_vs_full_onebrain.png",
+        f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png",
+        f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png",
+        f"{POSTER_FIGS}/gtex_cluster_weights.png",
+        f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png",
+        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1812,3 +1823,89 @@ rule combine_free_cluster_weights_chains_gtex_v11_tx:
     shell:
         "python3 scripts/combine_free_weights_chains.py cluster {params.chains_dir} {N_FREE_CLUSTER_GTEX_V11_TX} "
         "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
+
+# ---- poster_figs: dpi=600 (or otherwise specially-formatted) versions of select
+# figures for poster use, written to POSTER_FIGS (separate dir from GENE_SPEC's
+# own figures/ subdirs). Each rule reuses the same upstream inputs as its
+# gene_specificity counterpart. ----
+
+rule poster_gene_vs_tx_bars:
+    input:
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        chess_tx_gct=CHESS_TX_PC_BASE_GCT,
+        cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv"
+    output:
+        f"{POSTER_FIGS}/gene_vs_tx_bars.png"
+    shell:
+        "python3 scripts/plot_gene_vs_tx_bars.py {input.gtex_pc_gct} {input.gtex_tx_gct} "
+        "{input.chess_tx_gct} {input.cluster_counts} {output} 600"
+
+rule poster_tau_free_cluster_vs_full_onebrain:
+    input:
+        gct=lambda wc: base_gct("gtex_protein_coding"),
+        free_tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max")
+    output:
+        f"{POSTER_FIGS}/tau_free_cluster_vs_full_onebrain.png"
+    shell:
+        "python3 scripts/plot_poster_tau_free_cluster_vs_full_onebrain.py {input.gct} {input.free_tau} "
+        "{input.ref_tau} {output}"
+
+rule poster_tau_scenarios_scatter_threshold85_onebrain:
+    input:
+        free_tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max")
+    output:
+        f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
+        "{output} onebrain 600 4"
+
+rule poster_tau_scenarios_scatter_threshold85_oneislets:
+    input:
+        free_tau=f"{GENE_SPEC_BARON_PC}/free_cluster_weights_max/oneislets/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", "oneislets", "_max")
+    output:
+        f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png"
+    shell:
+        "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
+        "{output} oneislets 600 4 0"
+
+rule poster_cluster_weights_gtex:
+    input:
+        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/hierclust0.1/cluster_weights.csv"
+    output:
+        f"{POSTER_FIGS}/gtex_cluster_weights.png"
+    shell:
+        "python3 scripts/plot_poster_cluster_weights_gtex.py {input} {output}"
+
+rule poster_tissue_clusters_dendrogram_gtex:
+    input:
+        linkage=f"{GENE_SPEC_GTEX_PC}/tissue_correlation_linkage.csv",
+        clusters=CLUSTERS_CSV["gtex_protein_coding"]
+    output:
+        f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png"
+    shell:
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} "
+        "'GTEx (protein-coding)' 0.1 0 0 3.0 600 0.25 0 0 0 3.0"
+
+rule compute_gene_tx_uberon_mantel:
+    input:
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        chess_tx_gct=CHESS_TX_PC_BASE_GCT,
+        uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv"
+    output:
+        f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv"
+    shell:
+        "python3 scripts/compute_gene_tx_uberon_mantel.py {input.gtex_pc_gct} {input.gtex_tx_gct} "
+        "{input.chess_tx_gct} {input.uberon_distance} {output}"
+
+rule poster_gene_tx_uberon_mantel:
+    input:
+        f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv"
+    output:
+        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png"
+    shell:
+        "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input} {output}"
