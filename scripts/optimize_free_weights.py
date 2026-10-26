@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
 from scipy.optimize import differential_evolution
-from gls_tau import weighted_tau, floor_tpm
+from gls_tau import weighted_tau, floor_tpm, log_tpm
 
 MODE = sys.argv[1]
 assert MODE in ("tissue", "cluster"), f"MODE must be tissue or cluster, got {MODE!r}"
@@ -75,9 +75,10 @@ print(f"mode={MODE} tissues={n_tissues} dims={n_dims} genes={len(genes)} valid_g
 # weighted_tau recomputes max/argmax/the full (1-mat/max) term every call even though
 # none of those depend on w -- precompute once (10x speedup, verified bit-identical to
 # gls_tau.weighted_tau) since DE needs hundreds of thousands of evaluations.
-max_i_valid = mat_valid.max(axis=1)
-argmax_idx_valid = mat_valid.argmax(axis=1)
-term_valid = 1 - mat_valid / max_i_valid[:, None]
+log_valid = log_tpm(mat_valid)  # tau is always computed on log10(TPM+1)
+max_i_valid = log_valid.max(axis=1)
+argmax_idx_valid = log_valid.argmax(axis=1)
+term_valid = 1 - log_valid / max_i_valid[:, None]
 
 rank_ref = rankdata(tau_ref_valid)
 rank_ref_c = rank_ref - rank_ref.mean()

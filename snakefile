@@ -216,6 +216,9 @@ def leg_members(source, leg):
 
 LEGS_RE = r"onebrain|oneislets|hierclust0\.1"
 AGGS = ["mean", "max"]
+# rule all currently targets only free_cluster_weights at max-agg (free_weights and mean-agg temporarily off)
+ACTIVE_AGGS = ["max"]
+ACTIVE_METHODS = ("free_cluster_weights",)
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
@@ -239,9 +242,9 @@ def all_free_weights_targets(kind):
     streamline-snakefile.md plan's 'backfill' decision)."""
     return [f"{GENE_SPEC}/{source}/{method}_{agg}/{leg}/{kind}.csv"
             for source, cfg in SOURCES.items()
-            for method in ("free_weights", "free_cluster_weights")
+            for method in ACTIVE_METHODS
             for leg in cfg["legs"]
-            for agg in AGGS]
+            for agg in ACTIVE_AGGS]
 
 
 rule all:
@@ -258,23 +261,23 @@ rule all:
         expand(f"{GENE_SPEC}/{{source}}/figures/tissue_clusters_dendrogram_hierclust0.1.png", source=SOURCES),
         # per-source, per-leg, per-agg: leg weighted_tau (reference tau for free_weights)
         [leg_tau_path(source, leg, f"_{agg}")
-         for source, cfg in SOURCES.items() for leg in cfg["legs"] for agg in AGGS],
+         for source, cfg in SOURCES.items() for leg in cfg["legs"] for agg in ACTIVE_AGGS],
         # free_weights / free_cluster_weights: chains_summary + weights + tau, all combos
         all_free_weights_targets("weights"),
         all_free_weights_targets("chains_summary"),
         # weights bar plots, all combos (mean and max on equal footing)
         [figures_dir(source, method, f"_{agg}") + f"/tissue_weight_free{'_cluster' if method == 'free_cluster_weights' else ''}_{leg}.png"
-         for source, cfg in SOURCES.items() for method in ("free_weights", "free_cluster_weights")
-         for leg in cfg["legs"] for agg in AGGS],
+         for source, cfg in SOURCES.items() for method in ACTIVE_METHODS
+         for leg in cfg["legs"] for agg in ACTIVE_AGGS],
         # tau-vs-reference comparison plots, all combos
         [figures_dir("gtex_protein_coding", method, f"_{agg}") +
          (f"/tau_free_vs_full_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_vs_full_{leg}.png")
-         for method in ("free_weights", "free_cluster_weights")
-         for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in AGGS],
+         for method in ACTIVE_METHODS
+         for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
         [figures_dir("baron_protein_coding", method, f"_{agg}") +
          (f"/tau_scenarios_scatter_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_scenarios_scatter_{leg}.png")
-         for method in ("free_weights", "free_cluster_weights")
-         for leg in SOURCES["baron_protein_coding"]["legs"] for agg in AGGS],
+         for method in ACTIVE_METHODS
+         for leg in SOURCES["baron_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
         # genes crossing tau 0.5/0.8 thresholds, headline free_cluster_weights_max leg per source
         [f"{GENE_SPEC}/{source}/free_cluster_weights_max/crossing_thresholds/{leg}_{cat}.txt"
          for source, leg in CROSSING_THRESHOLD_LEG.items() for cat in CROSSING_CATEGORIES],
@@ -293,28 +296,28 @@ rule all:
         # gtex_v11_tx + gtex_v11_tx_protein_coding + chess_tx_protein_coding: transcript-level
         # tau + multi-transcript-gene variance
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/multitranscript_variance.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_variance.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/top_multitranscript_tau_kde.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
-               txs_source=["gtex_v11_tx", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
         # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
-        f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
         # gtex_v11_tx: tissue correlation matrix + its inverse (standard per-source pipeline)
-        f"{GENE_SPEC}/gtex_v11_tx/figures/corr_and_inverse.png",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/corr_and_inverse.png",
         # gtex_v11_tx: tx-gene winner distance vs. gene/tx tau
-        f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_tau.png",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_tau.png",
         # gtex_v11_tx: gene tau vs. mean transcript tau
-        f"{GENE_SPEC}/gtex_v11_tx/figures/gene_tau_vs_mean_tx_tau.png",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/gene_tau_vs_mean_tx_tau.png",
         # gtex_v11_tx: log10(TPM+1) vs. tau, gene and tx level, colored by n_transcripts
-        f"{GENE_SPEC}/gtex_v11_tx/figures/log_tpm_vs_tau_by_ntx.png",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/log_tpm_vs_tau_by_ntx.png",
         # gtex_v11_tx: tx-gene winner distance vs. n_transcripts, colored by gene tau
-        f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_ntx.png",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/winner_distance_vs_ntx.png",
         # gtex_v11_tx: DE free_cluster_weights (hierclust0.1, max-agg), tx + gene resolution
-        f"{GENE_SPEC}/gtex_v11_tx/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         # gtex_v11_tx_protein_coding: DE free_cluster_weights (hierclust0.1, max-agg), tx only
         f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         # gtex_v11_tx_protein_coding: per-gene isoform information content (entropy + KL)
@@ -352,8 +355,8 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/extreme_tau_deviation.gtf",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/extreme_tau_deviation_screenshots",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
+        # (off: spearman-clustered) f"{GENE_SPEC_GTEX_V11_TX_PC}/dendrogram_pearson_vs_spearman.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
@@ -386,8 +389,8 @@ rule all:
         f"{GENE_SPEC_CHESS_TX_PC}/extreme_tau_deviation.gtf",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/extreme_tau_deviation_screenshots",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1.png",
-        f"{GENE_SPEC_CHESS_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
-        f"{GENE_SPEC_CHESS_TX_PC}/dendrogram_pearson_vs_spearman.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC_CHESS_TX_PC}/figures/tissue_clusters_dendrogram_hierclust0.1_spearman.png",
+        # (off: spearman-clustered) f"{GENE_SPEC_CHESS_TX_PC}/dendrogram_pearson_vs_spearman.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/n_sig_tx_vs_mean_tau_deviation.png",
         f"{GENE_SPEC_CHESS_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/bootstrap/tx_tpm_se.csv",
@@ -406,14 +409,14 @@ rule all:
         f"{GENE_SPEC}/figures/gtex_uberon_dag.png",
         f"{GENE_SPEC}/uberon_tissue_distance.csv",
         f"{GENE_SPEC}/uberon_tissue_linkage.csv",
-        f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
-        f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
-        f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv",
-        f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
-        f"{GENE_SPEC}/figures/dendrogram_scenarios.png",
+        # (off: spearman-clustered) f"{GENE_SPEC}/dendrogram_scenarios_cluster_counts.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC}/dendrogram_scenarios_distance_matrix.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC}/dendrogram_scenarios_rf_matrix.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC}/dendrogram_scenarios_distance_long.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC}/figures/dendrogram_scenarios.png",
         # UBERON Mantel test: transcriptomic cophenetic dist vs UBERON (1-batet) dist
-        f"{GENE_SPEC}/uberon_mantel_results.csv",
-        f"{GENE_SPEC}/figures/uberon_mantel_agreement.png",
+        # (off: spearman-clustered) f"{GENE_SPEC}/uberon_mantel_results.csv",
+        # (off: spearman-clustered) f"{GENE_SPEC}/figures/uberon_mantel_agreement.png",
         # baron_protein_coding: per-cell UMAP + called clusters, by TPM floor choice
         f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png",
         # gene-centric (gtex_protein_coding, baron_protein_coding) vs. tx-centric

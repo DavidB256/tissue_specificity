@@ -1,7 +1,7 @@
 """tau_weighted: tissue-specificity index tau (Yanai et al. 2005) with tissue weights
 chosen by optimization.
 
-Pipeline (all on log10(TPM+1) by default):
+Pipeline (aggregation and tau on log10(TPM+1) by default, tau_space="linear" for TPM):
   1. TPM < tpm_threshold -> 0; genes with no tissue >= threshold are excluded.
   2. Tissues are combined into groups (user labels, or hierarchical clustering) and
      aggregated per group (mean/max/median) into a reduced matrix. Unweighted tau on
@@ -96,7 +96,7 @@ def tau_weighted(
     corr_method: str = "pearson",
     aggregation: str = "median",
     tpm_threshold: float = 1.0,
-    log_scale: bool = True,
+    tau_space: str = "log",
     method: Callable = differential_evolution,
     method_kwargs: dict | None = None,
     min_weight: float = 0.01,
@@ -122,7 +122,9 @@ def tau_weighted(
         (>= tpm_threshold in at least one tissue); used by both clusterings.
     aggregation: "mean", "max", or "median" across tissues in a group (log space).
     tpm_threshold: TPM below this -> 0; genes zero in all tissues are excluded.
-    log_scale: aggregate and compute tau on log10(TPM+1) (default) or on linear TPM.
+    tau_space: "log" (default) aggregates and computes tau on log10(TPM+1); "linear" uses
+        TPM as-is. TPM-threshold filtering and tissue-correlation clustering always use
+        raw TPM / log10(TPM+1) respectively, independent of this setting.
     method: any callable with scipy.optimize.differential_evolution's signature
         method(func, bounds, seed=, tol=, **kwargs) returning an object with .x/.fun.
         For differential_evolution itself, maxiter/popsize/n_jobs (workers) apply and
@@ -142,7 +144,9 @@ def tau_weighted(
     raw = expr.to_numpy(dtype=float)
     floored = np.where(raw >= tpm_threshold, raw, 0.0)
     expressed = floored.max(axis=1) > 0
-    x = np.log10(floored + 1.0) if log_scale else floored
+    if tau_space not in ("log", "linear"):
+        raise ValueError(f"tau_space must be 'log' or 'linear', got {tau_space!r}")
+    x = np.log10(floored + 1.0) if tau_space == "log" else floored
 
     corr = None
     if groups is None or share_threshold is not None:

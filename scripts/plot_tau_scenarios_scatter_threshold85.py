@@ -80,7 +80,7 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     for cat, color in CATEGORY_STYLE:
         sub = df[df["category"] == cat]
         alpha = 0.15 if cat == "no threshold crossed" else 0.6
-        size = 4 if cat == "no threshold crossed" else 10
+        size = 6 if cat == "no threshold crossed" else 15  # 1.5x of original (4, 10)
         zorder = 2 if cat == "no threshold crossed" else 3
         ax.scatter(sub[xcol], sub["tau_ref"], s=size, alpha=alpha, color=color,
                    label=f"{cat} (n={len(sub)})", zorder=zorder, rasterized=True)

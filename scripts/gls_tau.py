@@ -149,9 +149,28 @@ def apply_nonzero_log_noise(mat, sigma, rng):
     return 10.0 ** log_noisy - 1.0
 
 
+def log_tpm(mat):
+    """Linear TPM -> log10(TPM+1). Tau is ALWAYS computed on these values (the TPM<1 /
+    TPM<10 floors are applied to raw TPM before this)."""
+    return np.log10(mat + 1.0)
+
+
+def agg_tpm(cols, method):
+    """Collapse tissue columns (genes x k linear TPM) to one TPM column, aggregating on
+    log10(TPM+1): max (exact, == max in linear space) or mean (mean of logs, back-
+    transformed to TPM)."""
+    if method == "max":
+        return cols.max(axis=1)
+    if method == "mean":
+        return 10.0 ** log_tpm(cols).mean(axis=1) - 1.0
+    raise ValueError(f"method must be mean or max, got {method!r}")
+
+
 def weighted_tau(mat, w):
-    """mat: genes x tissues linear TPM. w: tissue weight vector. Ties for a gene's
-    max-expressing tissue go to the first occurrence (np.argmax default)."""
+    """mat: genes x tissues linear TPM (already floored); tau is computed on
+    log10(TPM+1) of it. w: tissue weight vector. Ties for a gene's max-expressing
+    tissue go to the first occurrence (np.argmax default)."""
+    mat = log_tpm(mat)
     max_i = mat.max(axis=1)
     argmax_idx = mat.argmax(axis=1)
     with np.errstate(invalid="ignore", divide="ignore"):
@@ -162,7 +181,8 @@ def weighted_tau(mat, w):
 
 
 def margin_weights(mat):
-    """Margin-weighted exclusivity: per gene, margin = (max - second_max) / max,
+    """mat: genes x tissues linear TPM (floored); margins use log10(TPM+1).
+    Margin-weighted exclusivity: per gene, margin = (max - second_max) / max,
     credited entirely to that gene's max-expressing tissue (same argmax convention as
     weighted_tau -- ties go to the first occurrence). w_t = sum over genes with
     argmax==t of margin(g), normalized to sum to 1. A tissue redundant with others
@@ -175,6 +195,7 @@ def margin_weights(mat):
     negative-weight failure mode to guard against: margin(g) in [0,1] by construction,
     so w is elementwise >= 0 for free. Genes with max<=0 (unexpressed everywhere)
     contribute 0 to every tissue."""
+    mat = log_tpm(mat)  # margins on log10(TPM+1), like tau itself
     n_genes, n_tissues = mat.shape
     top2 = -np.sort(-mat, axis=1)[:, :2]
     max1 = top2[:, 0]

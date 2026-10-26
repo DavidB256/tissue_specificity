@@ -56,7 +56,7 @@ ROW2_PANELS = [
      f"tau ({display_label(LABEL)})", f"tau_weighted ({display_label(LABEL)})"),
 ]
 
-AXIS_LO, AXIS_HI = 0.2, 1.0
+AXIS_LO, AXIS_HI = 0.0, 1.0  # tau on log10(TPM+1) is lower; 0.2 clipped ~8% of genes
 
 fig, axes = plt.subplots(2, 2, figsize=(12, 12))
 for row_axes, panels in zip(axes, [ROW1_PANELS, ROW2_PANELS]):

@@ -3,11 +3,12 @@ GROUP_NAME -- every other column is left untouched. Generalizes build_gct_onetis
 underscore-prefix matching (e.g. GTEx's Brain_* subregions) to columns that don't share a
 common prefix, e.g. Baron pancreas islet cell types (alpha, beta, gamma, delta -> islets).
 Uses raw TPM (not sum), taken before floor_tpm (TPM<1->0, applied downstream in
-compute_weighted_tau.py etc). AGG_METHOD selects mean or max across MEMBERS. Output is a
+compute_weighted_tau.py etc). AGG_METHOD selects mean or max across MEMBERS, aggregated on log10(TPM+1) (mean of logs, back-transformed to TPM; max is unchanged). Output is a
 standard 2-line-header GCT (matches the input format)."""
 import sys
 import gzip
 import pandas as pd
+from gls_tau import agg_tpm
 
 IN_GCT = sys.argv[1]
 OUT_GCT = sys.argv[2]
@@ -27,7 +28,7 @@ other = [t for t in tissues if t not in MEMBERS]
 out = df[["Name", "Description"]].copy()
 for t in other:
     out[t] = df[t]
-out[GROUP_NAME] = getattr(df[MEMBERS], AGG_METHOD)(axis=1)
+out[GROUP_NAME] = agg_tpm(df[MEMBERS].values.astype(float), AGG_METHOD)
 
 new_tissues = sorted(other) + [GROUP_NAME]
 out = out[["Name", "Description"] + new_tissues]

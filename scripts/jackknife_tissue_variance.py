@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
 from scipy.optimize import differential_evolution
-from gls_tau import weighted_tau, floor_tpm
+from gls_tau import weighted_tau, floor_tpm, log_tpm, agg_tpm
 
 FULL_GCT = sys.argv[1]
 CLUSTERS_CSV = sys.argv[2]
@@ -74,8 +74,7 @@ for rep_i, dropped_tissue in enumerate(all_tissues):
     other_k = [t for t in kept_tissues if t not in members_k]
     members_idx = [kept_tissues.index(m) for m in members_k]
     other_idx = [kept_tissues.index(t) for t in other_k]
-    agg_fn = np.max if AGG == "max" else np.mean
-    collapsed_col = agg_fn(raw_mat_k[:, members_idx], axis=1)
+    collapsed_col = agg_tpm(raw_mat_k[:, members_idx], AGG)
     ref_raw = np.concatenate([raw_mat_k[:, other_idx], collapsed_col[:, None]], axis=1)
     ref_mat = floor_tpm(ref_raw)
     tau_ref_k = weighted_tau(ref_mat, np.ones(ref_mat.shape[1]))
@@ -88,9 +87,10 @@ for rep_i, dropped_tissue in enumerate(all_tissues):
     valid = np.isfinite(tau_ref_k) & (mat_k.max(axis=1) > 0)
     mat_valid = mat_k[valid]
     tau_ref_valid = tau_ref_k[valid]
-    max_i_valid = mat_valid.max(axis=1)
-    argmax_idx_valid = mat_valid.argmax(axis=1)
-    term_valid = 1 - mat_valid / max_i_valid[:, None]
+    log_valid = log_tpm(mat_valid)  # tau is always computed on log10(TPM+1)
+    max_i_valid = log_valid.max(axis=1)
+    argmax_idx_valid = log_valid.argmax(axis=1)
+    term_valid = 1 - log_valid / max_i_valid[:, None]
     rank_ref = rankdata(tau_ref_valid)
     rank_ref_c = rank_ref - rank_ref.mean()
     denom_ref = np.sqrt((rank_ref_c ** 2).sum())

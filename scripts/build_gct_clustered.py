@@ -4,11 +4,12 @@ using cluster assignments from compute_tau_cluster_weighted.py's tissue_clusters
 cluster_weights/full/tissue_clusters.csv for threshold=0.1). Singleton clusters
 (cluster_size==1) keep their original tissue name; multi-tissue clusters become
 "cluster{cluster_id}", collapsed via AGG_METHOD (mean, or max to keep the peak value
-instead of diluting toward the cross-tissue average). Output is a standard 2-line-header
+instead of diluting toward the cross-tissue average). Aggregation is on log10(TPM+1) (mean of logs, back-transformed to TPM; max unchanged). Output is a standard 2-line-header
 GCT (matches the input format)."""
 import sys
 import gzip
 import pandas as pd
+from gls_tau import agg_tpm
 
 IN_GCT = sys.argv[1]
 IN_CLUSTERS_CSV = sys.argv[2]
@@ -28,7 +29,7 @@ for cid, grp in clusters.groupby("cluster_id"):
         out[name] = df[name]
     else:
         name = f"cluster{cid}"
-        out[name] = getattr(df[members], AGG_METHOD)(axis=1)
+        out[name] = agg_tpm(df[members].values.astype(float), AGG_METHOD)
         print(f"{name} <- {members}", file=sys.stderr)
     new_tissues.append(name)
 
