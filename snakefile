@@ -274,6 +274,9 @@ rule all:
          (f"/tau_free_vs_full_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_vs_full_{leg}.png")
          for method in ACTIVE_METHODS
          for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
+        [figures_dir(source, "free_cluster_weights", "_max") + f"/tau_free_cluster_vs_full_{leg}.png"
+         for source, leg in [("baron_protein_coding", "oneislets"), ("gtex_v11_tx_protein_coding", "hierclust0.1"),
+                             ("chess_tx_protein_coding", "hierclust0.1")]],
         [figures_dir("baron_protein_coding", method, f"_{agg}") +
          (f"/tau_scenarios_scatter_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_scenarios_scatter_{leg}.png")
          for method in ACTIVE_METHODS
@@ -977,13 +980,15 @@ rule plot_tau_free_vs_full_gtex:
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
-rule plot_tau_free_cluster_vs_full_gtex:
+rule plot_tau_free_cluster_vs_full:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
-        free_tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", wc.leg, wc.agg_suffix)
+        gct=lambda wc: base_gct(wc.source),
+        free_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix)
     output:
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
+        f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
+    wildcard_constraints:
+        source=r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx_protein_coding|chess_tx_protein_coding"
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
