@@ -93,6 +93,8 @@ for r, (tag, pcol, y1, y2, y3, ylab1, ylab2, ylab3) in enumerate(rows):
         scatter_by_sig(ax, df["isoform_fraction"], df[ycol], sig)
         ax.set_xlabel("isoform fraction")
         ax.set_ylabel(ylab)
+        if c == 0:
+            ax.set_ylim(bottom=0.0)  # y is tx tau
         if c == 1:
             ax.axhline(0, color="black", linestyle="--", linewidth=1)
     axes[r, 0].legend(loc="best", fontsize=8, markerscale=3)

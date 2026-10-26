@@ -30,6 +30,7 @@ ax.scatter(single["gene_tau_weighted"], single["mean_wasserstein_tx_to_gene"],
 ax.scatter(multi["gene_tau_weighted"], multi["mean_wasserstein_tx_to_gene"],
            s=4, alpha=0.25, color="tab:red", label=f"multi-isoform (n={len(multi)})")
 ax.set_xlabel("gene tau_weighted")
+ax.set_xlim(left=0.0)
 ax.set_ylabel("mean Wasserstein-1 dist. (tx PMF vs gene PMF)")
 ax.set_title("gtex_v11_tx_protein_coding: gene tau_weighted vs mean tx-to-gene distance")
 ax.legend(loc="upper left", fontsize=8, markerscale=3)

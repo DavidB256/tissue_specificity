@@ -43,6 +43,7 @@ ax.plot(smoothed[:, 0], smoothed[:, 1], color="darkorange", linewidth=2, label="
 
 ax.set_xlabel("weighted KL sum (bits)")
 ax.set_ylabel("gene tau_weighted (free_cluster_weights, hierclust0.1, max-agg)")
+ax.set_ylim(bottom=0.0)
 ax.set_title(f"gtex_v11_tx_protein_coding: weighted KL vs. gene tau_weighted, multi-tx genes only (n={len(df)} genes)")
 ax.legend(loc="lower right", fontsize=9)
 fig.tight_layout()

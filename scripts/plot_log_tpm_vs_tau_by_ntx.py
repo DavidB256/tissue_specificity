@@ -63,6 +63,7 @@ sc0 = axes[0].scatter(gene_df["median_log_tpm"], gene_df["tau_unweighted"], c=ge
 stats0 = ols_fit_line(axes[0], gene_df["median_log_tpm"].to_numpy(), gene_df["tau_unweighted"].to_numpy())
 axes[0].set_xlabel("gene median_log_tpm (log10 TPM+1)")
 axes[0].set_ylabel("gene tau_unweighted")
+axes[0].set_ylim(bottom=0.0)
 axes[0].set_title(f"gene log TPM vs. gene tau (n={len(gene_df)} genes)")
 fig.colorbar(sc0, ax=axes[0], label="n_transcripts (log scale)")
 
@@ -71,6 +72,7 @@ sc1 = axes[1].scatter(tx_df["median_log_tpm"], tx_df["tau_tx"], c=tx_df["n_trans
 stats1 = ols_fit_line(axes[1], tx_df["median_log_tpm"].to_numpy(), tx_df["tau_tx"].to_numpy())
 axes[1].set_xlabel("transcript median_log_tpm (log10 TPM+1)")
 axes[1].set_ylabel("transcript tau_unweighted")
+axes[1].set_ylim(bottom=0.0)
 axes[1].set_title(f"tx log TPM vs. tx tau (n={len(tx_df)} transcripts)")
 fig.colorbar(sc1, ax=axes[1], label="n_transcripts of tx's gene (log scale)")
 

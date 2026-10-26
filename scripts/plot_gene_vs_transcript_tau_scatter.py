@@ -54,6 +54,8 @@ ax.plot(x_line, x_line + 0.1, color="black", linestyle="--", linewidth=1,
 
 ax.set_xlabel("gene tau_unweighted")
 ax.set_ylabel("transcript tau_unweighted")
+ax.set_xlim(left=0.0)  # tau lower bound 0 (log10(TPM+1) tau goes below 0.2)
+ax.set_ylim(bottom=0.0)
 ax.set_title(f"{TXS_SOURCE}: transcript tau vs. its gene's tau, multi-transcript genes only (n={len(df)} transcripts)")
 ax.legend(loc="lower right", fontsize=9)
 fig.tight_layout()

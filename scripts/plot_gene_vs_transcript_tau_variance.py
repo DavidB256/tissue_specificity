@@ -41,6 +41,7 @@ for row, (color_col, color_label, extra_kwargs) in enumerate(color_rows):
         smoothed = lowess(sub[col], sub["tau_unweighted"], frac=LOESS_FRAC)
         ax.plot(smoothed[:, 0], smoothed[:, 1], color="red", linewidth=2)
         ax.set_xlabel("gene tau_unweighted")
+        ax.set_xlim(left=0.0)
         ax.set_ylabel(ylabel)
         ax.set_title(f"{ylabel} vs gene tau (n={len(sub)} genes)")
     fig.colorbar(sc, ax=axes[row, :], label=color_label)

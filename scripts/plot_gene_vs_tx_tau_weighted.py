@@ -43,6 +43,8 @@ ax.plot(smoothed[:, 0], smoothed[:, 1], color="darkorange", linewidth=2, label="
 
 ax.set_xlabel("gene tau_weighted (free_cluster_weights, hierclust0.1, max-agg)")
 ax.set_ylabel("TPM-weighted RMS transcript tau_weighted")
+ax.set_xlim(left=0.0)  # tau lower bound 0 (log10(TPM+1) tau goes below 0.2)
+ax.set_ylim(bottom=0.0)
 ax.set_title(f"gtex_v11_tx_protein_coding: gene vs. tx tau_weighted (n={len(df)} genes)")
 ax.legend(loc="lower right", fontsize=9)
 fig.tight_layout()

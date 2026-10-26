@@ -43,6 +43,7 @@ fig, axes = plt.subplots(1, 2, figsize=(15, 7))
 ax = axes[0]
 ax.scatter(gene["gene_tau_weighted"], gene["log10_tss_variance"], s=5, alpha=0.3)
 ax.set_xlabel("gene tau_weighted")
+ax.set_xlim(left=0.0)
 ax.set_ylabel("log10(Var(TSS) + 1)  [bp^2]")
 ax.set_title(
     f"gene tau_weighted vs. TSS variance across transcripts\n"

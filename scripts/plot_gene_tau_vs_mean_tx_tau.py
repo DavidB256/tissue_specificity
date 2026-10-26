@@ -69,6 +69,8 @@ def fit_and_plot(ax, x, y, subtitle, ylabel):
     ax.plot(x_line, b0 + b1 * x_line, color="red", linewidth=2, label=label)
     ax.set_xlabel("gene tau_unweighted")
     ax.set_ylabel(ylabel)
+    ax.set_xlim(left=0.0)  # tau lower bound 0 (log10(TPM+1) tau goes below 0.2)
+    ax.set_ylim(bottom=0.0)
     ax.set_title(f"{subtitle} (n={len(x)} genes)")
     ax.legend(loc="lower right", fontsize=9)
     return len(x), b0, b1, b0_lo, b0_hi, b1_lo, b1_hi

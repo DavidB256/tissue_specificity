@@ -46,6 +46,8 @@ ax.scatter(sig["gene_tau_weighted"], sig["tx_tau_weighted"], s=4, alpha=0.2)
 ax.plot([0, 1], [0, 1], color="gray", linestyle="--", linewidth=1)
 ax.set_xlabel("gene tau_weighted")
 ax.set_ylabel("tx tau_weighted")
+ax.set_xlim(left=0.0)  # tau lower bound 0 (log10(TPM+1) tau goes below 0.2)
+ax.set_ylim(bottom=0.0)
 ax.set_title(
     f"gtex_v11_tx_protein_coding: gene vs. tx tau_weighted (isoform_fraction > {SIG_FRACTION})\n"
     f"n_tx={len(sig)}, spearman rho={rho:.3f} (p={pval:.2g})"
