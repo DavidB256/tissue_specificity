@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weighted_tau"
+version = "0.1.0"
+description = "Tissue-specificity index tau with optimized (free / cluster-shared) tissue weights"
+requires-python = ">=3.13"
+dependencies = ["numpy", "pandas", "scipy"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
