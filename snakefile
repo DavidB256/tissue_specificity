@@ -207,7 +207,13 @@ def leg_tau_path(source, leg, agg_suffix=""):
     return f"{GENE_SPEC}/{source}/{leg}{agg_suffix}/weighted_tau.csv"
 
 
+def n_free_cluster(source):
+    return SOURCES[source]["n_free_cluster"] if source in SOURCES else N_FREE_CLUSTER_GTEX_V11_TX
+
+
 def leg_members(source, leg):
+    if source not in SOURCES:  # tx sources: only the onebrain leg is a tissue group (GTEx tissue panel)
+        return [t for t in TISSUES if t.split("_")[0] == "Brain"]
     kind, val = SOURCES[source]["legs"][leg]
     if kind == "prefix":
         return [t for t in TISSUES if t.split("_")[0] == val]
@@ -275,8 +281,9 @@ rule all:
          for method in ACTIVE_METHODS
          for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
         [figures_dir(source, "free_cluster_weights", "_max") + f"/tau_free_cluster_vs_full_{leg}.png"
-         for source, leg in [("baron_protein_coding", "oneislets"), ("gtex_v11_tx_protein_coding", "hierclust0.1"),
-                             ("chess_tx_protein_coding", "hierclust0.1")]],
+         for source, leg in [("baron_protein_coding", "oneislets"),
+                             ("gtex_v11_tx_protein_coding", "hierclust0.1"), ("gtex_v11_tx_protein_coding", "onebrain"),
+                             ("chess_tx_protein_coding", "hierclust0.1"), ("chess_tx_protein_coding", "onebrain")]],
         [figures_dir("baron_protein_coding", method, f"_{agg}") +
          (f"/tau_scenarios_scatter_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_scenarios_scatter_{leg}.png")
          for method in ACTIVE_METHODS
@@ -323,6 +330,7 @@ rule all:
         # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         # gtex_v11_tx_protein_coding: DE free_cluster_weights (hierclust0.1, max-agg), tx only
         f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
         # gtex_v11_tx_protein_coding: per-gene isoform information content (entropy + KL)
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png",
@@ -369,6 +377,7 @@ rule all:
         # bootstrap_chess_tx_protein_coding.py)
         f"{GENE_SPEC}/chess_tx_tissue_stats.csv",
         f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/tx_info_content.csv",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/effective_n_vs_weighted_kl.png",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/gene_vs_tx_tau_weighted.png",
@@ -938,7 +947,7 @@ rule combine_free_weights_chains:
 rule combine_free_cluster_weights_chains:
     input:
         lambda wc: expand(f"{GENE_SPEC}/{wc.source}/free_cluster_weights{wc.agg_suffix}/{wc.leg}/chains/chain_{{chain}}/best.csv",
-                           chain=range(SOURCES[wc.source]["n_free_cluster"]))
+                           chain=range(n_free_cluster(wc.source)))
     output:
         weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/weights.csv",
         cluster_weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/cluster_weights.csv",
@@ -946,7 +955,7 @@ rule combine_free_cluster_weights_chains:
         summary=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains_summary.csv"
     params:
         chains_dir=lambda wc: f"{GENE_SPEC}/{wc.source}/free_cluster_weights{wc.agg_suffix}/{wc.leg}/chains",
-        n=lambda wc: SOURCES[wc.source]["n_free_cluster"]
+        n=lambda wc: n_free_cluster(wc.source)
     shell:
         "python3 scripts/combine_free_weights_chains.py cluster {params.chains_dir} {params.n} "
         "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
@@ -1814,23 +1823,6 @@ rule compute_tau_cluster_weighted_gtex_v11_tx:
         res = GTEX_V11_TX_RES_RE
     shell:
         "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
-
-rule combine_free_cluster_weights_chains_gtex_v11_tx:
-    input:
-        lambda wc: expand(f"{GENE_SPEC}/{wc.res}/free_cluster_weights_max/hierclust0.1/chains/chain_{{chain}}/best.csv",
-                           chain=range(N_FREE_CLUSTER_GTEX_V11_TX))
-    output:
-        weights=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/weights.csv",
-        cluster_weights=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/cluster_weights.csv",
-        tau=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        summary=f"{GENE_SPEC}/{{res}}/free_cluster_weights_max/hierclust0.1/chains_summary.csv"
-    wildcard_constraints:
-        res = GTEX_V11_TX_RES_RE
-    params:
-        chains_dir=lambda wc: f"{GENE_SPEC}/{wc.res}/free_cluster_weights_max/hierclust0.1/chains"
-    shell:
-        "python3 scripts/combine_free_weights_chains.py cluster {params.chains_dir} {N_FREE_CLUSTER_GTEX_V11_TX} "
-        "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
 
 # ---- poster_figs: dpi=600 (or otherwise specially-formatted) versions of select
 # figures for poster use, written to POSTER_FIGS (separate dir from GENE_SPEC's
