@@ -1,5 +1,5 @@
 """Mean tissue-tissue distance (1 - Pearson r, off-diagonal mean) vs. TPM floor
-(TPM<f -> 0, f=0..20; f=0 is a no-op), one panel per source. Correlation as in
+(TPM<f -> 0, f=0..30; f=0 is a no-op, and is skipped for tx sources since their GCTs are already floored at TPM<1), one panel per source. Correlation as in
 compute_tissue_correlation.py (log10(TPM+1), rows expressed in >=1 tissue after flooring).
 95% bootstrap band: resample gene clusters (GCT Description column -- gene_id for tx
 GCTs, so all isoforms of a gene move together; gene name for gene GCTs) with replacement,
@@ -18,7 +18,7 @@ from gls_tau import floor_tpm
 OUT_PNG, OUT_CSV = sys.argv[1], sys.argv[2]
 N_BOOT, N_THREADS = int(sys.argv[3]), int(sys.argv[4])
 SOURCES = [a.split(":", 1) for a in sys.argv[5:]]
-FLOORS = range(0, 21)
+FLOORS = range(0, 31)
 SEED = 0
 
 
@@ -42,6 +42,8 @@ for label, gct in SOURCES:
     n_clu = cluster.max() + 1
     counts = np.stack([np.bincount(rng.integers(0, n_clu, n_clu), minlength=n_clu) for _ in range(N_BOOT)])
     for f in FLOORS:
+        if f == 0 and "tx" in label:
+            continue
         floored = floor_tpm(raw, floor=float(f))
         expressed = floored.max(axis=1) > 0
         X = np.log10(floored[expressed] + 1.0)
@@ -63,7 +65,7 @@ for ax, (label, _) in zip(np.atleast_1d(axes), SOURCES):
     ax.plot(sub["tpm_floor"], sub["mean_dist"], marker="o")
     ax.set_title(label)
     ax.set_xlabel("TPM floor (TPM < x -> 0)")
-    ax.set_xticks(list(range(0, 21, 2)))
+    ax.set_xticks(list(range(0, 31, 5)))
 np.atleast_1d(axes)[0].set_ylabel("mean tissue distance (1 - r)")
 fig.suptitle(f"95% bootstrap band, {N_BOOT} gene-cluster resamples", fontsize=10)
 fig.tight_layout()
