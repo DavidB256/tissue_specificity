@@ -438,6 +438,7 @@ rule all:
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
         f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png",
+        f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
         # gene_vs_tx scenarios' agreement with UBERON (Mantel r), used by poster_gene_tx_uberon_mantel
         f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv",
         # poster_figs: dpi=600 (or otherwise specially-formatted) figures for poster use
@@ -1823,6 +1824,18 @@ rule compute_tau_cluster_weighted_gtex_v11_tx:
         res = GTEX_V11_TX_RES_RE
     shell:
         "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
+
+rule plot_mean_tissue_dist_vs_tpm_floor:
+    input:
+        gene=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_tx=GTEX_V11_TX_PC_BASE_GCT,
+        chess_tx=CHESS_TX_PC_BASE_GCT
+    output:
+        png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
+        csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor.csv"
+    shell:
+        "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} "
+        "'GENCODE gene:{input.gene}' 'GENCODE tx:{input.gtex_tx}' 'CHESS tx:{input.chess_tx}'"
 
 # ---- poster_figs: dpi=600 (or otherwise specially-formatted) versions of select
 # figures for poster use, written to POSTER_FIGS (separate dir from GENE_SPEC's
