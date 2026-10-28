@@ -1833,8 +1833,9 @@ rule plot_mean_tissue_dist_vs_tpm_floor:
     output:
         png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
         csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor.csv"
+    threads: 8
     shell:
-        "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} "
+        "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} 200 {threads} "
         "'GENCODE gene:{input.gene}' 'GENCODE tx:{input.gtex_tx}' 'CHESS tx:{input.chess_tx}'"
 
 # ---- poster_figs: dpi=600 (or otherwise specially-formatted) versions of select
