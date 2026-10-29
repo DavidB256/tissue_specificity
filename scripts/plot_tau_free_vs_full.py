@@ -8,6 +8,7 @@ correction differs across degrees of tissue redundancy (these tissue groups hold
 highly correlated subtissues). Category set depends on LABEL: onebrain uses Brain vs
 other only; all other labels (e.g. hierclust0.1) use Brain/Kidney/Liver vs other."""
 import sys
+import gzip
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -21,6 +22,7 @@ IN_FREE_TAU = sys.argv[2]
 IN_REF_TAU = sys.argv[3]
 OUT_PNG = sys.argv[4]
 LABEL = sys.argv[5] if len(sys.argv) > 5 else "reference"
+IN_REF_GCT = sys.argv[6] if len(sys.argv) > 6 else None  # reduced-resolution GCT, for the tissue count
 
 gct = pd.read_csv(IN_GCT, sep="\t", skiprows=2)
 tissues = list(gct.columns[2:])
@@ -43,9 +45,20 @@ r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted"]].rename(columns={"tau_unw
 
 df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
 
+if IN_REF_GCT:
+    UNIT = "cell types" if LABEL == "oneislets" else "tissues"
+    MERGED_DESC = {"onebrain": "brain tissues merged", "oneislets": "islet cell types merged"}.get(LABEL, f"{LABEL} merged")
+    n_ref = int(gzip.open(IN_REF_GCT, "rt").readlines()[1].split("\t")[1])
+    REF_DESC = f"{MERGED_DESC}: {n_ref} {UNIT}"
+    Y_LABEL = f"tau ({REF_DESC})"
+    X_LABELS = [f"tau (full: {len(tissues)} {UNIT})", f"tau_weighted (full: {len(tissues)} {UNIT})"]
+else:
+    REF_DESC = display_label(LABEL)
+    Y_LABEL = display_label(LABEL)
+    X_LABELS = ["full", "full"]
 PANELS = [
-    ("tau_unweighted", "tau_ref", "tau_unweighted", "full", display_label(LABEL)),
-    ("tau_free_weighted", "tau_ref", "tau_free_weighted", "full", display_label(LABEL)),
+    ("tau_unweighted", "tau_ref", "tau_unweighted", X_LABELS[0], Y_LABEL),
+    ("tau_free_weighted", "tau_ref", "tau_free_weighted", X_LABELS[1], Y_LABEL),
 ]
 
 AXIS_LO, AXIS_HI = 0.0, 1.0  # tau on log10(TPM+1) is lower; 0.2 clipped ~8% of genes
@@ -72,7 +85,7 @@ for ax, (xcol, ycol, title, xlabel, ylabel) in zip(axes, PANELS):
                                    label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
-fig.suptitle(f"{OUT_PNG.split('/')[-4]} tau: full vs {display_label(LABEL)}, n={len(df)} genes")
+fig.suptitle(f"{OUT_PNG.split('/')[-4]} tau: full vs {REF_DESC}, n={len(df)} genes")
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=300)
 plt.close(fig)

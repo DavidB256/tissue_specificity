@@ -1010,13 +1010,14 @@ rule plot_tau_free_cluster_vs_full:
     input:
         gct=lambda wc: base_gct(wc.source),
         free_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix)
+        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix),
+        ref_gct=lambda wc: leg_gct_path(wc.source, wc.leg, wc.agg_suffix)
     output:
         f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
     wildcard_constraints:
         source=r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy"
     shell:
-        "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
+        "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg} {input.ref_gct}"
 
 rule plot_tau_scenarios_baron:
     input:
