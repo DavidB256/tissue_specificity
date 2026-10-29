@@ -19,6 +19,8 @@ IN_CORR_CSV = sys.argv[1]
 IN_LINKAGE_CSV = sys.argv[2]
 OUT_PNG = sys.argv[3]
 TITLE = sys.argv[4] if len(sys.argv) > 4 else None
+DPI = int(sys.argv[5]) if len(sys.argv) > 5 else 300
+FONT_ADD = float(sys.argv[6]) if len(sys.argv) > 6 else 0.0  # points added to title/colorbar-tick sizes
 
 CMAP_LOW_CLIP = 0.15  # skip the near-white bottom slice of "Blues"
 CMAP_HIGH_CLIP = 0.88  # skip the near-black top slice of "Blues"
@@ -42,12 +44,13 @@ ax.set_yticks([])
 for spine in ax.spines.values():
     spine.set_visible(False)
 if TITLE:
-    ax.set_title(TITLE, fontsize=14)
+    ax.set_title(TITLE, fontsize=14 + FONT_ADD)
 
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="4%", pad=0.08)
-fig.colorbar(im, cax=cax)
+cbar = fig.colorbar(im, cax=cax)
+cbar.ax.tick_params(labelsize=10 + FONT_ADD)
 
-fig.savefig(OUT_PNG, dpi=300, bbox_inches="tight")
+fig.savefig(OUT_PNG, dpi=DPI, bbox_inches="tight")
 plt.close(fig)
 print(f"tissues={len(mat)} vmin={vmin:.4f} vmax={vmax:.4f}", file=sys.stderr)
