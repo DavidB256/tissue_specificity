@@ -1919,22 +1919,26 @@ rule poster_tau_free_cluster_vs_full_onebrain:
 rule poster_tau_scenarios_scatter_threshold85_onebrain:
     input:
         free_tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max")
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max"),
+        full_gct=lambda wc: base_gct("gtex_protein_coding"),
+        ref_gct=lambda wc: leg_gct_path("gtex_protein_coding", "onebrain", "_max")
     output:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
-        "{output} onebrain 600 4 1 1.5"
+        "{output} onebrain 600 4 1 1.5 {input.full_gct} {input.ref_gct} tissues 'brain tissues merged'"
 
 rule poster_tau_scenarios_scatter_threshold85_oneislets:
     input:
         free_tau=f"{GENE_SPEC_BARON_PC}/free_cluster_weights_max/oneislets/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", "oneislets", "_max")
+        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", "oneislets", "_max"),
+        full_gct=lambda wc: base_gct("baron_protein_coding"),
+        ref_gct=lambda wc: leg_gct_path("baron_protein_coding", "oneislets", "_max")
     output:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
-        "{output} oneislets 600 4 0 1.5"
+        "{output} oneislets 600 4 0 1.5 {input.full_gct} {input.ref_gct} 'cell types' 'islet cell types merged'"
 
 rule poster_cluster_weights_gtex:
     input:

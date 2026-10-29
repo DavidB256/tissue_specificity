@@ -15,7 +15,9 @@ optional 6th arg FONT_BUMP (default 0) adds extra pt to every text element
 further (+4pt) without changing the default gene_specificity output; optional
 7th arg SHOW_TITLE ("0"/"1", default "1") -- pass "0" to drop the per-panel
 titles entirely (for a poster fig with no title at all); optional 8th arg POINT_SCALE
-(default 1) multiplies the scatter marker *width* (marker area s scales by its square)."""
+(default 1) multiplies the scatter marker *width* (marker area s scales by its square);
+optional args 9-12 (FULL_GCT, REF_GCT, UNIT, MERGED_DESC) switch to count-annotated axis
+labels, e.g. "tau (full: 68 tissues)" / "tau (brain tissues merged: 56 tissues)"."""
 import sys
 import pandas as pd
 import matplotlib
@@ -34,6 +36,12 @@ SHOW_TITLE = (sys.argv[7] if len(sys.argv) > 7 else "1") != "0"
 
 THRESHOLD = 0.85
 POINT_SCALE = float(sys.argv[8]) if len(sys.argv) > 8 else 1.0
+COUNT_LABELS = len(sys.argv) > 12
+if COUNT_LABELS:
+    import gzip
+    n_cols = lambda f: int(gzip.open(f, "rt").readlines()[1].split("\t")[1])
+    N_FULL, N_REF = n_cols(sys.argv[9]), n_cols(sys.argv[10])
+    UNIT, MERGED_DESC = sys.argv[11], sys.argv[12]
 KEY_FONTSIZE = 13 + FONT_BUMP
 AXIS_LABEL_FONTSIZE = 15 + FONT_BUMP
 TITLE_FONTSIZE = 15 + FONT_BUMP
@@ -91,8 +99,12 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     ax.axhline(THRESHOLD, color="lightgray", lw=0.8, zorder=0)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
+    ylabel = f"tau_unweighted ({display_label(LABEL)})"
+    if COUNT_LABELS:
+        xlabel = f"{'tau' if xcol == 'tau_unweighted' else 'tau_weighted'} (full: {N_FULL} {UNIT})"
+        ylabel = f"tau ({MERGED_DESC}: {N_REF} {UNIT})"
     ax.set_xlabel(xlabel, fontsize=AXIS_LABEL_FONTSIZE)
-    ax.set_ylabel(f"tau_unweighted ({display_label(LABEL)})", fontsize=AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel(ylabel, fontsize=AXIS_LABEL_FONTSIZE)
     if SHOW_TITLE:
         ax.set_title(title, fontsize=TITLE_FONTSIZE)
     ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)

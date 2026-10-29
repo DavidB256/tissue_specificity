@@ -46,9 +46,12 @@ r = pd.read_csv(IN_REF_TAU)[["gene", "tau_unweighted", "tau_weighted_diag_reg_in
 
 df = d.merge(r, on="gene").merge(cat_df, on="gene").dropna()
 
+N_FULL = len(tissues)
+N_MERGED = N_FULL - sum("Brain" in t for t in tissues) + 1  # all Brain_* tissues -> 1
+Y_LABEL = f"tau (brain tissues merged: {N_MERGED} tissues)"
 PANELS = [
-    ("tau_unweighted", "tau_ref", "tau unweighted"),
-    ("tau_free_weighted", "tau_ref", "tau weighted"),
+    ("tau_unweighted", "tau_ref", "tau unweighted", f"tau (full: {N_FULL} tissues)"),
+    ("tau_free_weighted", "tau_ref", "tau weighted", f"tau_weighted (full: {N_FULL} tissues)"),
 ]
 
 
@@ -65,7 +68,7 @@ def annotate_stats(ax, x, y):
 
 
 fig, axes = plt.subplots(1, 2, figsize=(19, 9.5))
-for ax, (xcol, ycol, title) in zip(axes, PANELS):
+for ax, (xcol, ycol, title, xlabel) in zip(axes, PANELS):
     for cat, color in CATEGORIES.items():
         sub = df[df["category"] == cat]
         alpha = 0.1 if cat == "other" else 0.3
@@ -73,8 +76,8 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)
-    ax.set_xlabel("full (68 tissues)", fontsize=AXIS_LABEL_FONTSIZE)
-    ax.set_ylabel(display_label(LABEL), fontsize=AXIS_LABEL_FONTSIZE)
+    ax.set_xlabel(xlabel, fontsize=AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel(Y_LABEL, fontsize=AXIS_LABEL_FONTSIZE)
     ax.set_title(title, fontsize=TITLE_FONTSIZE)
     ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)
     annotate_stats(ax, df[xcol], df[ycol])
