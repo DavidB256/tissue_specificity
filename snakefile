@@ -439,6 +439,7 @@ rule all:
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
         f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png",
         f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_count_vs_filters.png",
         # gene_vs_tx scenarios' agreement with UBERON (Mantel r), used by poster_gene_tx_uberon_mantel
         f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv",
         # poster_figs: dpi=600 (or otherwise specially-formatted) figures for poster use
@@ -1837,6 +1838,26 @@ rule plot_mean_tissue_dist_vs_tpm_floor:
     shell:
         "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} 200 {threads} "
         "'GENCODE gene:{input.gene}' 'GENCODE tx:{input.gtex_tx}' 'CHESS tx:{input.chess_tx}'"
+
+rule compute_gtex_v11_tx_pc_donor_fraction:
+    input:
+        tpm=GTEX_V11_TX_TPM_RAW,
+        sample_tissue=f"{GENE_SPEC_GTEX_V11_TX}/sample_tissue_map.csv",
+        gct=GTEX_V11_TX_PC_BASE_GCT
+    output:
+        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_nonzero.csv"
+    shell:
+        "python3 scripts/compute_gtex_v11_tx_donor_fraction.py {input.tpm} {input.sample_tissue} {input.gct} {output}"
+
+rule plot_tx_count_vs_filters:
+    input:
+        gct=GTEX_V11_TX_PC_BASE_GCT,
+        frac=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_nonzero.csv"
+    output:
+        png=f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_count_vs_filters.png",
+        csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_count_vs_filters.csv"
+    shell:
+        "python3 scripts/plot_tx_count_vs_filters.py {input.gct} {input.frac} {output.png} {output.csv}"
 
 # ---- poster_figs: dpi=600 (or otherwise specially-formatted) versions of select
 # figures for poster use, written to POSTER_FIGS (separate dir from GENE_SPEC's
