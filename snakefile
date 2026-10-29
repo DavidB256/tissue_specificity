@@ -82,7 +82,14 @@ SOURCES = {
 STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
         "gtex_v11_tx": "transcript_median_tpm", "gtex_v11_tx_gene": "gene_median_tpm",
         "gtex_v11_tx_protein_coding": "transcript_median_tpm",
-        "chess_tx_protein_coding": "transcript_median_tpm"}
+        "chess_tx_protein_coding": "transcript_median_tpm",
+        "gtex_v11_tx_protein_coding_noRedundancy": "transcript_median_tpm",
+        "gtex_protein_coding_noRedundancy": "gene_median_tpm"}
+# noRedundancy sources: parent source's GCT subset to the 54 non-redundant GTEx tissues
+NO_REDUNDANCY_TISSUES = "tissue_lists/no_redundancy_54.txt"
+NO_REDUNDANCY_PARENT = {"gtex_v11_tx_protein_coding_noRedundancy": "gtex_v11_tx_protein_coding",
+                        "gtex_protein_coding_noRedundancy": "gtex_protein_coding"}
+NO_REDUNDANCY_RE = "|".join(NO_REDUNDANCY_PARENT)
 RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
 # legacy paths (predate this wildcard scheme, kept as literals rather than migrated --
 # no data movement, see streamline-snakefile.md plan): GTEx nests clusters under a
@@ -94,6 +101,7 @@ CLUSTERS_CSV = {
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "chess_tx_protein_coding": f"{GENE_SPEC}/chess_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
+    **{k: f"{GENE_SPEC}/{k}/cluster_weights/tissue_clusters_hierclust0.1.csv" for k in NO_REDUNDANCY_PARENT},
 }
 CLUSTERS_TAU_CSV = {
     "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
@@ -102,6 +110,7 @@ CLUSTERS_TAU_CSV = {
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
     "chess_tx_protein_coding": f"{GENE_SPEC}/chess_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
+    **{k: f"{GENE_SPEC}/{k}/cluster_weights/weighted_tau_hierclust0.1.csv" for k in NO_REDUNDANCY_PARENT},
 }
 TAU_PLOT_TITLE = {
     "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
@@ -185,7 +194,8 @@ ANNOTATION_GTF = {"gtex_v11_tx_protein_coding": GENCODE_V47_GTF_LOCAL, "chess_tx
 # noise-variance/free_weights targets via rule all's source=SOURCES expansions). ----
 
 GTEX_V11_TX_GENE_BASE_GCT = base_gct("gtex_v11_tx_gene")
-GTEX_V11_TX_RES_RE = r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding"
+GTEX_V11_TX_RES_RE = (r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding|"
+                      "gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy")
 N_FREE_CLUSTER_GTEX_V11_TX = 20
 # which dir's own tissue_correlation.csv/linkage.csv each DE "res" clusters against --
 # gtex_v11_tx_gene reuses the tx-level basis (same tissue-tissue relationship, see
@@ -196,6 +206,8 @@ CLUSTER_CORR_BASIS = {
     "gtex_v11_tx_gene": "gtex_v11_tx",
     "gtex_v11_tx_protein_coding": "gtex_v11_tx_protein_coding",
     "chess_tx_protein_coding": "chess_tx_protein_coding",
+    "gtex_v11_tx_protein_coding_noRedundancy": "gtex_v11_tx_protein_coding_noRedundancy",
+    "gtex_protein_coding_noRedundancy": "gtex_protein_coding_noRedundancy",
 }
 
 
@@ -228,7 +240,7 @@ ACTIVE_METHODS = ("free_cluster_weights",)
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
-    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding",
+    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
     method = r"free_weights|free_cluster_weights"
@@ -439,6 +451,9 @@ rule all:
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
         f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png",
         f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
+        # noRedundancy (54-tissue) sources: free_cluster_weights, onebrain, max-agg
+        [f"{GENE_SPEC}/{src}/free_cluster_weights_max/figures/tau_free_cluster_vs_full_onebrain.png"
+         for src in NO_REDUNDANCY_PARENT],
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_count_vs_filters.png",
         # gene_vs_tx scenarios' agreement with UBERON (Mantel r), used by poster_gene_tx_uberon_mantel
         f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv",
@@ -999,7 +1014,7 @@ rule plot_tau_free_cluster_vs_full:
     output:
         f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
     wildcard_constraints:
-        source=r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx_protein_coding|chess_tx_protein_coding"
+        source=r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy"
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
@@ -1825,6 +1840,17 @@ rule compute_tau_cluster_weighted_gtex_v11_tx:
         res = GTEX_V11_TX_RES_RE
     shell:
         "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
+
+rule filter_no_redundancy_tissues:
+    input:
+        gct=lambda wc: base_gct(NO_REDUNDANCY_PARENT[wc.source]),
+        tissues=NO_REDUNDANCY_TISSUES
+    output:
+        f"{GENE_SPEC}/{{source}}/{{stub}}_protein_coding.gct.gz"
+    wildcard_constraints:
+        source=NO_REDUNDANCY_RE
+    shell:
+        "python3 scripts/filter_gct_tissues.py {input.gct} {input.tissues} {output}"
 
 rule plot_mean_tissue_dist_vs_tpm_floor:
     input:
