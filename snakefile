@@ -1986,7 +1986,7 @@ rule poster_tissue_clusters_dendrogram_gtex:
         colors=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output.png} "
-        "'GTEx (protein-coding)' 0.1 0 0 1.5 600 0.3 0 0 0 0 {output.colors}"
+        "'GTEx (protein-coding)' 0.1 0 0 1.5 600 0.3 0 0 0 0 {output.colors} 'Hierarchical clustering of 54 GTEx tissues by transcriptome'"
 
 rule poster_tissue_correlation_heatmap_noRedundancy:
     input:

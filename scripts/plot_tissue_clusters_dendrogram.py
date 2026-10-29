@@ -13,7 +13,8 @@ tall), SHOW_XTICKS (11th, "0" to drop x-axis ticks/leaf labels), SHOW_TITLE
 (12th, "0" to drop the suptitle), SHOW_YLABEL (13th, "0" to drop the y-axis
 label), LW_ADD (14th, added to the branch line width on top of LW_MULT,
 points), OUT_COLORS_CSV (15th, writes cluster_id,color of each cluster's tree
-branch color; unmerged singletons get the above-threshold color)."""
+branch color; unmerged singletons get the above-threshold color),
+TITLE_OVERRIDE (16th, replaces the default suptitle text, drawn at 18pt)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -38,6 +39,7 @@ SHOW_TITLE = sys.argv[12] != "0" if len(sys.argv) > 12 else True
 SHOW_YLABEL = sys.argv[13] != "0" if len(sys.argv) > 13 else True
 LW_ADD = float(sys.argv[14]) if len(sys.argv) > 14 else 0.0
 OUT_COLORS_CSV = sys.argv[15] if len(sys.argv) > 15 else None
+TITLE_OVERRIDE = sys.argv[16] if len(sys.argv) > 16 else None
 
 clusters = pd.read_csv(IN_CLUSTERS_CSV)
 tissues = clusters["tissue"].tolist()
@@ -79,7 +81,9 @@ if SHOW_YLABEL:
     ax.set_ylabel("distance (1 - corr)")
 if SHOW_LEGEND:
     ax.legend(fontsize=8, loc="upper right")
-if SHOW_TITLE:
+if TITLE_OVERRIDE:
+    fig.suptitle(TITLE_OVERRIDE, fontsize=18)
+elif SHOW_TITLE:
     fig.suptitle(f"{display_label(LABEL)}: hierarchical tissue clustering, cut={DIST_THRESHOLD}, "
                  f"{clusters['cluster_id'].nunique()} clusters", fontsize=12)
 fig.tight_layout()
