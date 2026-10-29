@@ -12,7 +12,8 @@ default 300), HEIGHT_MULT (10th, scales figure height, e.g. 0.5 for half as
 tall), SHOW_XTICKS (11th, "0" to drop x-axis ticks/leaf labels), SHOW_TITLE
 (12th, "0" to drop the suptitle), SHOW_YLABEL (13th, "0" to drop the y-axis
 label), LW_ADD (14th, added to the branch line width on top of LW_MULT,
-points)."""
+points), OUT_COLORS_CSV (15th, writes cluster_id,color of each cluster's tree
+branch color; unmerged singletons get the above-threshold color)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -36,6 +37,7 @@ SHOW_XTICKS = sys.argv[11] != "0" if len(sys.argv) > 11 else True
 SHOW_TITLE = sys.argv[12] != "0" if len(sys.argv) > 12 else True
 SHOW_YLABEL = sys.argv[13] != "0" if len(sys.argv) > 13 else True
 LW_ADD = float(sys.argv[14]) if len(sys.argv) > 14 else 0.0
+OUT_COLORS_CSV = sys.argv[15] if len(sys.argv) > 15 else None
 
 clusters = pd.read_csv(IN_CLUSTERS_CSV)
 tissues = clusters["tissue"].tolist()
@@ -50,6 +52,10 @@ if LW_MULT != 1.0 or LW_ADD != 0.0:
         line.set_linewidth(line.get_linewidth() * LW_MULT + LW_ADD)
     for coll in ax.collections:
         coll.set_linewidth(np.asarray(coll.get_linewidth()) * LW_MULT + LW_ADD)
+
+if OUT_COLORS_CSV:
+    leaf_color = dict(zip(R["ivl"], R["leaves_color_list"]))
+    clusters.groupby("cluster_id")["tissue"].first().map(leaf_color).rename("color").to_csv(OUT_COLORS_CSV)
 
 leaf_x = {t: 5 + 10 * i for i, t in enumerate(R["ivl"])}
 

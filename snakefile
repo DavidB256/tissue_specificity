@@ -1970,21 +1970,23 @@ rule poster_tpm_threshold_dist_and_retention:
 
 rule poster_cluster_weights_gtex:
     input:
-        f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/hierclust0.1/cluster_weights.csv"
+        weights=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/hierclust0.1/cluster_weights.csv",
+        colors=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
     output:
         f"{POSTER_FIGS}/gtex_cluster_weights.png"
     shell:
-        "python3 scripts/plot_poster_cluster_weights_gtex.py {input} {output}"
+        "python3 scripts/plot_poster_cluster_weights_gtex.py {input.weights} {output} {input.colors}"
 
 rule poster_tissue_clusters_dendrogram_gtex:
     input:
-        linkage=f"{GENE_SPEC_GTEX_PC}/tissue_correlation_linkage.csv",
-        clusters=CLUSTERS_CSV["gtex_protein_coding"]
+        linkage=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/tissue_correlation_linkage.csv",
+        clusters=CLUSTERS_CSV["gtex_protein_coding_noRedundancy"]
     output:
-        f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png"
+        png=f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png",
+        colors=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
     shell:
-        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} "
-        "'GTEx (protein-coding)' 0.1 0 0 1.5 600 0.5 0 0 0 0"
+        "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output.png} "
+        "'GTEx (protein-coding)' 0.1 0 0 1.5 600 0.5 0 0 0 0 {output.colors}"
 
 rule poster_tissue_correlation_heatmap_noRedundancy:
     input:
