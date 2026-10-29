@@ -24,6 +24,7 @@ OUT_PNG = sys.argv[4]
 LABEL = "onebrain"
 CATEGORIES = {"brain": "tab:red", "other": "tab:blue"}
 AXIS_LO, AXIS_HI = 0.0, 1.0  # tau on log10(TPM+1) is lower; 0.2 clipped ~8% of genes
+POINT_SCALE = 1.5  # marker width multiplier (area scales by its square)
 KEY_FONTSIZE = 9 + 4 + 4
 LEGEND_FONTSIZE = KEY_FONTSIZE
 AXIS_LABEL_FONTSIZE = 10 + 5 + 4
@@ -68,7 +69,7 @@ for ax, (xcol, ycol, title) in zip(axes, PANELS):
     for cat, color in CATEGORIES.items():
         sub = df[df["category"] == cat]
         alpha = 0.1 if cat == "other" else 0.3
-        ax.scatter(sub[xcol], sub[ycol], s=6, alpha=alpha, color=color, label=f"{cat} (n={len(sub)})")
+        ax.scatter(sub[xcol], sub[ycol], s=6 * POINT_SCALE ** 2, alpha=alpha, color=color, label=f"{cat} (n={len(sub)})")
     ax.plot([AXIS_LO, AXIS_HI], [AXIS_LO, AXIS_HI], "--", color="gray", lw=1)
     ax.set_xlim(AXIS_LO, AXIS_HI)
     ax.set_ylim(AXIS_LO, AXIS_HI)

@@ -1924,7 +1924,7 @@ rule poster_tau_scenarios_scatter_threshold85_onebrain:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
-        "{output} onebrain 600 4"
+        "{output} onebrain 600 4 1 1.5"
 
 rule poster_tau_scenarios_scatter_threshold85_oneislets:
     input:
@@ -1934,7 +1934,7 @@ rule poster_tau_scenarios_scatter_threshold85_oneislets:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
-        "{output} oneislets 600 4 0"
+        "{output} oneislets 600 4 0 1.5"
 
 rule poster_cluster_weights_gtex:
     input:

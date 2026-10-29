@@ -14,7 +14,8 @@ optional 6th arg FONT_BUMP (default 0) adds extra pt to every text element
 (key/axis-label/title/tick-label) -- used to size the poster_figs copy up
 further (+4pt) without changing the default gene_specificity output; optional
 7th arg SHOW_TITLE ("0"/"1", default "1") -- pass "0" to drop the per-panel
-titles entirely (for a poster fig with no title at all)."""
+titles entirely (for a poster fig with no title at all); optional 8th arg POINT_SCALE
+(default 1) multiplies the scatter marker *width* (marker area s scales by its square)."""
 import sys
 import pandas as pd
 import matplotlib
@@ -32,6 +33,7 @@ FONT_BUMP = int(sys.argv[6]) if len(sys.argv) > 6 else 0
 SHOW_TITLE = (sys.argv[7] if len(sys.argv) > 7 else "1") != "0"
 
 THRESHOLD = 0.85
+POINT_SCALE = float(sys.argv[8]) if len(sys.argv) > 8 else 1.0
 KEY_FONTSIZE = 13 + FONT_BUMP
 AXIS_LABEL_FONTSIZE = 15 + FONT_BUMP
 TITLE_FONTSIZE = 15 + FONT_BUMP
@@ -80,7 +82,7 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     for cat, color in CATEGORY_STYLE:
         sub = df[df["category"] == cat]
         alpha = 0.15 if cat == "no threshold crossed" else 0.6
-        size = 6 if cat == "no threshold crossed" else 15  # 1.5x of original (4, 10)
+        size = (6 if cat == "no threshold crossed" else 15) * POINT_SCALE ** 2  # 1.5x of original (4, 10)
         zorder = 2 if cat == "no threshold crossed" else 3
         ax.scatter(sub[xcol], sub["tau_ref"], s=size, alpha=alpha, color=color,
                    label=f"{cat} (n={len(sub)})", zorder=zorder, rasterized=True)
