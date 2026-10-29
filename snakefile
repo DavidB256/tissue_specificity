@@ -1968,7 +1968,7 @@ rule poster_tpm_threshold_dist_and_retention:
 
 rule poster_cluster_weights_gtex:
     input:
-        f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/hierclust0.1/cluster_weights.csv"
+        f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/hierclust0.1/cluster_weights.csv"
     output:
         f"{POSTER_FIGS}/gtex_cluster_weights.png"
     shell:
