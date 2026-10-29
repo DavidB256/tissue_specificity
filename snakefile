@@ -460,6 +460,7 @@ rule all:
         # poster_figs: dpi=600 (or otherwise specially-formatted) figures for poster use
         f"{POSTER_FIGS}/gene_vs_tx_bars.png",
         f"{POSTER_FIGS}/tau_free_cluster_vs_full_onebrain.png",
+        f"{POSTER_FIGS}/tpm_threshold_dist_and_retention.png",
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png",
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png",
         f"{POSTER_FIGS}/gtex_cluster_weights.png",
@@ -1853,6 +1854,18 @@ rule filter_no_redundancy_tissues:
     shell:
         "python3 scripts/filter_gct_tissues.py {input.gct} {input.tissues} {output}"
 
+rule plot_mean_tissue_dist_vs_tpm_floor_no_redundancy:
+    input:
+        gene=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
+        tx=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy")
+    output:
+        png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor_noRedundancy.png",
+        csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor_noRedundancy.csv"
+    threads: 8
+    shell:
+        "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} 200 {threads} "
+        "'gene:{input.gene}' 'tx:{input.tx}'"
+
 rule plot_mean_tissue_dist_vs_tpm_floor:
     input:
         gene=lambda wc: base_gct("gtex_protein_coding"),
@@ -1940,6 +1953,18 @@ rule poster_tau_scenarios_scatter_threshold85_oneislets:
     shell:
         "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
         "{output} oneislets 600 4 0 1.5 {input.full_gct} {input.ref_gct} 'cell types' 'islet cell types merged'"
+
+rule poster_tpm_threshold_dist_and_retention:
+    input:
+        gene_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
+        tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
+        dist=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor_noRedundancy.csv",
+        gtf=GENCODE_V47_GTF_LOCAL
+    output:
+        f"{POSTER_FIGS}/tpm_threshold_dist_and_retention.png"
+    shell:
+        "python3 scripts/plot_poster_tpm_threshold_dist_and_retention.py {input.gene_gct} {input.tx_gct} "
+        "{input.dist} {input.gtf} {output} gene tx"
 
 rule poster_cluster_weights_gtex:
     input:
