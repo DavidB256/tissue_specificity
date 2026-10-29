@@ -1,6 +1,6 @@
 """Poster bar fig, styled like plot_gene_vs_tx_bars.py (same colors/hatches/
 legend/rotated-anchor x labels/font sizes), showing compute_gene_tx_uberon_
-mantel.py's Mantel r per scenario (3 sources x TPM<1/TPM<10 floor) with
+mantel.py's Mantel r per scenario (3 sources x TPM<1/TPM<10 floor) with optional bootstrap 95% CI error bars and
 significance stars (*** p<0.001, ** p<0.01, * p<0.05) above each bar. dpi=600."""
 import sys
 import numpy as np
@@ -13,6 +13,7 @@ from matplotlib.patches import Patch
 IN_MANTEL_CSV = sys.argv[1]
 OUT_PNG = sys.argv[2]
 EXCLUDE = sys.argv[3].split(",") if len(sys.argv) > 3 else []  # optional: sources to drop
+IN_BOOT_CSV = sys.argv[4] if len(sys.argv) > 4 else None  # optional: bootstrap 95% CIs (ci_lo/ci_hi per scenario)
 
 SOURCE_ORDER = ["gtex_protein_coding", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]
 SOURCE_LABEL = {
@@ -36,6 +37,11 @@ df["order_rank"] = df["source"].map({s: i for i, s in enumerate(SOURCE_ORDER)})
 df = df.sort_values(["order_rank", "floor_threshold"]).reset_index(drop=True)
 df["stars"] = df["stars"].fillna("")
 
+if IN_BOOT_CSV:
+    df = df.merge(pd.read_csv(IN_BOOT_CSV)[["scenario", "ci_lo", "ci_hi"]], on="scenario")
+else:
+    df["ci_lo"] = df["ci_hi"] = df["mantel_r"]
+
 labels = [short_name(s, f) for s, f in zip(df["source"], df["floor_threshold"])]
 x = np.arange(len(df))
 colors = df["kind"].map(KIND_COLOR)
@@ -46,9 +52,12 @@ fig, ax = plt.subplots(figsize=(8 * len(df) / 6, 6.5))
 bars = ax.bar(x, df["mantel_r"], color=colors, edgecolor="black")
 for bar, hatch in zip(bars, hatches):
     bar.set_hatch(hatch)
-for xi, r, s in zip(x, df["mantel_r"], df["stars"]):
+if IN_BOOT_CSV:
+    ax.errorbar(x, df["mantel_r"], yerr=[df["mantel_r"] - df["ci_lo"], df["ci_hi"] - df["mantel_r"]],
+                fmt="none", ecolor="black", elinewidth=2, capsize=6, capthick=2, zorder=3)
+for xi, r, hi, s in zip(x, df["mantel_r"], df["ci_hi"], df["stars"]):
     label = f"{r:.3f} ({s})" if s else f"{r:.3f}"
-    ax.text(xi, r + 0.006, label, ha="center", fontsize=12)
+    ax.text(xi, hi + 0.006, label, ha="center", fontsize=12)
 ax.set_xticks(x)
 ax.set_xticklabels(labels, fontsize=12, rotation=30, ha="right", rotation_mode="anchor")
 ax.set_ylabel("agreement with UBERON (Mantel r of pairwise distances)", fontsize=12)
