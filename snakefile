@@ -1845,19 +1845,22 @@ rule compute_gtex_v11_tx_pc_donor_fraction:
         sample_tissue=f"{GENE_SPEC_GTEX_V11_TX}/sample_tissue_map.csv",
         gct=GTEX_V11_TX_PC_BASE_GCT
     output:
-        f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_nonzero.csv"
+        nonzero=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_nonzero.csv",
+        ge1=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_ge1.csv"
     shell:
-        "python3 scripts/compute_gtex_v11_tx_donor_fraction.py {input.tpm} {input.sample_tissue} {input.gct} {output}"
+        "python3 scripts/compute_gtex_v11_tx_donor_fraction.py {input.tpm} {input.sample_tissue} {input.gct} "
+        "{output.nonzero} {output.ge1}"
 
 rule plot_tx_count_vs_filters:
     input:
         gct=GTEX_V11_TX_PC_BASE_GCT,
-        frac=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_nonzero.csv"
+        frac=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_nonzero.csv",
+        frac_ge1=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_donor_fraction_ge1.csv"
     output:
         png=f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_count_vs_filters.png",
         csv=f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_count_vs_filters.csv"
     shell:
-        "python3 scripts/plot_tx_count_vs_filters.py {input.gct} {input.frac} {output.png} {output.csv}"
+        "python3 scripts/plot_tx_count_vs_filters.py {input.gct} {input.frac} {input.frac_ge1} {output.png} {output.csv}"
 
 # ---- poster_figs: dpi=600 (or otherwise specially-formatted) versions of select
 # figures for poster use, written to POSTER_FIGS (separate dir from GENE_SPEC's
