@@ -465,8 +465,7 @@ rule all:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png",
         f"{POSTER_FIGS}/gtex_cluster_weights.png",
         f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png",
-        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png",
-        f"{POSTER_FIGS}/latex.png"
+        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1984,14 +1983,6 @@ rule poster_tissue_clusters_dendrogram_gtex:
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} "
         "'GTEx (protein-coding)' 0.1 0 0 4.5 600 0.5 0 0 0 4.5"
-
-rule poster_latex:
-    input:
-        "latex.md"
-    output:
-        f"{POSTER_FIGS}/latex.png"
-    shell:
-        "python3 scripts/render_latex_md.py {input} {output} 600"
 
 rule compute_gene_tx_uberon_mantel:
     input:
