@@ -12,6 +12,7 @@ from matplotlib.patches import Patch
 
 IN_MANTEL_CSV = sys.argv[1]
 OUT_PNG = sys.argv[2]
+EXCLUDE = sys.argv[3].split(",") if len(sys.argv) > 3 else []  # optional: sources to drop
 
 SOURCE_ORDER = ["gtex_protein_coding", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]
 SOURCE_LABEL = {
@@ -30,6 +31,7 @@ def short_name(source, floor):
 
 
 df = pd.read_csv(IN_MANTEL_CSV)
+df = df[~df["source"].isin(EXCLUDE)]
 df["order_rank"] = df["source"].map({s: i for i, s in enumerate(SOURCE_ORDER)})
 df = df.sort_values(["order_rank", "floor_threshold"]).reset_index(drop=True)
 df["stars"] = df["stars"].fillna("")
@@ -39,7 +41,7 @@ x = np.arange(len(df))
 colors = df["kind"].map(KIND_COLOR)
 hatches = df["floor_threshold"].map(FLOOR_HATCH)
 
-fig, ax = plt.subplots(figsize=(8, 6.5))
+fig, ax = plt.subplots(figsize=(8 * len(df) / 6, 6.5))
 
 bars = ax.bar(x, df["mantel_r"], color=colors, edgecolor="black")
 for bar, hatch in zip(bars, hatches):

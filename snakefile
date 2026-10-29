@@ -465,7 +465,8 @@ rule all:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png",
         f"{POSTER_FIGS}/gtex_cluster_weights.png",
         f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png",
-        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png"
+        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png",
+        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel_no_chess.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -2003,3 +2004,11 @@ rule poster_gene_tx_uberon_mantel:
         f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png"
     shell:
         "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input} {output}"
+
+rule poster_gene_tx_uberon_mantel_no_chess:
+    input:
+        f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv"
+    output:
+        f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel_no_chess.png"
+    shell:
+        "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input} {output} chess_tx_protein_coding"
