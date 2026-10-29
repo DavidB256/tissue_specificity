@@ -82,7 +82,7 @@ for ax, (xcol, ycol, title, xlabel, ylabel) in zip(axes, PANELS):
 
     dist = (df[xcol] - df[ycol]).abs() / np.sqrt(2)
     ax.legend(handles=[plt.Line2D([0], [0], color="none",
-                                   label=f"dist from y=x: mean={dist.mean():.4f}, median={dist.median():.4f}")],
+                                   label=f"median dist. from y=x: {dist.median():.4f}")],
               loc="lower right", handlelength=0, handletextpad=0, fontsize=8)
 
 fig.suptitle(f"{OUT_PNG.split('/')[-4]} tau: full vs {REF_DESC}, n={len(df)} genes")

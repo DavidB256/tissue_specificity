@@ -1908,9 +1908,9 @@ rule poster_gene_vs_tx_bars:
 
 rule poster_tau_free_cluster_vs_full_onebrain:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
-        free_tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max")
+        gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
+        free_tau=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding_noRedundancy", "onebrain", "_max")
     output:
         f"{POSTER_FIGS}/tau_free_cluster_vs_full_onebrain.png"
     shell:
@@ -1919,10 +1919,10 @@ rule poster_tau_free_cluster_vs_full_onebrain:
 
 rule poster_tau_scenarios_scatter_threshold85_onebrain:
     input:
-        free_tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max"),
-        full_gct=lambda wc: base_gct("gtex_protein_coding"),
-        ref_gct=lambda wc: leg_gct_path("gtex_protein_coding", "onebrain", "_max")
+        free_tau=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding_noRedundancy", "onebrain", "_max"),
+        full_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
+        ref_gct=lambda wc: leg_gct_path("gtex_protein_coding_noRedundancy", "onebrain", "_max")
     output:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png"
     shell:
