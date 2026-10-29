@@ -1982,7 +1982,7 @@ rule poster_tissue_clusters_dendrogram_gtex:
         f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png"
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output} "
-        "'GTEx (protein-coding)' 0.1 0 0 4.5 600 0.5 0 0 0 4.5"
+        "'GTEx (protein-coding)' 0.1 0 0 1.5 600 0.5 0 0 0 0"
 
 rule compute_gene_tx_uberon_mantel:
     input:

@@ -45,8 +45,11 @@ fig, ax = plt.subplots(figsize=(max(14, 0.22 * len(tissues)), 7 * HEIGHT_MULT))
 R = dendrogram(Z, labels=tissues, color_threshold=DIST_THRESHOLD,
                above_threshold_color="lightgray", leaf_rotation=90, leaf_font_size=6, ax=ax)
 if LW_MULT != 1.0 or LW_ADD != 0.0:
+    # scipy draws branches as LineCollections (not Line2D) in recent versions
     for line in ax.get_lines():
         line.set_linewidth(line.get_linewidth() * LW_MULT + LW_ADD)
+    for coll in ax.collections:
+        coll.set_linewidth(np.asarray(coll.get_linewidth()) * LW_MULT + LW_ADD)
 
 leaf_x = {t: 5 + 10 * i for i, t in enumerate(R["ivl"])}
 
