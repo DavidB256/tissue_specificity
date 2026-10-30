@@ -1,7 +1,6 @@
 """Poster fig (free_cluster_weights_max, onebrain leg): histogram of arctanh(tx tau_weighted) - arctanh(gene tau_weighted) over
 multi-tx genes (n_tx>=2) of the quantified tx (tx_total>0, i.e. TPM>=1 in >=1 tissue --
-the GCT is already floored at TPM<1). Each tx weighted 1/n_tx of its gene (equal mass
-per gene). tau scaled by 0.9999 before arctanh. Single panel, poster-sized text, dpi=600.
+the GCT is already floored at TPM<1). Each tx counts 1 (unweighted). tau scaled by 0.9999 before arctanh. Single panel, poster-sized text, dpi=600.
 gene tau_weighted = the same shared onebrain weight vector (IN_WEIGHTS_CSV) applied to the
 gene's summed-isoform profile (as in compute_tx_info_content.py).
 Single-panel poster version of plot_tau_deviation_histogram_weighted.py."""
@@ -40,14 +39,13 @@ df = tx.merge(tx_tau, on="transcript_id").merge(info, on="gene_id")
 df = df.dropna(subset=["tx_tau_weighted", "gene_tau_weighted"])
 n_tx = df.groupby("gene_id")["transcript_id"].transform("count")
 df = df[n_tx >= 2].copy()
-df["weight"] = 1.0 / n_tx[df.index]
 df["deviation"] = np.arctanh(SCALE * df["tx_tau_weighted"]) - np.arctanh(SCALE * df["gene_tau_weighted"])
 
 fig, ax = plt.subplots(figsize=(10, 7))
-ax.hist(df["deviation"], weights=df["weight"], bins=100, color="steelblue", alpha=0.8)
+ax.hist(df["deviation"], bins=100, color="steelblue", alpha=0.8)
 ax.axvline(0, color="gray", linestyle="--", linewidth=2)
 ax.set_xlabel("arctanh(tx tau_weighted) - arctanh(gene tau_weighted)", fontsize=AXIS_LABEL_FONTSIZE)
-ax.set_ylabel("Gene-weighted transcript count", fontsize=AXIS_LABEL_FONTSIZE)
+ax.set_ylabel("Transcript count", fontsize=AXIS_LABEL_FONTSIZE)
 ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=600)
