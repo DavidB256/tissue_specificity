@@ -467,7 +467,8 @@ rule all:
         f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png",
         f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png",
         f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel_no_chess.png",
-        f"{POSTER_FIGS}/tissue_correlation_heatmap_54.png"
+        f"{POSTER_FIGS}/tissue_correlation_heatmap_54.png",
+        f"{POSTER_FIGS}/tau_deviation_histogram.png"
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -1997,6 +1998,16 @@ rule poster_tissue_correlation_heatmap_noRedundancy:
     shell:
         "python3 scripts/plot_tissue_correlation_heatmap_only.py {input.corr} {input.linkage} {output} "
         "'Correlation matrix of log10 TPM values in 54 GTEx tissues' 600 2"
+
+rule poster_tau_deviation_histogram:
+    input:
+        gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
+        tx_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weights.csv"
+    output:
+        f"{POSTER_FIGS}/tau_deviation_histogram.png"
+    shell:
+        "python3 scripts/plot_poster_tau_deviation_histogram.py {input.gct} {input.tx_tau} {input.weights} {output}"
 
 rule compute_gene_tx_uberon_mantel:
     input:
