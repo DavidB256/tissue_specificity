@@ -2011,8 +2011,8 @@ rule poster_tau_deviation_histogram:
 
 rule compute_gene_tx_uberon_mantel:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
-        gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
+        gtex_tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
         chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv"
     output:
@@ -2032,8 +2032,8 @@ rule poster_gene_tx_uberon_mantel:
 
 rule bootstrap_gene_tx_uberon_mantel:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
-        gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
+        gtex_tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
         chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv"
     output:
