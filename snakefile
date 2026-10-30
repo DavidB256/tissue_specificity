@@ -2023,23 +2023,26 @@ rule compute_gene_tx_uberon_mantel:
 
 rule poster_gene_tx_uberon_mantel:
     input:
-        f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv"
+        mantel=f"{GENE_SPEC}/gene_vs_tx_uberon_mantel.csv",
+        boot=f"{GENE_SPEC}/gene_vs_tx_uberon_mantel_bootstrap.csv"
     output:
         f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel.png"
     shell:
-        "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input} {output}"
+        "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input.mantel} {output} none {input.boot}"
 
 rule bootstrap_gene_tx_uberon_mantel:
     input:
         gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
         gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
+        chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv"
     output:
         f"{GENE_SPEC}/gene_vs_tx_uberon_mantel_bootstrap.csv"
     threads: 60
     shell:
         "python3 scripts/bootstrap_gene_tx_uberon_mantel.py {input.uberon_distance} {output} 200 {threads} "
-        "gene:gtex_protein_coding:{input.gtex_pc_gct} tx:gtex_v11_tx_protein_coding:{input.gtex_tx_gct}"
+        "gene:gtex_protein_coding:{input.gtex_pc_gct} tx:gtex_v11_tx_protein_coding:{input.gtex_tx_gct} "
+        "chess:chess_tx_protein_coding:{input.chess_tx_gct}"
 
 rule poster_gene_tx_uberon_mantel_no_chess:
     input:
