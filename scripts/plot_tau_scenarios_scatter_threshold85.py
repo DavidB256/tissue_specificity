@@ -98,8 +98,7 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
                    label=f"{cat} (n={len(sub)})", zorder=zorder, rasterized=True)
     ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, zorder=1)
     ax.axvline(THRESHOLD, color="black", lw=1.6, zorder=0)
-    ax.axhline(THRESHOLD, color="black", lw=1.6, zorder=0)
-    ax.set_xticks(sorted({*np.round(np.linspace(0, 1, 6), 2), THRESHOLD}))
+    ax.set_xticks([0, 0.2, 0.4, 0.6, THRESHOLD, 1.0])
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ylabel = f"tau_unweighted ({display_label(LABEL)})"
