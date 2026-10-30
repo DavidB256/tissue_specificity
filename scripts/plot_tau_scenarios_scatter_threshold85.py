@@ -19,6 +19,7 @@ titles entirely (for a poster fig with no title at all); optional 8th arg POINT_
 optional args 9-12 (FULL_GCT, REF_GCT, UNIT, MERGED_DESC) switch to count-annotated axis
 labels, e.g. "tau (full: 68 tissues)" / "tau (brain tissues merged: 56 tissues)"."""
 import sys
+import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
@@ -96,8 +97,9 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
         ax.scatter(sub[xcol], sub["tau_ref"], s=size, alpha=alpha, color=color,
                    label=f"{cat} (n={len(sub)})", zorder=zorder, rasterized=True)
     ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, zorder=1)
-    ax.axvline(THRESHOLD, color="lightgray", lw=0.8, zorder=0)
-    ax.axhline(THRESHOLD, color="lightgray", lw=0.8, zorder=0)
+    ax.axvline(THRESHOLD, color="black", lw=1.6, zorder=0)
+    ax.axhline(THRESHOLD, color="black", lw=1.6, zorder=0)
+    ax.set_xticks(sorted({*np.round(np.linspace(0, 1, 6), 2), THRESHOLD}))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ylabel = f"tau_unweighted ({display_label(LABEL)})"
