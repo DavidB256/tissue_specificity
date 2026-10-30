@@ -2051,4 +2051,4 @@ rule poster_gene_tx_uberon_mantel_no_chess:
     output:
         f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel_no_chess.png"
     shell:
-        "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input.mantel} {output} chess_tx_protein_coding {input.boot}"
+        "python3 scripts/plot_poster_gene_tx_uberon_mantel.py {input.mantel} {output} chess_tx_protein_coding {input.boot} simple"

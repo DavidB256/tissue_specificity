@@ -64,7 +64,7 @@ for k, (pt, lo, hi) in frac.items():
     print(f"{k} T=10: {pt[9]:.4f} [{lo[9]:.4f}, {hi[9]:.4f}]", file=sys.stderr)
 dist = pd.read_csv(IN_DIST_CSV)
 
-fig, (ax_ret, ax_dist) = plt.subplots(1, 2, figsize=(19, 8))
+fig, (ax_ret, ax_dist) = plt.subplots(2, 1, figsize=(7.8, 16))  # stacked; panels 0.7x the old width
 for name, src in [("gene", GENE_SRC), ("transcript", TX_SRC)]:
     sub = dist[(dist["source"] == src) & (dist["tpm_floor"] >= 1)]
     ax_dist.fill_between(sub["tpm_floor"], sub["ci_lo"], sub["ci_hi"], color=COLORS[name], alpha=0.25)

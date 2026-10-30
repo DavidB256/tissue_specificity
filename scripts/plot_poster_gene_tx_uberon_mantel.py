@@ -13,6 +13,7 @@ from matplotlib.patches import Patch
 IN_MANTEL_CSV = sys.argv[1]
 OUT_PNG = sys.argv[2]
 EXCLUDE = sys.argv[3].split(",") if len(sys.argv) > 3 else []  # optional: sources to drop
+SIMPLE = len(sys.argv) > 5 and sys.argv[5] == "simple"  # optional: "Gene"/"Tx" labels, no stars
 IN_BOOT_CSV = sys.argv[4] if len(sys.argv) > 4 else None  # optional: bootstrap 95% CIs (ci_lo/ci_hi per scenario)
 
 SOURCE_ORDER = ["gtex_protein_coding", "gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]
@@ -28,7 +29,8 @@ FLOOR_HATCH = {1.0: "", 10.0: "//"}
 
 
 def short_name(source, floor):
-    return f"{SOURCE_LABEL[source]}\n{FLOOR_LABEL[floor]}"
+    name = SOURCE_LABEL[source].replace("GENCODE ", "").strip("()").capitalize() if SIMPLE else SOURCE_LABEL[source]
+    return f"{name}\n{FLOOR_LABEL[floor]}"
 
 
 df = pd.read_csv(IN_MANTEL_CSV)
@@ -56,7 +58,7 @@ if IN_BOOT_CSV:
     ax.errorbar(x, df["mantel_r"], yerr=[df["mantel_r"] - df["ci_lo"], df["ci_hi"] - df["mantel_r"]],
                 fmt="none", ecolor="black", elinewidth=2, capsize=6, capthick=2, zorder=3)
 for xi, r, hi, s in zip(x, df["mantel_r"], df["ci_hi"], df["stars"]):
-    label = f"{r:.3f} ({s})" if s else f"{r:.3f}"
+    label = f"{r:.3f} ({s})" if s and not SIMPLE else f"{r:.3f}"
     ax.text(xi, hi + 0.006, label, ha="center", fontsize=12)
 ax.set_xticks(x)
 ax.set_xticklabels(labels, fontsize=12, rotation=30, ha="right", rotation_mode="anchor")
