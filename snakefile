@@ -1955,7 +1955,7 @@ rule poster_tau_scenarios_scatter_threshold85_oneislets:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_oneislets_thresholds.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter_threshold85.py {input.free_tau} {input.ref_tau} "
-        "{output} oneislets 600 4 0 1.5 {input.full_gct} {input.ref_gct} 'cell types' 'islet cell types merged'"
+        "{output} oneislets 600 4 1 1.5 {input.full_gct} {input.ref_gct} 'cell types' 'islet cell types merged' simple_titles"
 
 rule poster_tpm_threshold_dist_and_retention:
     input:

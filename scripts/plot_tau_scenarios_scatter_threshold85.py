@@ -37,6 +37,7 @@ SHOW_TITLE = (sys.argv[7] if len(sys.argv) > 7 else "1") != "0"
 THRESHOLD = 0.85
 POINT_SCALE = float(sys.argv[8]) if len(sys.argv) > 8 else 1.0
 COUNT_LABELS = len(sys.argv) > 12
+SIMPLE_TITLES = len(sys.argv) > 13  # optional 13th arg (any value): panel titles "tau unweighted"/"tau weighted"
 if COUNT_LABELS:
     import gzip
     n_cols = lambda f: int(gzip.open(f, "rt").readlines()[1].split("\t")[1])
@@ -106,6 +107,8 @@ for ax, (xcol, title, xlabel) in zip(axes, PANELS):
     ax.set_xlabel(xlabel, fontsize=AXIS_LABEL_FONTSIZE)
     ax.set_ylabel(ylabel, fontsize=AXIS_LABEL_FONTSIZE)
     if SHOW_TITLE:
+        if SIMPLE_TITLES:
+            title = "tau unweighted" if xcol == "tau_unweighted" else "tau weighted"
         ax.set_title(title, fontsize=TITLE_FONTSIZE)
     ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)
     annotate_stats(ax, df[xcol], df["tau_ref"])
