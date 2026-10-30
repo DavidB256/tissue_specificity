@@ -43,9 +43,10 @@ df["deviation"] = np.arctanh(SCALE * df["tx_tau_weighted"]) - np.arctanh(SCALE *
 
 fig, ax = plt.subplots(figsize=(10, 7))
 ax.hist(df["deviation"], bins=50, color="#34688f", alpha=0.8)
-ax.axvline(0, color="gray", linestyle="--", linewidth=2)
+ax.axvline(0, color="black", linestyle="--", linewidth=2)
 ax.set_xlabel("transcript tau_w - gene tau_w (arctanh-transformed)", fontsize=AXIS_LABEL_FONTSIZE)
 ax.set_ylabel("Transcript count", fontsize=AXIS_LABEL_FONTSIZE)
+ax.set_title("Distribution of transcript specificity relative to gene specificity", fontsize=AXIS_LABEL_FONTSIZE)
 ax.tick_params(labelsize=TICK_LABEL_FONTSIZE)
 fig.tight_layout()
 fig.savefig(OUT_PNG, dpi=600)
