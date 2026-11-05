@@ -265,6 +265,11 @@ def all_free_weights_targets(kind):
             for agg in ACTIVE_AGGS]
 
 
+DEV_SCATTER_GCT = {"gtex_v11_tx_protein_coding_noRedundancy": base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
+                   "chess_tx_protein_coding": CHESS_TX_PC_BASE_GCT}
+DEV_SCATTER_OUT = [f"{GENE_SPEC}/{s}/free_cluster_weights_max/figures/tau_deviation_vs_tpm_isoform_fraction.png"
+                   for s in DEV_SCATTER_GCT]
+
 rule all:
     input:
         f"{MODEL_FITS}/model_comparison.csv",
@@ -469,7 +474,7 @@ rule all:
         f"{POSTER_FIGS}/gene_vs_tx_uberon_mantel_no_chess.png",
         f"{POSTER_FIGS}/tissue_correlation_heatmap_54.png",
         f"{POSTER_FIGS}/tau_deviation_histogram.png",
-        f"{POSTER_FIGS}/tau_deviation_vs_tpm_isoform_fraction.png"
+        *DEV_SCATTER_OUT
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
@@ -2012,17 +2017,16 @@ rule poster_tau_deviation_histogram:
 
 rule tau_deviation_vs_tpm_isoform_fraction:
     input:
-        gtex_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
-        gtex_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        gtex_w=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weights.csv",
-        chess_gct=CHESS_TX_PC_BASE_GCT,
-        chess_tau=f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        chess_w=f"{GENE_SPEC}/chess_tx_protein_coding/free_cluster_weights_max/onebrain/weights.csv"
+        gct=lambda wc: DEV_SCATTER_GCT[wc.source],
+        tx_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/onebrain/weights.csv"
     output:
-        f"{POSTER_FIGS}/tau_deviation_vs_tpm_isoform_fraction.png"
+        f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_deviation_vs_tpm_isoform_fraction.png"
+    wildcard_constraints:
+        source="gtex_v11_tx_protein_coding_noRedundancy|chess_tx_protein_coding"
     shell:
         "python3 scripts/plot_tau_deviation_vs_tpm_isoform_fraction.py {output} "
-        "GTEx:{input.gtex_gct}:{input.gtex_tau}:{input.gtex_w} CHESS:{input.chess_gct}:{input.chess_tau}:{input.chess_w}"
+        "{wildcards.source}:{input.gct}:{input.tx_tau}:{input.weights}"
 
 rule compute_gene_tx_uberon_mantel:
     input:
