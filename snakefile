@@ -2028,6 +2028,30 @@ rule tau_deviation_vs_tpm_isoform_fraction:
         "python3 scripts/plot_tau_deviation_vs_tpm_isoform_fraction.py {output} "
         "{wildcards.source}:{input.gct}:{input.tx_tau}:{input.weights}"
 
+HIGH_DEV_CSV = f"{GENE_SPEC}/gtex_v11_tx_protein_coding/high_dev_isoforms_frac0.1_diff1.csv"
+MULTI_HIT_CSV = f"{GENE_SPEC}/gtex_v11_tx_protein_coding/high_dev_multi_hit_genes.csv"
+
+rule list_high_dev_isoforms:
+    input:
+        gct=TXS_BASE_GCT["gtex_v11_tx_protein_coding"],
+        tx_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weights.csv"
+    output:
+        HIGH_DEV_CSV
+    shell:
+        "python3 scripts/list_high_dev_isoforms.py {input.gct} {input.tx_tau} {input.weights} {output}"
+
+rule list_multi_hit_genes:
+    input:
+        hits=HIGH_DEV_CSV,
+        gct=TXS_BASE_GCT["gtex_v11_tx_protein_coding"],
+        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weights.csv",
+        gtf=GENCODE_V47_GTF_LOCAL
+    output:
+        MULTI_HIT_CSV
+    shell:
+        "python3 scripts/list_multi_hit_genes.py {input.hits} {input.gct} {input.weights} {input.gtf} {output}"
+
 rule compute_gene_tx_uberon_mantel:
     input:
         gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
