@@ -11,7 +11,9 @@ scipy.optimize.differential_evolution (derivative-free, global; see
 optimize_cluster_weight_params.py for the same reasoning in the 2-D case) instead. One
 run = one chain (SEED); run many chains in parallel (see the free_weights_chain snakemake
 rule, wildcard-parallelized) and keep the best, since DE is not guaranteed to find the
-same optimum from every random start.
+same optimum from every random start. The first chain (SEED == 0) additionally seeds its
+initial population with the "naive best guess" w_i = 1 / (# tissues in tissue i's cluster)
+(needs CLUSTERS_CSV, i.e. cluster mode).
 
 MODE selects the optimization variable:
   tissue  -- "free_weights": one free DE parameter per tissue (68-dim for GTEx).
@@ -104,9 +106,15 @@ def log_generation(xk, convergence):
 
 
 bounds = [(0.01, 1.0)] * n_dims
+x0 = None
+if SEED == 0 and MODE == "cluster":
+    cluster_sizes = np.bincount(cluster_of_tissue, minlength=n_dims)
+    x0 = np.clip(1.0 / cluster_sizes, *bounds[0])
+    print(f"seed 0: init population includes naive guess 1/cluster_size (min={x0.min():.4f} max={x0.max():.4f})",
+          file=sys.stderr)
 result = differential_evolution(neg_spearman, bounds=bounds, seed=SEED, maxiter=MAXITER,
                                  popsize=POPSIZE, tol=1e-8, polish=False, disp=False,
-                                 callback=log_generation)
+                                 callback=log_generation, x0=x0)
 
 pd.DataFrame(log_rows).to_csv(OUT_LOG_CSV, index=False)
 
