@@ -1,3 +1,4 @@
+import re
 import sys
 sys.path.insert(0, "scripts")
 import pandas as pd
@@ -55,9 +56,10 @@ wildcard_constraints:
 #       "_max", always explicit (no bare/unsuffixed default -- mean and max
 #       are on equal footing)
 #   gene filter -- fixed to protein_coding (the whole point of this section)
-#   weighting method (free_weights | free_cluster_weights | diag_reg_inv_corr |
-#       margin) -- free_weights/free_cluster_weights share one optimize/combine
-#       script (scripts/optimize_free_weights.py, MODE=tissue|cluster);
+#   weighting method (free_cluster_weights | diag_reg_inv_corr | margin) --
+#       free_cluster_weights: scripts/optimize_free_weights.py; the {fcw} wildcard
+#       free_cluster_weights_dist<T> cuts the tissue linkage at distance T (T=0: one
+#       weight per tissue);
 #       diag_reg_inv_corr ("diagonal-regularized inverse correlation") is
 #       closed-form (compute_weighted_tau.py) from the tissue x tissue
 #       correlation matrix; margin (compute_margin_weighted_tau.py) is
@@ -223,6 +225,29 @@ def n_free_cluster(source):
     return SOURCES[source]["n_free_cluster"] if source in SOURCES else N_FREE_CLUSTER_GTEX_V11_TX
 
 
+# fcw ("free_cluster_weights" wildcard): "free_cluster_weights" = parameters shared within the
+# CLUSTERS_CSV (hierclust0.1) clusters; "free_cluster_weights_dist<T>" = parameters shared within
+# clusters from cutting the tissue linkage at distance T (fcluster), e.g. _dist0 = one weight
+# per tissue. The reference tau (leg) is independent of this choice.
+def fcw_dist(fcw):
+    m = re.search(r"_dist([0-9.]+)$", fcw)
+    return float(m[1]) if m else None
+
+
+def fcw_clusters_input(source, fcw):
+    return CLUSTERS_CSV[source] if fcw_dist(fcw) is None else []
+
+
+def fcw_linkage_input(source, fcw):
+    return [] if fcw_dist(fcw) is None else f"{GENE_SPEC}/{source}/tissue_correlation_linkage.csv"
+
+
+def fcw_n_chains(source, fcw):
+    if fcw_dist(fcw) is None or source not in SOURCES:
+        return n_free_cluster(source)
+    return SOURCES[source]["n_free"]  # per-tissue fit has many more dims
+
+
 def leg_members(source, leg):
     if source not in SOURCES:  # tx sources: only the onebrain leg is a tissue group (GTEx tissue panel)
         return [t for t in TISSUES if t.split("_")[0] == "Brain"]
@@ -234,7 +259,7 @@ def leg_members(source, leg):
 
 LEGS_RE = r"onebrain|oneislets|hierclust0\.1"
 AGGS = ["mean", "max"]
-# rule all currently targets only free_cluster_weights at max-agg (free_weights and mean-agg temporarily off)
+# rule all currently targets only free_cluster_weights at max-agg (mean-agg temporarily off)
 ACTIVE_AGGS = ["max"]
 ACTIVE_METHODS = ("free_cluster_weights",)
 AGG_SUFFIX_RE = r"_mean|_max"
@@ -243,7 +268,8 @@ wildcard_constraints:
     source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
-    method = r"free_weights|free_cluster_weights"
+    fcw = r"free_cluster_weights(?:_dist[0-9.]+)?",
+    method = r"free_cluster_weights"
 
 # figure-path convention is uniform across source/method/agg (no more legacy
 # flat-dir special case -- mean and max nest under {method}{agg_suffix}/figures/
@@ -289,12 +315,12 @@ rule all:
         all_free_weights_targets("weights"),
         all_free_weights_targets("chains_summary"),
         # weights bar plots, all combos (mean and max on equal footing)
-        [figures_dir(source, method, f"_{agg}") + f"/tissue_weight_free{'_cluster' if method == 'free_cluster_weights' else ''}_{leg}.png"
+        [figures_dir(source, method, f"_{agg}") + f"/tissue_weight_free_cluster_{leg}.png"
          for source, cfg in SOURCES.items() for method in ACTIVE_METHODS
          for leg in cfg["legs"] for agg in ACTIVE_AGGS],
         # tau-vs-reference comparison plots, all combos
         [figures_dir("gtex_protein_coding", method, f"_{agg}") +
-         (f"/tau_free_vs_full_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_vs_full_{leg}.png")
+         f"/tau_free_cluster_vs_full_{leg}.png"
          for method in ACTIVE_METHODS
          for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
         [figures_dir(source, "free_cluster_weights", "_max") + f"/tau_free_cluster_vs_full_{leg}.png"
@@ -302,7 +328,7 @@ rule all:
                              ("gtex_v11_tx_protein_coding", "hierclust0.1"), ("gtex_v11_tx_protein_coding", "onebrain"),
                              ("chess_tx_protein_coding", "hierclust0.1"), ("chess_tx_protein_coding", "onebrain")]],
         [figures_dir("baron_protein_coding", method, f"_{agg}") +
-         (f"/tau_scenarios_scatter_{leg}.png" if method == "free_weights" else f"/tau_free_cluster_scenarios_scatter_{leg}.png")
+         f"/tau_free_cluster_scenarios_scatter_{leg}.png"
          for method in ACTIVE_METHODS
          for leg in SOURCES["baron_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
         # genes crossing tau 0.5/0.8 thresholds, headline free_cluster_weights_max leg per source
@@ -928,63 +954,39 @@ rule compute_weighted_tau_leg:
 # {method} wildcard) since free_cluster_weights has one extra input (clusters)
 # and one extra output (cluster_weights.csv) that free_weights doesn't. ----
 
-rule optimize_free_weights_chain:
-    input:
-        full_gct=lambda wc: base_gct(wc.source),
-        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix)
-    output:
-        weights=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/weights.csv",
-        tau=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/weighted_tau.csv",
-        log=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/optimization_log.csv",
-        best=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/best.csv"
-    shell:
-        "python3 scripts/optimize_free_weights.py tissue {input.full_gct} {input.ref_tau} - "
-        "{output.weights} - {output.tau} {output.log} {output.best} {wildcards.chain}"
-
 rule optimize_free_cluster_weights_chain:
     input:
         full_gct=lambda wc: base_gct(wc.source),
         ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix),
-        clusters=lambda wc: CLUSTERS_CSV[wc.source]
+        clusters=lambda wc: fcw_clusters_input(wc.source, wc.fcw),
+        linkage=lambda wc: fcw_linkage_input(wc.source, wc.fcw)
     output:
-        weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/weights.csv",
-        cluster_weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/cluster_weights.csv",
-        tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/weighted_tau.csv",
-        log=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/optimization_log.csv",
-        best=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/best.csv"
-    shell:
-        "python3 scripts/optimize_free_weights.py cluster {input.full_gct} {input.ref_tau} {input.clusters} "
-        "{output.weights} {output.cluster_weights} {output.tau} {output.log} {output.best} {wildcards.chain}"
-
-rule combine_free_weights_chains:
-    input:
-        lambda wc: expand(f"{GENE_SPEC}/{wc.source}/free_weights{wc.agg_suffix}/{wc.leg}/chains/chain_{{chain}}/best.csv",
-                           chain=range(SOURCES[wc.source]["n_free"]))
-    output:
-        weights=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/weights.csv",
-        tau=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        summary=f"{GENE_SPEC}/{{source}}/free_weights{{agg_suffix}}/{{leg}}/chains_summary.csv"
+        weights=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/weights.csv",
+        cluster_weights=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/cluster_weights.csv",
+        tau=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/weighted_tau.csv",
+        log=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/optimization_log.csv",
+        best=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/best.csv"
     params:
-        chains_dir=lambda wc: f"{GENE_SPEC}/{wc.source}/free_weights{wc.agg_suffix}/{wc.leg}/chains",
-        n=lambda wc: SOURCES[wc.source]["n_free"]
+        clusters_arg=lambda wc, input: input.clusters if fcw_dist(wc.fcw) is None else "-",
+        dist_args=lambda wc, input: "" if fcw_dist(wc.fcw) is None else f"{fcw_dist(wc.fcw)} {input.linkage}"
     shell:
-        "python3 scripts/combine_free_weights_chains.py tissue {params.chains_dir} {params.n} "
-        "{output.weights} - {output.tau} {output.summary}"
+        "python3 scripts/optimize_free_weights.py {input.full_gct} {input.ref_tau} {params.clusters_arg} "
+        "{output.weights} {output.cluster_weights} {output.tau} {output.log} {output.best} {wildcards.chain} {params.dist_args}"
 
 rule combine_free_cluster_weights_chains:
     input:
-        lambda wc: expand(f"{GENE_SPEC}/{wc.source}/free_cluster_weights{wc.agg_suffix}/{wc.leg}/chains/chain_{{chain}}/best.csv",
-                           chain=range(n_free_cluster(wc.source)))
+        lambda wc: expand(f"{GENE_SPEC}/{wc.source}/{wc.fcw}{wc.agg_suffix}/{wc.leg}/chains/chain_{{chain}}/best.csv",
+                           chain=range(fcw_n_chains(wc.source, wc.fcw)))
     output:
-        weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/weights.csv",
-        cluster_weights=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/cluster_weights.csv",
-        tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        summary=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/chains_summary.csv"
+        weights=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/weights.csv",
+        cluster_weights=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/cluster_weights.csv",
+        tau=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        summary=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains_summary.csv"
     params:
-        chains_dir=lambda wc: f"{GENE_SPEC}/{wc.source}/free_cluster_weights{wc.agg_suffix}/{wc.leg}/chains",
-        n=lambda wc: n_free_cluster(wc.source)
+        chains_dir=lambda wc: f"{GENE_SPEC}/{wc.source}/{wc.fcw}{wc.agg_suffix}/{wc.leg}/chains",
+        n=lambda wc: fcw_n_chains(wc.source, wc.fcw)
     shell:
-        "python3 scripts/combine_free_weights_chains.py cluster {params.chains_dir} {params.n} "
+        "python3 scripts/combine_free_weights_chains.py {params.chains_dir} {params.n} "
         "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
 
 # ---- plotting: weights bar chart (source-generic script, one rule -- mean and
@@ -992,12 +994,10 @@ rule combine_free_cluster_weights_chains:
 
 rule plot_free_weights_clean:
     input:
-        weights=lambda wc: f"{GENE_SPEC}/{wc.source}/free{wc.cluster_tag}_weights{wc.agg_suffix}/{wc.leg}/weights.csv",
+        weights=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/weights.csv",
         clusters=lambda wc: CLUSTERS_CSV[wc.source]
     output:
-        f"{GENE_SPEC}/{{source}}/free{{cluster_tag}}_weights{{agg_suffix}}/figures/tissue_weight_free{{cluster_tag}}_{{leg}}.png"
-    wildcard_constraints:
-        cluster_tag=r"|_cluster"
+        f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/figures/tissue_weight_free_cluster_{{leg}}.png"
     shell:
         "python3 scripts/plot_free_weights.py {input.weights} {input.clusters} {output}"
 
@@ -1006,44 +1006,25 @@ rule plot_free_weights_clean:
 # tau_unweighted on both sides; plot_tau_scenarios_scatter.py doesn't) -- kept
 # as separate small rules per source, each still wildcarded over leg/agg. ----
 
-rule plot_tau_free_vs_full_gtex:
-    input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
-        free_tau=f"{GENE_SPEC_GTEX_PC}/free_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", wc.leg, wc.agg_suffix)
-    output:
-        f"{GENE_SPEC_GTEX_PC}/free_weights{{agg_suffix}}/figures/tau_free_vs_full_{{leg}}.png"
-    shell:
-        "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
-
 rule plot_tau_free_cluster_vs_full:
     input:
         gct=lambda wc: base_gct(wc.source),
-        free_tau=f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        free_tau=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/weighted_tau.csv",
         ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix),
         ref_gct=lambda wc: leg_gct_path(wc.source, wc.leg, wc.agg_suffix)
     output:
-        f"{GENE_SPEC}/{{source}}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
+        f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
     wildcard_constraints:
         source=r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy"
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg} {input.ref_gct}"
 
-rule plot_tau_scenarios_baron:
-    input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/free_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, wc.agg_suffix)
-    output:
-        f"{GENE_SPEC_BARON_PC}/free_weights{{agg_suffix}}/figures/tau_scenarios_scatter_{{leg}}.png"
-    shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
-
 rule plot_tau_free_cluster_scenarios_baron:
     input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/free_cluster_weights{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        free_tau=f"{GENE_SPEC_BARON_PC}/{{fcw}}{{agg_suffix}}/{{leg}}/weighted_tau.csv",
         ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, wc.agg_suffix)
     output:
-        f"{GENE_SPEC_BARON_PC}/free_cluster_weights{{agg_suffix}}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
+        f"{GENE_SPEC_BARON_PC}/{{fcw}}{{agg_suffix}}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
