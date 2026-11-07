@@ -49,7 +49,7 @@ wildcard_constraints:
 #
 # Five decision axes, coordinated through wildcards instead of copy-pasted
 # rule blocks:
-#   source (gtex_protein_coding | baron_protein_coding) -- SOURCES registry
+#   source (gtex_protein_coding_redundantTissues | baron_protein_coding) -- SOURCES registry
 #   resolution/"leg" (onebrain|oneislets | hierclust0.1) -- per-source, see
 #       SOURCES[source]["legs"]
 #   combination method (mean | max) -- {agg_suffix} wildcard, "_mean" or
@@ -68,11 +68,11 @@ wildcard_constraints:
 #       agg/leg-independent (no leg/agg-specific weight fit needed).
 # ============================================================================
 
-GENE_SPEC_GTEX_PC = f"{GENE_SPEC}/gtex_protein_coding"
+GENE_SPEC_GTEX_PC = f"{GENE_SPEC}/gtex_protein_coding_redundantTissues"
 GENE_SPEC_BARON_PC = f"{GENE_SPEC}/baron_protein_coding"
 
 SOURCES = {
-    "gtex_protein_coding": dict(
+    "gtex_protein_coding_redundantTissues": dict(
         legs={"onebrain": ("prefix", "Brain"), "hierclust0.1": ("cluster", None)},
         n_free=60, n_free_cluster=20, display="GTEx (protein-coding)",
     ),
@@ -81,48 +81,48 @@ SOURCES = {
         n_free=10, n_free_cluster=10, display="Baron pancreas (protein-coding)",
     ),
 }
-STUB = {"gtex_protein_coding": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
+STUB = {"gtex_protein_coding_redundantTissues": "gene_median_tpm", "baron_protein_coding": "celltype_tpm",
         "gtex_v11_tx": "transcript_median_tpm", "gtex_v11_tx_gene": "gene_median_tpm",
-        "gtex_v11_tx_protein_coding": "transcript_median_tpm",
+        "gtex_v11_tx_protein_coding_redundantTissues": "transcript_median_tpm",
         "chess_tx_protein_coding": "transcript_median_tpm",
-        "gtex_v11_tx_protein_coding_noRedundancy": "transcript_median_tpm",
-        "gtex_protein_coding_noRedundancy": "gene_median_tpm"}
-# noRedundancy sources: parent source's GCT subset to the 54 non-redundant GTEx tissues
+        "gtex_v11_tx_protein_coding": "transcript_median_tpm",
+        "gtex_protein_coding": "gene_median_tpm"}
+# 54-tissue (non-redundant) sources: parent source's GCT subset to the 54 non-redundant GTEx tissues
 NO_REDUNDANCY_TISSUES = "tissue_lists/no_redundancy_54.txt"
-NO_REDUNDANCY_PARENT = {"gtex_v11_tx_protein_coding_noRedundancy": "gtex_v11_tx_protein_coding",
-                        "gtex_protein_coding_noRedundancy": "gtex_protein_coding"}
+NO_REDUNDANCY_PARENT = {"gtex_v11_tx_protein_coding": "gtex_v11_tx_protein_coding_redundantTissues",
+                        "gtex_protein_coding": "gtex_protein_coding_redundantTissues"}
 NO_REDUNDANCY_RE = "|".join(NO_REDUNDANCY_PARENT)
-RAW_GCT = {"gtex_protein_coding": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
+RAW_GCT = {"gtex_protein_coding_redundantTissues": GCT, "baron_protein_coding": f"{GENE_SPEC_BARON}/celltype_tpm.gct.gz"}
 # legacy paths (predate this wildcard scheme, kept as literals rather than migrated --
 # no data movement, see streamline-snakefile.md plan): GTEx nests clusters under a
 # "full/" subdir, Baron doesn't.
 CLUSTERS_CSV = {
-    "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/tissue_clusters.csv",
+    "gtex_protein_coding_redundantTissues": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/tissue_clusters.csv",
     "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/tissue_clusters_hierclust0.1.csv",
-    "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
+    "gtex_v11_tx_protein_coding_redundantTissues": f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/cluster_weights/tissue_clusters_hierclust0.1.csv",
     "chess_tx_protein_coding": f"{GENE_SPEC}/chess_tx_protein_coding/cluster_weights/tissue_clusters_hierclust0.1.csv",
     **{k: f"{GENE_SPEC}/{k}/cluster_weights/tissue_clusters_hierclust0.1.csv" for k in NO_REDUNDANCY_PARENT},
 }
 CLUSTERS_TAU_CSV = {
-    "gtex_protein_coding": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
+    "gtex_protein_coding_redundantTissues": f"{GENE_SPEC_GTEX_PC}/cluster_weights/full/weighted_tau.csv",
     "baron_protein_coding": f"{GENE_SPEC_BARON_PC}/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx": f"{GENE_SPEC}/gtex_v11_tx/cluster_weights/weighted_tau_hierclust0.1.csv",
     "gtex_v11_tx_gene": f"{GENE_SPEC}/gtex_v11_tx_gene/cluster_weights/weighted_tau_hierclust0.1.csv",
-    "gtex_v11_tx_protein_coding": f"{GENE_SPEC}/gtex_v11_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
+    "gtex_v11_tx_protein_coding_redundantTissues": f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/cluster_weights/weighted_tau_hierclust0.1.csv",
     "chess_tx_protein_coding": f"{GENE_SPEC}/chess_tx_protein_coding/cluster_weights/weighted_tau_hierclust0.1.csv",
     **{k: f"{GENE_SPEC}/{k}/cluster_weights/weighted_tau_hierclust0.1.csv" for k in NO_REDUNDANCY_PARENT},
 }
 TAU_PLOT_TITLE = {
-    "gtex_protein_coding": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
+    "gtex_protein_coding_redundantTissues": "log10 TPM, TPM<1->0, GTEx tissues (protein-coding)",
     "baron_protein_coding": "log10 TPM, TPM<1->0, Baron pancreas cell types (protein-coding)",
     "gtex_v11_tx": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding)",
-    "gtex_v11_tx_protein_coding": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding, strict transcript biotype)",
+    "gtex_v11_tx_protein_coding_redundantTissues": "log10 TPM, TPM<1->0, GTEx v11 transcripts (protein-coding, strict transcript biotype)",
     "chess_tx_protein_coding": "log10 TPM, TPM<1->0, CHESS 3.1.3 transcripts (protein-coding, gene-level biotype)",
 }
 # headline free_cluster_weights_max leg per source, for the crossing_thresholds gene lists
-CROSSING_THRESHOLD_LEG = {"gtex_protein_coding": "onebrain", "baron_protein_coding": "oneislets"}
+CROSSING_THRESHOLD_LEG = {"gtex_protein_coding_redundantTissues": "onebrain", "baron_protein_coding": "oneislets"}
 NOISE_SIGMA = 0.5
 NOISE_N_REPLICATES = 200
 NOISE_SEED = 0
@@ -148,18 +148,18 @@ GTEX_V11_SAMPLE_ATTRS_URL = "https://storage.googleapis.com/adult-gtex/annotatio
 GTEX_V11_SAMPLE_ATTRS_RAW = f"{DATA}/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt"
 GTEX_V11_TX_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX}/transcript_median_tpm_protein_coding.gct.gz"
 
-# ---- gtex_v11_tx_protein_coding: gtex_v11_tx further filtered to transcripts whose
+# ---- gtex_v11_tx_protein_coding_redundantTissues: gtex_v11_tx further filtered to transcripts whose
 # OWN GENCODE v47 transcript_type=="protein_coding" (stricter than gtex_v11_tx's
 # gene-level protein_coding filter, which still admits e.g. NMD/retained-intron
 # isoforms of a coding gene). ----
 
-GENE_SPEC_GTEX_V11_TX_PC = f"{GENE_SPEC}/gtex_v11_tx_protein_coding"
+GENE_SPEC_GTEX_V11_TX_PC = f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues"
 GTEX_V11_TX_PC_BASE_GCT = f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_median_tpm_protein_coding.gct.gz"
 
 # ---- chess_tx_protein_coding: CHESS 3.1.3 transcript-level median TPM, GTEx
 # body-site panel (55 tissues -- different panel from gtex_v11_tx's 68). Gene-level
 # protein_coding filter only (CHESS has no per-transcript biotype attr, so no
-# stricter tx-biotype filter is possible here, unlike gtex_v11_tx_protein_coding).
+# stricter tx-biotype filter is possible here, unlike gtex_v11_tx_protein_coding_redundantTissues).
 # Raw source has no per-donor values (only per-tissue summary stats: min/25/50/75/
 # max/count), so the bootstrap step uses quantile-interpolation resampling instead
 # of real donor resampling -- see bootstrap_chess_tx_protein_coding.py. ----
@@ -168,18 +168,18 @@ GENE_SPEC_CHESS_TX_PC = f"{GENE_SPEC}/chess_tx_protein_coding"
 CHESS_TX_META_FULL_CSV = f"{GENE_SPEC}/chess_tx_meta_full.csv"
 CHESS_TX_PC_BASE_GCT = f"{GENE_SPEC_CHESS_TX_PC}/transcript_median_tpm_protein_coding.gct.gz"
 
-TXS_SOURCES_RE = r"gtex_v11_tx|gtex_v11_tx_protein_coding|chess_tx_protein_coding"
-TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT, "gtex_v11_tx_protein_coding": GTEX_V11_TX_PC_BASE_GCT,
+TXS_SOURCES_RE = r"gtex_v11_tx|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding"
+TXS_BASE_GCT = {"gtex_v11_tx": GTEX_V11_TX_BASE_GCT, "gtex_v11_tx_protein_coding_redundantTissues": GTEX_V11_TX_PC_BASE_GCT,
                 "chess_tx_protein_coding": CHESS_TX_PC_BASE_GCT}
 TXS_META_CSV = {
     "gtex_v11_tx": f"{GENE_SPEC_GTEX_V11_TX}/transcript_meta.csv",
-    "gtex_v11_tx_protein_coding": f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_meta.csv",
+    "gtex_v11_tx_protein_coding_redundantTissues": f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_meta.csv",
     "chess_tx_protein_coding": f"{GENE_SPEC_CHESS_TX_PC}/transcript_meta.csv",
 }
 
 # annotation GTF + TSS/length-fraction feature files, per tx_source (CHESS/GENCODE
 # differ in id space, so these can't be shared across sources like CLUSTER_CORR_BASIS)
-ANNOTATION_GTF = {"gtex_v11_tx_protein_coding": GENCODE_V47_GTF_LOCAL, "chess_tx_protein_coding": CHESS_GTF_LOCAL}
+ANNOTATION_GTF = {"gtex_v11_tx_protein_coding_redundantTissues": GENCODE_V47_GTF_LOCAL, "chess_tx_protein_coding": CHESS_GTF_LOCAL}
 
 # ---- gtex_v11_tx DE free_cluster_weights, tx and gene resolution, hierclust0.1 leg
 # only, max-agg only (per explicit choice -- see commit history). Gene-level GCT
@@ -196,20 +196,20 @@ ANNOTATION_GTF = {"gtex_v11_tx_protein_coding": GENCODE_V47_GTF_LOCAL, "chess_tx
 # noise-variance/free_weights targets via rule all's source=SOURCES expansions). ----
 
 GTEX_V11_TX_GENE_BASE_GCT = base_gct("gtex_v11_tx_gene")
-GTEX_V11_TX_RES_RE = (r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding|"
-                      "gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy")
+GTEX_V11_TX_RES_RE = (r"gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|"
+                      "gtex_v11_tx_protein_coding|gtex_protein_coding")
 N_FREE_CLUSTER_GTEX_V11_TX = 20
 # which dir's own tissue_correlation.csv/linkage.csv each DE "res" clusters against --
 # gtex_v11_tx_gene reuses the tx-level basis (same tissue-tissue relationship, see
-# comment above); gtex_v11_tx_protein_coding/chess_tx_protein_coding each get their
+# comment above); gtex_v11_tx_protein_coding_redundantTissues/chess_tx_protein_coding each get their
 # own (different transcript set/tissue panel).
 CLUSTER_CORR_BASIS = {
     "gtex_v11_tx": "gtex_v11_tx",
     "gtex_v11_tx_gene": "gtex_v11_tx",
-    "gtex_v11_tx_protein_coding": "gtex_v11_tx_protein_coding",
+    "gtex_v11_tx_protein_coding_redundantTissues": "gtex_v11_tx_protein_coding_redundantTissues",
     "chess_tx_protein_coding": "chess_tx_protein_coding",
-    "gtex_v11_tx_protein_coding_noRedundancy": "gtex_v11_tx_protein_coding_noRedundancy",
-    "gtex_protein_coding_noRedundancy": "gtex_protein_coding_noRedundancy",
+    "gtex_v11_tx_protein_coding": "gtex_v11_tx_protein_coding",
+    "gtex_protein_coding": "gtex_protein_coding",
 }
 
 
@@ -265,7 +265,7 @@ ACTIVE_METHODS = ("free_cluster_weights",)
 AGG_SUFFIX_RE = r"_mean|_max"
 
 wildcard_constraints:
-    source = r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy",
+    source = r"gtex_protein_coding_redundantTissues|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|gtex_v11_tx_protein_coding|gtex_protein_coding",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
     fcw = r"free_cluster_weights(?:_dist[0-9.]+)?",
@@ -291,7 +291,7 @@ def all_free_weights_targets(kind):
             for agg in ACTIVE_AGGS]
 
 
-DEV_SCATTER_GCT = {"gtex_v11_tx_protein_coding_noRedundancy": base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
+DEV_SCATTER_GCT = {"gtex_v11_tx_protein_coding": base_gct("gtex_v11_tx_protein_coding"),
                    "chess_tx_protein_coding": CHESS_TX_PC_BASE_GCT}
 DEV_SCATTER_OUT = [f"{GENE_SPEC}/{s}/free_cluster_weights_max/figures/tau_deviation_vs_tpm_isoform_fraction.png"
                    for s in DEV_SCATTER_GCT]
@@ -319,13 +319,13 @@ rule all:
          for source, cfg in SOURCES.items() for method in ACTIVE_METHODS
          for leg in cfg["legs"] for agg in ACTIVE_AGGS],
         # tau-vs-reference comparison plots, all combos
-        [figures_dir("gtex_protein_coding", method, f"_{agg}") +
+        [figures_dir("gtex_protein_coding_redundantTissues", method, f"_{agg}") +
          f"/tau_free_cluster_vs_full_{leg}.png"
          for method in ACTIVE_METHODS
-         for leg in SOURCES["gtex_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
+         for leg in SOURCES["gtex_protein_coding_redundantTissues"]["legs"] for agg in ACTIVE_AGGS],
         [figures_dir(source, "free_cluster_weights", "_max") + f"/tau_free_cluster_vs_full_{leg}.png"
          for source, leg in [("baron_protein_coding", "oneislets"),
-                             ("gtex_v11_tx_protein_coding", "hierclust0.1"), ("gtex_v11_tx_protein_coding", "onebrain"),
+                             ("gtex_v11_tx_protein_coding_redundantTissues", "hierclust0.1"), ("gtex_v11_tx_protein_coding_redundantTissues", "onebrain"),
                              ("chess_tx_protein_coding", "hierclust0.1"), ("chess_tx_protein_coding", "onebrain")]],
         [figures_dir("baron_protein_coding", method, f"_{agg}") +
          f"/tau_free_cluster_scenarios_scatter_{leg}.png"
@@ -346,16 +346,16 @@ rule all:
         # tau vs frac_brain 2D histograms, GTEx onebrain-max free_cluster
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png",
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge0.4.png",
-        # gtex_v11_tx + gtex_v11_tx_protein_coding + chess_tx_protein_coding: transcript-level
+        # gtex_v11_tx + gtex_v11_tx_protein_coding_redundantTissues + chess_tx_protein_coding: transcript-level
         # tau + multi-transcript-gene variance
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/multitranscript_variance.png",
-               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding_redundantTissues", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_variance.png",
-               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding_redundantTissues", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/top_multitranscript_tau_kde.png",
-               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding_redundantTissues", "chess_tx_protein_coding"]),
         expand(f"{GENE_SPEC}/{{txs_source}}/figures/gene_vs_transcript_tau_scatter.png",
-               txs_source=["gtex_v11_tx_protein_coding", "chess_tx_protein_coding"]),
+               txs_source=["gtex_v11_tx_protein_coding_redundantTissues", "chess_tx_protein_coding"]),
         # gtex_v11_tx: tissue corr mat + tx-vs-gene winning-tissue distance
         # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/figures/tx_gene_winner_distance_hist.png",
         # gtex_v11_tx: tissue correlation matrix + its inverse (standard per-source pipeline)
@@ -371,16 +371,16 @@ rule all:
         # gtex_v11_tx: DE free_cluster_weights (hierclust0.1, max-agg), tx + gene resolution
         # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
         # (temporarily off) f"{GENE_SPEC}/gtex_v11_tx_gene/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        # gtex_v11_tx_protein_coding: DE free_cluster_weights (hierclust0.1, max-agg), tx only
-        f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
-        f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        # gtex_v11_tx_protein_coding: per-gene isoform information content (entropy + KL)
+        # gtex_v11_tx_protein_coding_redundantTissues: DE free_cluster_weights (hierclust0.1, max-agg), tx only
+        f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/free_cluster_weights_max/hierclust0.1/weighted_tau.csv",
+        f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        # gtex_v11_tx_protein_coding_redundantTissues: per-gene isoform information content (entropy + KL)
         f"{GENE_SPEC_GTEX_V11_TX_PC}/tx_info_content.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/effective_n_vs_weighted_kl.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_vs_tx_tau_weighted.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/weighted_kl_vs_tau.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_share_hist.png",
-        # gtex_v11_tx_protein_coding: donor-level multi-sample bootstrap (SE(tau), SE(TPM), P(tx_tau>gene_tau))
+        # gtex_v11_tx_protein_coding_redundantTissues: donor-level multi-sample bootstrap (SE(tau), SE(TPM), P(tx_tau>gene_tau))
         f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tpm_se.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/gene_tpm_se.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/bootstrap/tx_tau_summary.csv",
@@ -414,7 +414,7 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/multiple_specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/high_tau_isoform_pairs_wasserstein.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/gene_tau_vs_tx_wasserstein.png",
-        # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding,
+        # chess_tx_protein_coding: same tx-resolution pipeline as gtex_v11_tx_protein_coding_redundantTissues,
         # including the bootstrap (quantile-interpolation resampling, see
         # bootstrap_chess_tx_protein_coding.py)
         f"{GENE_SPEC}/chess_tx_tissue_stats.csv",
@@ -457,7 +457,7 @@ rule all:
         f"{GENE_SPEC_CHESS_TX_PC}/figures/specific_isoform_tissue_contribution.png",
         f"{GENE_SPEC_CHESS_TX_PC}/figures/tau_vs_tss_variance.png",
         f"{GENE_SPEC_CHESS_TX_PC}/multiple_specific_isoform_genes.csv",
-        # pearson/spearman x TPM<1/TPM<10 x gtex_v11_tx_protein_coding/chess_tx_protein_coding,
+        # pearson/spearman x TPM<1/TPM<10 x gtex_v11_tx_protein_coding_redundantTissues/chess_tx_protein_coding,
         # plus a UBERON-ontology-distance tree: 13-way dendrogram comparison
         f"{GENE_SPEC}/gtex_uberon_mapping.csv",
         f"{GENE_SPEC}/figures/gtex_uberon_dag.png",
@@ -473,15 +473,15 @@ rule all:
         # (off: spearman-clustered) f"{GENE_SPEC}/figures/uberon_mantel_agreement.png",
         # baron_protein_coding: per-cell UMAP + called clusters, by TPM floor choice
         f"{GENE_SPEC_BARON_PC}/figures/umap_tpm_floor_thresholds.png",
-        # gene-centric (gtex_protein_coding, baron_protein_coding) vs. tx-centric
-        # (gtex_v11_tx_protein_coding, chess_tx_protein_coding) dendrograms, TPM<10 floor, pearson only
+        # gene-centric (gtex_protein_coding_redundantTissues, baron_protein_coding) vs. tx-centric
+        # (gtex_v11_tx_protein_coding_redundantTissues, chess_tx_protein_coding) dendrograms, TPM<10 floor, pearson only
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv",
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_matrix.csv",
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_rf_matrix.csv",
         f"{GENE_SPEC}/gene_vs_tx_dendrograms_distance_long.csv",
         f"{GENE_SPEC}/figures/gene_vs_tx_dendrograms.png",
-        f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
-        # noRedundancy (54-tissue) sources: free_cluster_weights, onebrain, max-agg
+        f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor_redundantTissues.png",
+        # 54-tissue (non-redundant) sources: free_cluster_weights, onebrain, max-agg
         [f"{GENE_SPEC}/{src}/free_cluster_weights_max/figures/tau_free_cluster_vs_full_onebrain.png"
          for src in NO_REDUNDANCY_PARENT],
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_count_vs_filters.png",
@@ -697,12 +697,12 @@ rule plot_corr_and_inverse:
 
 rule compute_tau_cluster_weighted_full_gtex:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
+        gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         linkage=f"{GENE_SPEC_GTEX_PC}/tissue_correlation_linkage.csv",
         corr=f"{GENE_SPEC_GTEX_PC}/tissue_correlation.csv"
     output:
-        clusters=CLUSTERS_CSV["gtex_protein_coding"],
-        tau=CLUSTERS_TAU_CSV["gtex_protein_coding"]
+        clusters=CLUSTERS_CSV["gtex_protein_coding_redundantTissues"],
+        tau=CLUSTERS_TAU_CSV["gtex_protein_coding_redundantTissues"]
     shell:
         "python3 scripts/compute_tau_cluster_weighted.py {input.gct} {input.linkage} {input.corr} {output.clusters} {output.tau}"
 
@@ -848,10 +848,10 @@ rule plot_dendrogram_scenarios:
 rule compute_uberon_mantel:
     input:
         uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv",
-        gtex_corr=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation.csv",
-        gtex_linkage=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation_linkage.csv",
-        gtex_tx_corr=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/tissue_correlation.csv",
-        gtex_tx_linkage=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/tissue_correlation_linkage.csv",
+        gtex_corr=f"{GENE_SPEC}/gtex_protein_coding_redundantTissues/tissue_correlation.csv",
+        gtex_linkage=f"{GENE_SPEC}/gtex_protein_coding_redundantTissues/tissue_correlation_linkage.csv",
+        gtex_tx_corr=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/tissue_correlation.csv",
+        gtex_tx_linkage=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/tissue_correlation_linkage.csv",
         chess_tx_corr=f"{GENE_SPEC}/chess_tx_protein_coding/tissue_correlation.csv",
         chess_tx_linkage=f"{GENE_SPEC}/chess_tx_protein_coding/tissue_correlation_linkage.csv"
     output:
@@ -859,8 +859,8 @@ rule compute_uberon_mantel:
         vectors=f"{GENE_SPEC}/uberon_mantel_results_vectors.pkl"
     shell:
         "python3 scripts/compute_uberon_mantel.py {input.uberon_distance} {output.results} "
-        "gtex_protein_coding:{input.gtex_corr}:{input.gtex_linkage} "
-        "gtex_v11_tx_protein_coding:{input.gtex_tx_corr}:{input.gtex_tx_linkage} "
+        "gtex_protein_coding_redundantTissues:{input.gtex_corr}:{input.gtex_linkage} "
+        "gtex_v11_tx_protein_coding_redundantTissues:{input.gtex_tx_corr}:{input.gtex_tx_linkage} "
         "chess_tx_protein_coding:{input.chess_tx_corr}:{input.chess_tx_linkage}"
 
 rule plot_uberon_mantel:
@@ -874,7 +874,7 @@ rule plot_uberon_mantel:
 
 rule compare_gene_vs_tx_dendrograms:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
         chess_tx_gct=CHESS_TX_PC_BASE_GCT
     output:
@@ -903,7 +903,7 @@ rule plot_gene_vs_tx_dendrograms:
 
 rule plot_gene_vs_tx_bars:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
         chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv"
@@ -1014,7 +1014,7 @@ rule plot_tau_free_cluster_vs_full:
     output:
         f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/figures/tau_free_cluster_vs_full_{{leg}}.png"
     wildcard_constraints:
-        source=r"gtex_protein_coding|baron_protein_coding|gtex_v11_tx_protein_coding|chess_tx_protein_coding|gtex_v11_tx_protein_coding_noRedundancy|gtex_protein_coding_noRedundancy"
+        source=r"gtex_protein_coding_redundantTissues|baron_protein_coding|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|gtex_v11_tx_protein_coding|gtex_protein_coding"
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg} {input.ref_gct}"
 
@@ -1036,7 +1036,7 @@ rule list_crossing_threshold_genes:
     params:
         out_dir=f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/crossing_thresholds"
     wildcard_constraints:
-        source=r"gtex_protein_coding|baron_protein_coding",
+        source=r"gtex_protein_coding_redundantTissues|baron_protein_coding",
         leg=r"onebrain|oneislets"
     shell:
         "python3 scripts/list_crossing_threshold_genes.py {input} {params.out_dir} {wildcards.leg}"
@@ -1163,7 +1163,7 @@ rule extract_transcript_tss:
 
 rule list_neural_threshold_crossing_genes:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
+        gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv",
         name_map=f"{GENE_SPEC}/gencode_v47_gene_id_name_map.csv"
     output:
@@ -1174,7 +1174,7 @@ rule list_neural_threshold_crossing_genes:
 
 rule plot_tau_vs_frac_brain_hist2d:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
+        gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv"
     output:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain.png"
@@ -1183,7 +1183,7 @@ rule plot_tau_vs_frac_brain_hist2d:
 
 rule plot_tau_vs_frac_brain_hist2d_minfrac:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding"),
+        gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         tau=f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/onebrain/weighted_tau.csv"
     output:
         f"{GENE_SPEC_GTEX_PC}/free_cluster_weights_max/figures/tau_vs_frac_brain_hist2d_onebrain_fracbrain_ge{{min_frac}}.png"
@@ -1253,7 +1253,7 @@ rule build_gtex_v11_tx_pc_meta:
         gct=GTEX_V11_TX_PC_BASE_GCT,
         name_map=f"{GENE_SPEC}/gencode_v47_gene_id_name_map.csv"
     output:
-        TXS_META_CSV["gtex_v11_tx_protein_coding"]
+        TXS_META_CSV["gtex_v11_tx_protein_coding_redundantTissues"]
     shell:
         "python3 scripts/build_gtex_v11_tx_meta.py {input.gct} {input.name_map} {output}"
 
@@ -1291,15 +1291,15 @@ rule build_chess_tx_meta:
     shell:
         "python3 scripts/build_chess_tx_meta.py {input.gct} {input.full_meta} {output}"
 
-# ---- rules below genericized over {source} (gtex_v11_tx_protein_coding |
+# ---- rules below genericized over {source} (gtex_v11_tx_protein_coding_redundantTissues |
 # chess_tx_protein_coding) -- shared global `source` wildcard_constraints at top
 # of file. Bootstrap-dependent rules (plot_isoform_fraction_vs_tau,
 # plot_gene_tau_by_all_tx_sig, find_specific_isoform_genes,
 # plot_specific_isoform_tissue_contribution, find_multiple_specific_isoform_genes,
 # plot_tau_vs_tss_variance) are ALSO genericized -- each source's own
-# bootstrap_{gtex_v11_tx_protein_coding,chess_tx_protein_coding} rule (further
+# bootstrap_{gtex_v11_tx_protein_coding_redundantTissues,chess_tx_protein_coding} rule (further
 # below) writes to the same generic {source}/bootstrap/ path shape, real donor
-# resampling for gtex_v11_tx_protein_coding vs. quantile-interpolation
+# resampling for gtex_v11_tx_protein_coding_redundantTissues vs. quantile-interpolation
 # resampling for chess_tx_protein_coding (see bootstrap_chess_tx_protein_coding.py --
 # no per-donor data in the CHESS bodysite raw table, only per-cell summary stats). ----
 
@@ -1835,26 +1835,26 @@ rule filter_no_redundancy_tissues:
     shell:
         "python3 scripts/filter_gct_tissues.py {input.gct} {input.tissues} {output}"
 
-rule plot_mean_tissue_dist_vs_tpm_floor_no_redundancy:
+rule plot_mean_tissue_dist_vs_tpm_floor:
     input:
-        gene=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
-        tx=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy")
+        gene=lambda wc: base_gct("gtex_protein_coding"),
+        tx=lambda wc: base_gct("gtex_v11_tx_protein_coding")
     output:
-        png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor_noRedundancy.png",
-        csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor_noRedundancy.csv"
+        png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
+        csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor.csv"
     threads: 8
     shell:
         "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} 200 {threads} "
         "'gene:{input.gene}' 'tx:{input.tx}'"
 
-rule plot_mean_tissue_dist_vs_tpm_floor:
+rule plot_mean_tissue_dist_vs_tpm_floor_redundant_tissues:
     input:
-        gene=lambda wc: base_gct("gtex_protein_coding"),
+        gene=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         gtex_tx=GTEX_V11_TX_PC_BASE_GCT,
         chess_tx=CHESS_TX_PC_BASE_GCT
     output:
-        png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor.png",
-        csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor.csv"
+        png=f"{GENE_SPEC}/figures/mean_tissue_dist_vs_tpm_floor_redundantTissues.png",
+        csv=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor_redundantTissues.csv"
     threads: 8
     shell:
         "python3 scripts/plot_mean_tissue_dist_vs_tpm_floor.py {output.png} {output.csv} 200 {threads} "
@@ -1890,7 +1890,7 @@ rule plot_tx_count_vs_filters:
 
 rule poster_gene_vs_tx_bars:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_redundantTissues"),
         gtex_tx_gct=GTEX_V11_TX_PC_BASE_GCT,
         chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         cluster_counts=f"{GENE_SPEC}/gene_vs_tx_dendrograms_cluster_counts.csv"
@@ -1902,9 +1902,9 @@ rule poster_gene_vs_tx_bars:
 
 rule poster_tau_free_cluster_vs_full_onebrain:
     input:
-        gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
-        free_tau=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding_noRedundancy", "onebrain", "_max")
+        gct=lambda wc: base_gct("gtex_protein_coding"),
+        free_tau=f"{GENE_SPEC}/gtex_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max")
     output:
         f"{POSTER_FIGS}/tau_free_cluster_vs_full_onebrain.png"
     shell:
@@ -1913,10 +1913,10 @@ rule poster_tau_free_cluster_vs_full_onebrain:
 
 rule poster_tau_scenarios_scatter_threshold85_onebrain:
     input:
-        free_tau=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding_noRedundancy", "onebrain", "_max"),
-        full_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
-        ref_gct=lambda wc: leg_gct_path("gtex_protein_coding_noRedundancy", "onebrain", "_max")
+        free_tau=f"{GENE_SPEC}/gtex_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path("gtex_protein_coding", "onebrain", "_max"),
+        full_gct=lambda wc: base_gct("gtex_protein_coding"),
+        ref_gct=lambda wc: leg_gct_path("gtex_protein_coding", "onebrain", "_max")
     output:
         f"{POSTER_FIGS}/tau_free_cluster_scenarios_scatter_onebrain_thresholds.png"
     shell:
@@ -1937,9 +1937,9 @@ rule poster_tau_scenarios_scatter_threshold85_oneislets:
 
 rule poster_tpm_threshold_dist_and_retention:
     input:
-        gene_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
-        tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
-        dist=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor_noRedundancy.csv",
+        gene_gct=lambda wc: base_gct("gtex_protein_coding"),
+        tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding"),
+        dist=f"{GENE_SPEC}/mean_tissue_dist_vs_tpm_floor.csv",
         gtf=GENCODE_V47_GTF_LOCAL
     output:
         f"{POSTER_FIGS}/tpm_threshold_dist_and_retention.png"
@@ -1949,8 +1949,8 @@ rule poster_tpm_threshold_dist_and_retention:
 
 rule poster_cluster_weights_gtex:
     input:
-        weights=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/free_cluster_weights_max/hierclust0.1/cluster_weights.csv",
-        colors=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
+        weights=f"{GENE_SPEC}/gtex_protein_coding/free_cluster_weights_max/hierclust0.1/cluster_weights.csv",
+        colors=f"{GENE_SPEC}/gtex_protein_coding/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
     output:
         f"{POSTER_FIGS}/gtex_cluster_weights.png"
     shell:
@@ -1958,19 +1958,19 @@ rule poster_cluster_weights_gtex:
 
 rule poster_tissue_clusters_dendrogram_gtex:
     input:
-        linkage=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/tissue_correlation_linkage.csv",
-        clusters=CLUSTERS_CSV["gtex_protein_coding_noRedundancy"]
+        linkage=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation_linkage.csv",
+        clusters=CLUSTERS_CSV["gtex_protein_coding"]
     output:
         png=f"{POSTER_FIGS}/tissue_clusters_dendrogram_hierclust0.1.png",
-        colors=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
+        colors=f"{GENE_SPEC}/gtex_protein_coding/cluster_weights/dendrogram_cluster_colors_hierclust0.1.csv"
     shell:
         "python3 scripts/plot_tissue_clusters_dendrogram.py {input.linkage} {input.clusters} {output.png} "
         "'GTEx (protein-coding)' 0.1 0 0 1.5 600 0.3 0 0 0 0 {output.colors} 'Hierarchical clustering of 54 GTEx tissues by transcriptome'"
 
-rule poster_tissue_correlation_heatmap_noRedundancy:
+rule poster_tissue_correlation_heatmap_54:
     input:
-        corr=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/tissue_correlation.csv",
-        linkage=f"{GENE_SPEC}/gtex_protein_coding_noRedundancy/tissue_correlation_linkage.csv"
+        corr=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation.csv",
+        linkage=f"{GENE_SPEC}/gtex_protein_coding/tissue_correlation_linkage.csv"
     output:
         f"{POSTER_FIGS}/tissue_correlation_heatmap_54.png"
     shell:
@@ -1979,9 +1979,9 @@ rule poster_tissue_correlation_heatmap_noRedundancy:
 
 rule poster_tau_deviation_histogram:
     input:
-        gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
-        tx_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_noRedundancy/free_cluster_weights_max/onebrain/weights.csv"
+        gct=lambda wc: base_gct("gtex_v11_tx_protein_coding"),
+        tx_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weights.csv"
     output:
         f"{POSTER_FIGS}/tau_deviation_histogram.png"
     shell:
@@ -1995,19 +1995,19 @@ rule tau_deviation_vs_tpm_isoform_fraction:
     output:
         f"{GENE_SPEC}/{{source}}/free_cluster_weights_max/figures/tau_deviation_vs_tpm_isoform_fraction.png"
     wildcard_constraints:
-        source="gtex_v11_tx_protein_coding_noRedundancy|chess_tx_protein_coding"
+        source="gtex_v11_tx_protein_coding|chess_tx_protein_coding"
     shell:
         "python3 scripts/plot_tau_deviation_vs_tpm_isoform_fraction.py {output} "
         "{wildcards.source}:{input.gct}:{input.tx_tau}:{input.weights}"
 
-HIGH_DEV_CSV = f"{GENE_SPEC}/gtex_v11_tx_protein_coding/high_dev_isoforms_frac0.1_diff1.csv"
-MULTI_HIT_CSV = f"{GENE_SPEC}/gtex_v11_tx_protein_coding/high_dev_multi_hit_genes.csv"
+HIGH_DEV_CSV = f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/high_dev_isoforms_frac0.1_diff1.csv"
+MULTI_HIT_CSV = f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/high_dev_multi_hit_genes.csv"
 
 rule list_high_dev_isoforms:
     input:
-        gct=TXS_BASE_GCT["gtex_v11_tx_protein_coding"],
-        tx_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weighted_tau.csv",
-        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weights.csv"
+        gct=TXS_BASE_GCT["gtex_v11_tx_protein_coding_redundantTissues"],
+        tx_tau=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/free_cluster_weights_max/onebrain/weighted_tau.csv",
+        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/free_cluster_weights_max/onebrain/weights.csv"
     output:
         HIGH_DEV_CSV
     shell:
@@ -2016,8 +2016,8 @@ rule list_high_dev_isoforms:
 rule list_multi_hit_genes:
     input:
         hits=HIGH_DEV_CSV,
-        gct=TXS_BASE_GCT["gtex_v11_tx_protein_coding"],
-        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding/free_cluster_weights_max/onebrain/weights.csv",
+        gct=TXS_BASE_GCT["gtex_v11_tx_protein_coding_redundantTissues"],
+        weights=f"{GENE_SPEC}/gtex_v11_tx_protein_coding_redundantTissues/free_cluster_weights_max/onebrain/weights.csv",
         gtf=GENCODE_V47_GTF_LOCAL
     output:
         MULTI_HIT_CSV
@@ -2026,8 +2026,8 @@ rule list_multi_hit_genes:
 
 rule compute_gene_tx_uberon_mantel:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
-        gtex_tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding"),
         chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv"
     output:
@@ -2047,8 +2047,8 @@ rule poster_gene_tx_uberon_mantel:
 
 rule bootstrap_gene_tx_uberon_mantel:
     input:
-        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding_noRedundancy"),
-        gtex_tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding_noRedundancy"),
+        gtex_pc_gct=lambda wc: base_gct("gtex_protein_coding"),
+        gtex_tx_gct=lambda wc: base_gct("gtex_v11_tx_protein_coding"),
         chess_tx_gct=CHESS_TX_PC_BASE_GCT,
         uberon_distance=f"{GENE_SPEC}/uberon_tissue_distance.csv"
     output:
@@ -2056,7 +2056,7 @@ rule bootstrap_gene_tx_uberon_mantel:
     threads: 60
     shell:
         "python3 scripts/bootstrap_gene_tx_uberon_mantel.py {input.uberon_distance} {output} 200 {threads} "
-        "gene:gtex_protein_coding:{input.gtex_pc_gct} tx:gtex_v11_tx_protein_coding:{input.gtex_tx_gct} "
+        "gene:gtex_protein_coding_redundantTissues:{input.gtex_pc_gct} tx:gtex_v11_tx_protein_coding_redundantTissues:{input.gtex_tx_gct} "
         "chess:chess_tx_protein_coding:{input.chess_tx_gct}"
 
 rule poster_gene_tx_uberon_mantel_no_chess:

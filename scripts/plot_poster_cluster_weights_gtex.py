@@ -1,5 +1,5 @@
 """Poster fig: bar chart of each tissue cluster's weight under
-free_cluster_weights_max/hierclust0.1 for gtex_protein_coding_noRedundancy (cluster_weights.csv
+free_cluster_weights_max/hierclust0.1 for gtex_protein_coding (cluster_weights.csv
 -- one weight per cluster_id, shared by every gene, fit by the free_cluster DE
 optimization). Clusters are hardcoded-named by their member tissues (from
 cluster_weights/tissue_clusters_hierclust0.1.csv) for poster brevity -- e.g. cluster 5
