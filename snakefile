@@ -390,7 +390,6 @@ rule all:
         f"{GENE_SPEC_GTEX_V11_TX_PC}/specific_isoform_genes.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/specific_isoform_tissue_contribution.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tx_tau_by_gene_tau_decile.png",
-        f"{GENE_SPEC}/mxe_chr1_test.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/transcript_tss.csv",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/tau_vs_tss_variance.png",
         f"{GENE_SPEC_GTEX_V11_TX_PC}/figures/min_tx_tau_by_gene_tau_decile.png",
@@ -1597,14 +1596,6 @@ rule plot_gene_tau_vs_tx_wasserstein:
         f"{GENE_SPEC}/{{source}}/figures/gene_tau_vs_tx_wasserstein.png"
     shell:
         "python3 scripts/plot_gene_tau_vs_tx_wasserstein.py {input.tx_info_content} {input.wasserstein} {output}"
-
-rule find_mutually_exclusive_exons_chr1:
-    input:
-        GENCODE_V47_GTF_LOCAL
-    output:
-        f"{GENE_SPEC}/mxe_chr1_test.csv"
-    shell:
-        "python3 scripts/find_mutually_exclusive_exons.py {input} {output} chr1"
 
 rule plot_tau_vs_tss_variance:
     input:
