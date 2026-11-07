@@ -34,6 +34,8 @@ BARON_HUMAN_SAMPLES = [
     f"{BARON_DIR}/GSM2230760_human4_umifm_counts.csv.gz",
 ]
 GENE_SPEC_BARON = f"{GENE_SPEC}/baron"
+BARON_RAW_TAR = f"{BARON_DIR}/GSE84133_RAW.tar"
+BARON_RAW_URL = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE84133&format=file"
 BARON_ONEISLETS_MEMBERS = ["alpha", "beta", "gamma", "delta", "epsilon"]
 
 wildcard_constraints:
@@ -607,6 +609,22 @@ rule link_gencode_v47_gtf:
         GENCODE_V47_GTF_LOCAL
     shell:
         "ln -s {GENCODE_V47_GTF} {output}"
+
+rule download_baron_raw:
+    output:
+        BARON_RAW_TAR
+    shell:
+        "wget -O {output} '{BARON_RAW_URL}'"
+
+rule extract_baron_human_samples:
+    input:
+        BARON_RAW_TAR
+    output:
+        BARON_HUMAN_SAMPLES
+    params:
+        members=lambda w, output: " ".join(os.path.basename(f) for f in output)
+    shell:
+        "tar -xf {input} -C {BARON_DIR} {params.members}"
 
 rule build_baron_gene_lengths:
     input:
