@@ -1040,12 +1040,14 @@ rule plot_tau_free_cluster_vs_full:
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg} {input.ref_gct}"
 
-rule plot_tau_free_cluster_scenarios_baron:
+rule plot_tau_free_cluster_scenarios:
     input:
-        free_tau=f"{GENE_SPEC_BARON_PC}/{{fcw}}{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path("baron_protein_coding", wc.leg, wc.agg_suffix)
+        free_tau=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/weighted_tau.csv",
+        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix)
     output:
-        f"{GENE_SPEC_BARON_PC}/{{fcw}}{{agg_suffix}}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
+        f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
+    wildcard_constraints:
+        source=r"gtex_protein_coding_redundantTissues|baron_protein_coding|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|gtex_v11_tx_protein_coding|gtex_protein_coding"
     shell:
         "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
