@@ -331,10 +331,6 @@ rule all:
          for source, leg in [("baron_protein_coding", "oneislets"),
                              ("gtex_v11_tx_protein_coding_redundantTissues", "hierclust0.1"), ("gtex_v11_tx_protein_coding_redundantTissues", "onebrain"),
                              ("chess_tx_protein_coding", "hierclust0.1"), ("chess_tx_protein_coding", "onebrain")]],
-        [figures_dir("baron_protein_coding", method, f"_{agg}") +
-         f"/tau_free_cluster_scenarios_scatter_{leg}.png"
-         for method in ACTIVE_METHODS
-         for leg in SOURCES["baron_protein_coding"]["legs"] for agg in ACTIVE_AGGS],
         # genes crossing tau 0.5/0.8 thresholds, headline free_cluster_weights_max leg per source
         [f"{GENE_SPEC}/{source}/free_cluster_weights_max/crossing_thresholds/{leg}_{cat}.txt"
          for source, leg in CROSSING_THRESHOLD_LEG.items() for cat in CROSSING_CATEGORIES],
@@ -1039,17 +1035,6 @@ rule plot_tau_free_cluster_vs_full:
         source=r"gtex_protein_coding_redundantTissues|baron_protein_coding|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|gtex_v11_tx_protein_coding|gtex_protein_coding"
     shell:
         "python3 scripts/plot_tau_free_vs_full.py {input.gct} {input.free_tau} {input.ref_tau} {output} {wildcards.leg} {input.ref_gct}"
-
-rule plot_tau_free_cluster_scenarios:
-    input:
-        free_tau=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/weighted_tau.csv",
-        ref_tau=lambda wc: leg_tau_path(wc.source, wc.leg, wc.agg_suffix)
-    output:
-        f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/figures/tau_free_cluster_scenarios_scatter_{{leg}}.png"
-    wildcard_constraints:
-        source=r"gtex_protein_coding_redundantTissues|baron_protein_coding|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|gtex_v11_tx_protein_coding|gtex_protein_coding"
-    shell:
-        "python3 scripts/plot_tau_scenarios_scatter.py {input.free_tau} {input.ref_tau} {output} {wildcards.leg}"
 
 rule list_crossing_threshold_genes:
     input:
