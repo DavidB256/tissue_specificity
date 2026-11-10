@@ -12,14 +12,14 @@ OUT_WEIGHTS_CSV = sys.argv[3]
 OUT_CLUSTER_WEIGHTS_CSV = sys.argv[4]
 OUT_TAU_CSV = sys.argv[5]
 OUT_SUMMARY_CSV = sys.argv[6]
+METRIC = sys.argv[7] if len(sys.argv) > 7 else "best_rho"  # best.csv column to maximize
 
 rows = []
 for i in range(N_CHAINS):
     best = pd.read_csv(f"{CHAINS_DIR}/chain_{i}/best.csv").iloc[0]
-    rows.append({"chain": i, "seed": int(best["seed"]), "best_rho": best["best_rho"],
-                 "n_generations": int(best["n_generations"])})
+    rows.append({"chain": i, **best.to_dict()})
 
-summary = pd.DataFrame(rows).sort_values("best_rho", ascending=False)
+summary = pd.DataFrame(rows).sort_values(METRIC, ascending=False)
 summary.to_csv(OUT_SUMMARY_CSV, index=False)
 
 winner = int(summary.iloc[0]["chain"])
@@ -27,6 +27,6 @@ shutil.copy(f"{CHAINS_DIR}/chain_{winner}/weights.csv", OUT_WEIGHTS_CSV)
 shutil.copy(f"{CHAINS_DIR}/chain_{winner}/weighted_tau.csv", OUT_TAU_CSV)
 shutil.copy(f"{CHAINS_DIR}/chain_{winner}/cluster_weights.csv", OUT_CLUSTER_WEIGHTS_CSV)
 
-print(f"winner: chain={winner} rho={summary.iloc[0]['best_rho']:.6f} "
-      f"(range across {N_CHAINS} chains: {summary['best_rho'].min():.6f} - {summary['best_rho'].max():.6f})",
+print(f"winner: chain={winner} {METRIC}={summary.iloc[0][METRIC]:.6f} "
+      f"(range across {N_CHAINS} chains: {summary[METRIC].min():.6f} - {summary[METRIC].max():.6f})",
       file=sys.stderr)

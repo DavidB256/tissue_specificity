@@ -230,7 +230,9 @@ def n_free_cluster(source):
 # fcw ("free_cluster_weights" wildcard): "free_cluster_weights" = parameters shared within the
 # CLUSTERS_CSV (hierclust0.1) clusters; "free_cluster_weights_dist<T>" = parameters shared within
 # clusters from cutting the tissue linkage at distance T (fcluster), e.g. _dist0 = one weight
-# per tissue. The reference tau (leg) is independent of this choice.
+# per tissue. "_pearson" (free_cluster_weights_pearson[_dist<T>]) maximizes Pearson r with
+# L-BFGS-B + autodiff (optimize_free_weights_pearson.py) instead of Spearman rho with DE.
+# The reference tau (leg) is independent of this choice.
 def fcw_dist(fcw):
     m = re.search(r"_dist([0-9.]+)$", fcw)
     return float(m[1]) if m else None
@@ -270,7 +272,7 @@ wildcard_constraints:
     source = r"gtex_protein_coding_redundantTissues|baron_protein_coding|gtex_v11_tx|gtex_v11_tx_gene|gtex_v11_tx_protein_coding_redundantTissues|chess_tx_protein_coding|gtex_v11_tx_protein_coding|gtex_protein_coding",
     leg = LEGS_RE,
     agg_suffix = AGG_SUFFIX_RE,
-    fcw = r"free_cluster_weights(?:_dist[0-9.]+)?",
+    fcw = r"free_cluster_weights(?:_pearson)?(?:_dist[0-9.]+)?",
     method = r"free_cluster_weights"
 
 # figure-path convention is uniform across source/method/agg (no more legacy
@@ -985,9 +987,10 @@ rule optimize_free_cluster_weights_chain:
         best=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains/chain_{{chain}}/best.csv"
     params:
         clusters_arg=lambda wc, input: input.clusters if fcw_dist(wc.fcw) is None else "-",
-        dist_args=lambda wc, input: "" if fcw_dist(wc.fcw) is None else f"{fcw_dist(wc.fcw)} {input.linkage}"
+        dist_args=lambda wc, input: "" if fcw_dist(wc.fcw) is None else f"{fcw_dist(wc.fcw)} {input.linkage}",
+        script=lambda wc: "optimize_free_weights_pearson.py" if "_pearson" in wc.fcw else "optimize_free_weights.py"
     shell:
-        "python3 scripts/optimize_free_weights.py {input.full_gct} {input.ref_tau} {params.clusters_arg} "
+        "python3 scripts/{params.script} {input.full_gct} {input.ref_tau} {params.clusters_arg} "
         "{output.weights} {output.cluster_weights} {output.tau} {output.log} {output.best} {wildcards.chain} {params.dist_args}"
 
 rule combine_free_cluster_weights_chains:
@@ -1001,10 +1004,11 @@ rule combine_free_cluster_weights_chains:
         summary=f"{GENE_SPEC}/{{source}}/{{fcw}}{{agg_suffix}}/{{leg}}/chains_summary.csv"
     params:
         chains_dir=lambda wc: f"{GENE_SPEC}/{wc.source}/{wc.fcw}{wc.agg_suffix}/{wc.leg}/chains",
-        n=lambda wc: fcw_n_chains(wc.source, wc.fcw)
+        n=lambda wc: fcw_n_chains(wc.source, wc.fcw),
+        metric=lambda wc: "best_r" if "_pearson" in wc.fcw else "best_rho"
     shell:
         "python3 scripts/combine_free_weights_chains.py {params.chains_dir} {params.n} "
-        "{output.weights} {output.cluster_weights} {output.tau} {output.summary}"
+        "{output.weights} {output.cluster_weights} {output.tau} {output.summary} {params.metric}"
 
 # ---- plotting: weights bar chart (source-generic script, one rule -- mean and
 # max nest identically under {method}{agg_suffix}/figures/) ----
