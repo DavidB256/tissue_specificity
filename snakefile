@@ -7,7 +7,6 @@ DATA = "/ccb/salz4-4/dbass13/expr_data"
 GCT = f"{DATA}/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_median_tpm.gct.gz"
 TISSUES = list(pd.read_csv(GCT, sep="\t", skiprows=2, nrows=0).columns[2:])
 
-PROCESSED = f"{DATA}/processed"
 GENE_SPEC = f"{DATA}/gene_specificity"
 POSTER_FIGS = f"{DATA}/poster_figs"
 
@@ -493,30 +492,6 @@ rule all:
 
 # ---- model-fit / distribution-comparison section (unchanged; unrelated to the
 # source/gene_filter/agg/method axes above) ----
-
-rule preprocess:
-    input:
-        GCT
-    output:
-        f"{PROCESSED}/log10_tpm_long.parquet"
-    shell:
-        "python3 scripts/preprocess.py {input} {output}"
-
-rule build_expr_matrix:
-    input:
-        GCT
-    output:
-        f"{PROCESSED}/log10_tpm_intersection_matrix.parquet"
-    shell:
-        "python3 scripts/build_expr_matrix.py {input} {output}"
-
-rule build_expr_matrix_allgenes:
-    input:
-        GCT
-    output:
-        f"{PROCESSED}/log10_tpm_allgenes_floored_matrix.parquet"
-    shell:
-        "python3 scripts/build_expr_matrix_allgenes.py {input} {output}"
 
 rule write_methods:
     output:
