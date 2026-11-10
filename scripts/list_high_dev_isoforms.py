@@ -3,7 +3,7 @@ Usage: GCT TX_TAU_CSV WEIGHTS_CSV OUT_CSV [MIN_FRAC=0.1] [MIN_DIFF=1]"""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 gct_path, tau_csv, w_csv, out = sys.argv[1:5]
 MIN_FRAC = float(sys.argv[5]) if len(sys.argv) > 5 else 0.1

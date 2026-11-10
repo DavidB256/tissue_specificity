@@ -14,7 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 from plot_utils import display_label
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_FREE_TAU = sys.argv[2]

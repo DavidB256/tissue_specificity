@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import linkage, cophenet
 from scipy.spatial.distance import squareform
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 IN_UBERON_DISTANCE_CSV = sys.argv[1]
 OUT_CSV = sys.argv[2]

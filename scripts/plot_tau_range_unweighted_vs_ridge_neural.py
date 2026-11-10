@@ -1,5 +1,5 @@
 """plot_tau_range_unweighted_vs_ridge.py restricted to "neural" genes: max-expressing
-tissue (all-tissue, TPM floored) is a Brain_* tissue (matches gls_tau.gene_subset_mask's
+tissue (all-tissue, TPM floored) is a Brain_* tissue (matches tau_utils.gene_subset_mask's
 "maxneural")."""
 import sys
 import pandas as pd
@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from plot_utils import annotate_diag_stats
-from gls_tau import floor_tpm, gene_subset_mask
+from tau_utils import floor_tpm, gene_subset_mask
 
 IN_GCT = sys.argv[1]
 IN_UNWEIGHTED = sys.argv[2]

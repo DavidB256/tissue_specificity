@@ -13,7 +13,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 OUT_PNG, OUT_CSV = sys.argv[1], sys.argv[2]
 N_BOOT, N_THREADS = int(sys.argv[3]), int(sys.argv[4])

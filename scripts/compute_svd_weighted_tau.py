@@ -2,21 +2,21 @@
 x tissue Pearson correlation of log10(TPM+1)) as R = U diag(s) U.T, project phi = U.T @
 ones(n), solve w = U @ (phi / max(s, s_floor)), normalize w /= w.sum(). s_floor=0
 recovers the unregularized inverse-correlation solution R^-1 1 exactly (see
-gls_tau.diag_reg_inv_corr_weights);
+tau_utils.diag_reg_inv_corr_weights);
 flooring small eigenvalues suppresses the blow-up they'd otherwise cause without
 uniformly shrinking all of R toward I the way diagonal regularization does (see
-gls_tau.svd_weights). Regularized weights use the smallest s_floor that makes every
-weight positive (gls_tau.svd_floor_search, same bisection idea as
+tau_utils.svd_weights). Regularized weights use the smallest s_floor that makes every
+weight positive (tau_utils.svd_floor_search, same bisection idea as
 compute_weighted_tau.py's diag_reg_lambda_search). Contrasted with the free/free_cluster methods
 (optimize_free_weights.py): svd weights are closed-form from R alone -- no numerical
 optimization, no reference tau needed. TPM<1 floored to 0 before any computation. R is
 restricted to genes with TPM>=1 in at least one tissue (see
-gls_tau.tissue_corr_expressed_only). tau_svd (unregularized, unbounded below) is
+tau_utils.tissue_corr_expressed_only). tau_svd (unregularized, unbounded below) is
 left-censored at -1 to drop runaway outliers we don't care about."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr_expressed_only, svd_weights, svd_floor_search, weighted_tau, floor_tpm, censor_floor
+from tau_utils import tissue_corr_expressed_only, svd_weights, svd_floor_search, weighted_tau, floor_tpm, censor_floor
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]

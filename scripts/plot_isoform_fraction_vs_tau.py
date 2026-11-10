@@ -18,7 +18,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 IN_GCT = sys.argv[1]
 IN_TX_TAU_CSV = sys.argv[2]

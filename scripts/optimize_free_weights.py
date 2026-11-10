@@ -28,7 +28,7 @@ import pandas as pd
 from scipy.stats import rankdata
 from scipy.optimize import differential_evolution
 from scipy.cluster.hierarchy import fcluster
-from gls_tau import weighted_tau, floor_tpm, log_tpm
+from tau_utils import weighted_tau, floor_tpm, log_tpm
 
 FULL_GCT = sys.argv[1]
 REF_TAU_CSV = sys.argv[2]
@@ -73,7 +73,7 @@ print(f"tissues={n_tissues} dims={n_dims} genes={len(genes)} valid_genes={valid.
 
 # weighted_tau recomputes max/argmax/the full (1-mat/max) term every call even though
 # none of those depend on w -- precompute once (10x speedup, verified bit-identical to
-# gls_tau.weighted_tau) since DE needs hundreds of thousands of evaluations.
+# tau_utils.weighted_tau) since DE needs hundreds of thousands of evaluations.
 log_valid = log_tpm(mat_valid)  # tau is always computed on log10(TPM+1)
 max_i_valid = log_valid.max(axis=1)
 argmax_idx_valid = log_valid.argmax(axis=1)

@@ -24,7 +24,7 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import fcluster
-from gls_tau import weighted_tau, floor_tpm
+from tau_utils import weighted_tau, floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_LINKAGE_CSV = sys.argv[2]

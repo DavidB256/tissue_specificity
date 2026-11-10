@@ -8,7 +8,7 @@ standard 2-line-header GCT (matches the input format)."""
 import sys
 import gzip
 import pandas as pd
-from gls_tau import agg_tpm
+from tau_utils import agg_tpm
 
 IN_GCT = sys.argv[1]
 OUT_GCT = sys.argv[2]

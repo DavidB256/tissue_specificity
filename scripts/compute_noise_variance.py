@@ -1,7 +1,7 @@
 """Monte Carlo noise-robustness test: perturb log10(TPM+1) with iid N(0, SIGMA) noise
 on every currently-nonzero (TPM>=1, post floor_tpm) entry of the full base_gct --
 entries already floored to 0 (TPM<1) are left untouched, and noisy values that drop
-below the TPM>=1 threshold are NOT re-floored (see gls_tau.apply_nonzero_log_noise).
+below the TPM>=1 threshold are NOT re-floored (see tau_utils.apply_nonzero_log_noise).
 The weight vector (IN_WEIGHTS_CSV) is frozen at its already-fitted value -- not refit
 per replicate, since it's an aggregate statistic over the whole gene set and
 insensitive to per-cell noise at this scale (see applying_noise.md). Reports the plain
@@ -10,7 +10,7 @@ correction -- these are iid noise draws, not delete-1 subsamples)."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import floor_tpm, apply_nonzero_log_noise, weighted_tau
+from tau_utils import floor_tpm, apply_nonzero_log_noise, weighted_tau
 
 FULL_GCT = sys.argv[1]
 IN_WEIGHTS_CSV = sys.argv[2]

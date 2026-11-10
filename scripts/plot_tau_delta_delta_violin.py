@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_1samp
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 from plot_utils import display_label
 
 IN_GCT = sys.argv[1]

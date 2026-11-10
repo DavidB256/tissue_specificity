@@ -4,7 +4,7 @@ Usage: HITS_CSV GCT WEIGHTS_CSV GTF OUT_CSV [MIN_HITS=2]"""
 import sys
 import re
 import pandas as pd
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 hits_csv, gct_path, w_csv, gtf, out = sys.argv[1:6]
 MIN_HITS = int(sys.argv[6]) if len(sys.argv) > 6 else 2

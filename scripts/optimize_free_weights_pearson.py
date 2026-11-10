@@ -14,7 +14,7 @@ import torch
 from scipy.stats import rankdata, spearmanr
 from scipy.optimize import minimize
 from scipy.cluster.hierarchy import fcluster
-from gls_tau import weighted_tau, floor_tpm, log_tpm
+from tau_utils import weighted_tau, floor_tpm, log_tpm
 
 FULL_GCT = sys.argv[1]
 REF_TAU_CSV = sys.argv[2]

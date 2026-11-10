@@ -66,7 +66,7 @@ wildcard_constraints:
 #       closed-form (compute_weighted_tau.py) from the tissue x tissue
 #       correlation matrix; margin (compute_margin_weighted_tau.py) is
 #       closed-form directly from the expression matrix, no correlation matrix
-#       at all (gls_tau.margin_weights). Both diag_reg_inv_corr and margin are
+#       at all (tau_utils.margin_weights). Both diag_reg_inv_corr and margin are
 #       agg/leg-independent (no leg/agg-specific weight fit needed).
 # ============================================================================
 
@@ -1086,7 +1086,7 @@ rule plot_tau_diag_reg_inv_corr_scenarios:
         "tau_weighted_diag_reg_inv_corr diagonal-regularized-inverse-corr"
 
 # ---- margin: closed-form weighting directly from the expression matrix (no
-# correlation matrix at all, see gls_tau.margin_weights) applied to the full
+# correlation matrix at all, see tau_utils.margin_weights) applied to the full
 # base_gct, parallel to diag_reg_inv_corr/free/free_cluster but agg/leg-independent
 # and reference-free. Max-agg only for now, same as diag_reg_inv_corr. ----
 
@@ -1119,7 +1119,7 @@ rule plot_tau_margin_scenarios:
         "tau_weighted_margin margin-weighted"
 
 # ---- noise robustness: Monte Carlo perturbation of log10(TPM+1) (see
-# gls_tau.apply_nonzero_log_noise, which clips noisy TPM at 0), weights frozen at
+# tau_utils.apply_nonzero_log_noise, which clips noisy TPM at 0), weights frozen at
 # their already-fitted value (not refit per replicate -- see applying_noise.md).
 # free_cluster_weights_max at each source's headline leg (CROSSING_THRESHOLD_LEG),
 # sigma=0.5 (an earlier sigma=0.1 pass was retired in favor of this higher-sigma

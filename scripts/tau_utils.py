@@ -1,6 +1,6 @@
-"""Shared diag_reg_inv_corr ("diagonal-regularized inverse correlation") tissue-
-weighting + weighted-tau helpers, used by compute_weighted_tau.py and
-compute_tau_stability.py."""
+"""Shared tau helpers (floor_tpm, log_tpm, weighted_tau) plus tissue-correlation and
+tissue-weighting functions (diag_reg_inv_corr, svd, margin); imported by most scripts.
+(Formerly gls_tau.py, from the retired GLS weighting.)"""
 import numpy as np
 
 

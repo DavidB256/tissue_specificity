@@ -12,7 +12,7 @@ suffices."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr, floor_tpm
+from tau_utils import tissue_corr, floor_tpm
 
 IN_GCT = sys.argv[1]
 OUT_CORR_CSV = sys.argv[2]

@@ -15,7 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from matplotlib.ticker import MultipleLocator
-from gls_tau import tissue_corr_expressed_only, floor_tpm
+from tau_utils import tissue_corr_expressed_only, floor_tpm
 
 IN_GTEX_PC_GCT = sys.argv[1]
 IN_GTEX_TX_PC_GCT = sys.argv[2]

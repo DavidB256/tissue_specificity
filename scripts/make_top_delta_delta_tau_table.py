@@ -6,7 +6,7 @@ the full and alternate (collapsed) scenarios."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_ONEBRAIN_FREE_TAU = sys.argv[2]

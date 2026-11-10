@@ -1,4 +1,4 @@
-"""Weighted tau using margin weights (see gls_tau.margin_weights): each tissue's
+"""Weighted tau using margin weights (see tau_utils.margin_weights): each tissue's
 weight is the sum, over genes where it's the top expressor, of the margin to the
 runner-up tissue. Redundant tissues (correlated groups) rarely win by a wide margin
 and so accumulate little weight; distinctive tissues win decisively and accumulate
@@ -10,7 +10,7 @@ TPM<1 floored to 0 before any computation."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import margin_weights, weighted_tau, floor_tpm
+from tau_utils import margin_weights, weighted_tau, floor_tpm
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]

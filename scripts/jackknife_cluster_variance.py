@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
 from scipy.optimize import differential_evolution
-from gls_tau import weighted_tau, floor_tpm, log_tpm, agg_tpm
+from tau_utils import weighted_tau, floor_tpm, log_tpm, agg_tpm
 
 FULL_GCT = sys.argv[1]
 CLUSTERS_CSV = sys.argv[2]

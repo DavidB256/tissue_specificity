@@ -1,5 +1,5 @@
 """Vertical bar chart of the margin per-tissue weight (weight_margin, see
-gls_tau.margin_weights), sorted descending. Tissues colored by whether they belong to
+tau_utils.margin_weights), sorted descending. Tissues colored by whether they belong to
 a multi-member cluster at the clustering threshold (cluster_size>1) vs a singleton
 cluster, same convention as plot_free_weights.py / plot_diag_reg_inv_corr_weights.py."""
 import sys

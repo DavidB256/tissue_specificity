@@ -1,5 +1,5 @@
 """List "neural" genes (max-expressing tissue, all-tissue floored TPM, is a Brain_*
-tissue -- gls_tau.gene_subset_mask's "maxneural") whose tau crosses THRESHOLD going
+tissue -- tau_utils.gene_subset_mask's "maxneural") whose tau crosses THRESHOLD going
 from tau_unweighted to tau_free_weighted (same crossing convention as
 list_crossing_threshold_genes.py). For each crossing gene, reports brain_frac (its
 total linear floor_tpm'd expression's share sitting in Brain_* tissues) plus tissue-
@@ -11,7 +11,7 @@ Args: IN_GCT IN_TAU_CSV IN_NAME_MAP_CSV THRESHOLD OUT_CSV"""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import floor_tpm, gene_subset_mask
+from tau_utils import floor_tpm, gene_subset_mask
 
 IN_GCT = sys.argv[1]
 IN_TAU_CSV = sys.argv[2]

@@ -18,7 +18,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_rand_score
 from umap import UMAP
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 IN_CELL_TPM_CSV = sys.argv[1]
 OUT_PNG = sys.argv[2]

@@ -1,6 +1,6 @@
 """plot_tau_range_unweighted_vs_ridge.py restricted to "liver" genes: max-expressing
 tissue (all-tissue, TPM floored) is a Liver_* tissue (same logic as
-gls_tau.gene_subset_mask's "maxneural", but for Liver_* instead of Brain_*)."""
+tau_utils.gene_subset_mask's "maxneural", but for Liver_* instead of Brain_*)."""
 import sys
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from plot_utils import annotate_diag_stats
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_UNWEIGHTED = sys.argv[2]

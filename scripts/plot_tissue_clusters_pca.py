@@ -1,5 +1,5 @@
 """PCA of tissues in raw expression space (log10(TPM+1), TPM<1->0, genes with TPM>=1
-in at least one tissue -- same gene set as gls_tau.tissue_corr_expressed_only, so this
+in at least one tissue -- same gene set as tau_utils.tissue_corr_expressed_only, so this
 PCA lives in the same space the clustering (compute_tissue_correlation.py ->
 compute_tau_cluster_weighted.py) was built from), colored by cluster_id from
 tissue_clusters.csv. Centered-only (not standardized), same convention as
@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 IN_GCT = sys.argv[1]
 IN_CLUSTERS_CSV = sys.argv[2]

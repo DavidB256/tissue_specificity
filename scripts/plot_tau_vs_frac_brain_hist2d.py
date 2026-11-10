@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from matplotlib.colors import Normalize, to_rgba
 from matplotlib.cm import ScalarMappable
-from gls_tau import floor_tpm
+from tau_utils import floor_tpm
 
 COLOR_0, COLOR_1 = "dimgray", "lightgray"
 

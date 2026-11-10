@@ -1,6 +1,6 @@
 """Vertical bar chart of the diag_reg_inv_corr ("diagonal-regularized inverse
 correlation") per-tissue weight (weight_diag_reg_inv_corr, see compute_weighted_tau.py
-/ gls_tau.diag_reg_lambda_search), sorted descending. Tissues colored by whether they
+/ tau_utils.diag_reg_lambda_search), sorted descending. Tissues colored by whether they
 belong to a multi-member cluster at the clustering threshold (cluster_size>1) vs a
 singleton cluster, same convention as plot_free_weights.py. Weight axis is not fixed
 to [0, 1] -- these weights aren't bounded that way."""

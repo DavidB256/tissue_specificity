@@ -1,7 +1,7 @@
 """Tissue x tissue correlation matrix (human GTEx only) + hierarchical clustering.
 TPM<1 rounded down to 0 before computing correlation (matches TPM>=1 expression floor
 used elsewhere in the pipeline). Restricted to genes with TPM>=1 in at least one tissue
-(see gls_tau.tissue_corr_expressed_only). Correlation on log10(TPM+1) -- pearson
+(see tau_utils.tissue_corr_expressed_only). Correlation on log10(TPM+1) -- pearson
 (default) or spearman, see optional 4th CLI arg.
 Clustering distance = 1 - correlation, average linkage."""
 import sys
@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
-from gls_tau import tissue_corr_expressed_only, floor_tpm
+from tau_utils import tissue_corr_expressed_only, floor_tpm
 
 IN_GCT = sys.argv[1]
 OUT_CORR_CSV = sys.argv[2]

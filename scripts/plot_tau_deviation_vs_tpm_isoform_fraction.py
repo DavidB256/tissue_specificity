@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 OUT_PNG = sys.argv[1]
 SOURCES = [a.split(":") for a in sys.argv[2:]]

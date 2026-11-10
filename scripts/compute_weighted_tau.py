@@ -4,17 +4,17 @@ regularized inverse correlation") weights that account for cross-tissue correlat
 independent weight in the specificity average. R = tissue x tissue Pearson
 correlation of log10(TPM+1), computed across genes. Weights w solve R_lambda w = 1
 (R_lambda = (1-lambda)*R + lambda*I) at the smallest lambda that makes every weight
-positive (see gls_tau.diag_reg_lambda_search); w=1 for every tissue recovers
+positive (see tau_utils.diag_reg_lambda_search); w=1 for every tissue recovers
 unweighted tau exactly when R=I, so no extra rescaling is needed. The unregularized
 (lambda=0) solve is not reported on its own -- it routinely produces negative weights
 under multicollinearity, which is not useful for this application. Ties for a gene's
 max-expressing tissue go to the first occurrence (np.argmax default). TPM<1 floored to
 0 before any computation. R is restricted to genes with TPM>=1 in at least one tissue
-(see gls_tau.tissue_corr_expressed_only)."""
+(see tau_utils.tissue_corr_expressed_only)."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import tissue_corr_expressed_only, diag_reg_lambda_search, weighted_tau, floor_tpm
+from tau_utils import tissue_corr_expressed_only, diag_reg_lambda_search, weighted_tau, floor_tpm
 
 IN_GCT = sys.argv[1]
 OUT_TAU_CSV = sys.argv[2]

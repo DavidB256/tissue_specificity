@@ -7,7 +7,7 @@ gene_total, from the base GCT, tx_total>0 only)."""
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 IN_GCT = sys.argv[1]
 IN_BOOTSTRAP_TX_TAU_CSV = sys.argv[2]

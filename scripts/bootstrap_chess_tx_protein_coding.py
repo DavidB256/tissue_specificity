@@ -30,7 +30,7 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 IN_PC_GCT = sys.argv[1]
 IN_TISSUE_STATS_CSV = sys.argv[2]

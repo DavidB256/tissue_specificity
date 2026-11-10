@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
-from gls_tau import tissue_corr_expressed_only, floor_tpm
+from tau_utils import tissue_corr_expressed_only, floor_tpm
 from tree_compare_utils import make_scenario, compare_all_scenarios, cluster_count_curve
 
 IN_GTEX_PC_GCT = sys.argv[1]

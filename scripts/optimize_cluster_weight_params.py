@@ -15,7 +15,7 @@ import pandas as pd
 from scipy.cluster.hierarchy import fcluster
 from scipy.stats import spearmanr
 from scipy.optimize import differential_evolution
-from gls_tau import weighted_tau, floor_tpm
+from tau_utils import weighted_tau, floor_tpm
 
 FULL_GCT = sys.argv[1]
 FULL_LINKAGE = sys.argv[2]

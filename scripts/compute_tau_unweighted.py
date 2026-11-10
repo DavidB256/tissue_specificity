@@ -7,7 +7,7 @@ candidate-call that might be noise, so a low-but-real TPM isn't treated as zero.
 import sys
 import numpy as np
 import pandas as pd
-from gls_tau import weighted_tau
+from tau_utils import weighted_tau
 
 IN_GCT = sys.argv[1]
 OUT_CSV = sys.argv[2]
